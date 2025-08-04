@@ -7,7 +7,7 @@ import time
 import threading
 import sys
 import requests
-import math # Import math for logarithmic scaling
+import math
 from flask import Flask, jsonify, request
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
@@ -24,7 +24,7 @@ class AxiomNode:
     """
     A class representing a single, complete Axiom node.
     It handles autonomous learning, P2P synchronization, API requests,
-    peer reputations, and anonymous query relaying.
+    peer reputations, anonymous query relaying, and DAO governance.
     """
     def __init__(self, host='0.0.0.0', port=5000, bootstrap_peer=None):
         self.host = host
@@ -35,10 +35,17 @@ class AxiomNode:
         self.peers = {} 
         if bootstrap_peer:
             self.peers[bootstrap_peer] = {
-                "reputation": 0.5, # Start with a neutral-to-positive score
+                "reputation": 0.5,
                 "first_seen": datetime.utcnow().isoformat(),
                 "last_seen": datetime.utcnow().isoformat()
             }
+
+        # --- DAO GOVERNANCE DATA STRUCTURE ---
+        # A simple in-memory dictionary to hold active proposals.
+        # In a production system, this would be more persistent.
+        # Structure: {"AIP-001": {"text": "...", "proposer": "...", "votes": {}}}
+        self.active_proposals = {}
+        # ------------------------------------
 
         self.api_app = Flask(__name__)
         self.thread_pool = ThreadPoolExecutor(max_workers=10)
@@ -49,7 +56,7 @@ class AxiomNode:
         """A centralized method to add new peers or update the 'last_seen' timestamp of existing ones."""
         if peer_url and peer_url not in self.peers and peer_url != self.self_url:
             self.peers[peer_url] = {
-                "reputation": 0.1, # New peers start with low reputation
+                "reputation": 0.1,
                 "first_seen": datetime.utcnow().isoformat(),
                 "last_seen": datetime.utcnow().isoformat()
             }
@@ -58,45 +65,32 @@ class AxiomNode:
              self.peers[peer_url]['last_seen'] = datetime.utcnow().isoformat()
 
     def _update_reputation(self, peer_url, sync_status, new_facts_count):
-        """
-        Adjusts a peer's reputation score based on the result of a sync attempt.
-        This is the core of the Sybil resistance mechanism.
-        """
+        """Adjusts a peer's reputation score based on the result of a sync attempt."""
         if peer_url not in self.peers:
             return
 
-        # Define reputation adjustments
         REP_PENALTY_CONNECTION_FAILED = 0.1
-        REP_REWARD_SUCCESS_UPTIME = 0.02 # Small reward for just being online
-        REP_REWARD_NEW_FACTS_BASE = 0.1 # Base reward for sharing any number of new facts
+        REP_REWARD_SUCCESS_UPTIME = 0.02
+        REP_REWARD_NEW_FACTS_BASE = 0.1
         
         current_rep = self.peers[peer_url]['reputation']
 
         if sync_status == 'CONNECTION_FAILED' or sync_status == 'SYNC_ERROR':
-            # Penalize offline or faulty nodes heavily.
             new_rep = current_rep - REP_PENALTY_CONNECTION_FAILED
         elif sync_status == 'SUCCESS_UP_TO_DATE':
-            # Reward stable, online nodes to encourage uptime.
             new_rep = current_rep + REP_REWARD_SUCCESS_UPTIME
         elif sync_status == 'SUCCESS_NEW_FACTS':
-            # Reward nodes that contribute new knowledge.
-            # The reward scales logarithmically with the number of new facts.
-            # This gives a large initial boost but has diminishing returns,
-            # preventing a single node from gaining too much reputation too quickly.
             log_reward = math.log10(1 + new_facts_count)
             new_rep = current_rep + REP_REWARD_NEW_FACTS_BASE + (log_reward * 0.1)
         else:
-            new_rep = current_rep # No change for unknown status
+            new_rep = current_rep
 
-        # Clamp the reputation score between 0.0 and 1.0
         self.peers[peer_url]['reputation'] = max(0.0, min(1.0, new_rep))
-        #print(f"[Reputation] Updated {peer_url} reputation to {self.peers[peer_url]['reputation']:.4f}")
 
     def _configure_api_routes(self):
         """A private method to define all the API endpoints for this node."""
-        # --- This entire method remains the same as your last provided version ---
-        # It includes /query, /get_peers, /get_fact_ids, /get_facts_by_id, and /anonymous_query
         
+        # --- PREVIOUS ENDPOINTS (Unchanged) ---
         @self.api_app.route('/query', methods=['GET'])
         def handle_query():
             search_term = request.args.get('term', '')
@@ -141,17 +135,82 @@ class AxiomNode:
                     )
                     response.raise_for_status()
                     return jsonify(response.json())
-                except requests.exceptions.RequestException as e:
+                except requests.exceptions.RequestException:
                     print(f"[Anonymity] Relay failed: Could not connect to {next_node_url}.")
                     return jsonify({"error": f"Relay node {next_node_url} is offline."}), 504
 
+        # --- NEW: DAO GOVERNANCE ENDPOINTS ---
+        
+        @self.api_app.route('/dao/proposals', methods=['GET'])
+        def handle_get_proposals():
+            """Returns a list of all active proposals for voting."""
+            return jsonify(self.active_proposals)
+
+        @self.api_app.route('/dao/submit_proposal', methods=['POST'])
+        def handle_submit_proposal():
+            """Allows a high-reputation node to sponsor and submit a new AIP."""
+            data = request.json
+            # The proposer's URL should be verified, e.g., via a signed message in a real system.
+            proposer_url = data.get('proposer_url')
+            aip_id = data.get('aip_id') # e.g., "AIP-001"
+            aip_text = data.get('aip_text')
+
+            if not all([proposer_url, aip_id, aip_text]):
+                return jsonify({"status": "error", "message": "Missing proposer_url, aip_id, or aip_text."}), 400
+
+            # Check if the proposer has enough reputation to sponsor an AIP (as per the Charter).
+            if proposer_url in self.peers and self.peers[proposer_url]['reputation'] >= 0.75:
+                if aip_id not in self.active_proposals:
+                    self.active_proposals[aip_id] = {
+                        "text": aip_text,
+                        "proposer": proposer_url,
+                        "votes": {} # {voter_url: {"choice": str, "weight": float}}
+                    }
+                    # In a real network, this new proposal would be gossiped to all other peers.
+                    print(f"[DAO] New proposal submitted: {aip_id}")
+                    return jsonify({"status": "success", "message": f"AIP {aip_id} submitted."})
+                else:
+                    return jsonify({"status": "error", "message": "Proposal ID already exists."}), 409
+            else:
+                return jsonify({"status": "error", "message": "Proposer has insufficient reputation or is unknown."}), 403
+
+        @self.api_app.route('/dao/submit_vote', methods=['POST'])
+        def handle_submit_vote():
+            """Allows any known node to cast a reputation-weighted vote on an active AIP."""
+            data = request.json
+            voter_url = data.get('voter_url')
+            aip_id = data.get('aip_id')
+            vote_choice = data.get('choice') # e.g., "yes", "no", "abstain"
+
+            if not all([voter_url, aip_id, vote_choice]):
+                return jsonify({"status": "error", "message": "Missing voter_url, aip_id, or choice."}), 400
+
+            if aip_id not in self.active_proposals:
+                return jsonify({"status": "error", "message": "Proposal ID not found."}), 404
+            
+            # A node must be a known peer to vote.
+            voter_data = self.peers.get(voter_url)
+            if not voter_data:
+                return jsonify({"status": "error", "message": "Voter is an unknown peer."}), 403
+            
+            # Get the voter's reputation score. This is their voting power.
+            voter_reputation = voter_data.get('reputation', 0)
+            
+            # Record the vote along with its weight.
+            self.active_proposals[aip_id]['votes'][voter_url] = {
+                "choice": vote_choice,
+                "weight": voter_reputation
+            }
+            # This vote would also be gossiped to other peers to ensure vote consistency.
+            print(f"[DAO] Vote recorded for {aip_id} from {voter_url} with weight {voter_reputation:.4f}")
+            return jsonify({"status": "success", "message": "Vote recorded."})
+
     def _background_loop(self):
         """The combined background thread, now fully reputation-aware."""
+        # This entire method is unchanged from the previous version.
         print("[Background Thread] Starting continuous cycle.")
         while True:
-            # --- SCRUBBER LOGIC ---
             print("\n====== [AXIOM ENGINE CYCLE START] ======")
-            # ... (omitted for brevity, this part is unchanged) ...
             topics = zeitgeist_engine.get_trending_topics(top_n=1)
             if topics:
                 for topic in topics:
@@ -160,20 +219,13 @@ class AxiomNode:
                         crucible.extract_facts_from_text(item['source_url'], item['content'])
             print("====== [AXIOM ENGINE CYCLE FINISH] ======")
 
-            # --- P2P SYNC LOGIC (Reputation-Aware) ---
-            
-            # Sort peers by reputation in descending order before syncing.
             sorted_peers = sorted(self.peers.items(), key=lambda item: item[1]['reputation'], reverse=True)
             
             print(f"\n[P2P Sync] Beginning sync process with {len(sorted_peers)} known peers (highest reputation first).")
             for peer_url, peer_data in sorted_peers:
-                # The sync_with_peer function now returns a status report.
                 sync_status, new_facts_count = sync_with_peer(self, peer_url)
-                
-                # We use the status report to update the peer's reputation.
                 self._update_reputation(peer_url, sync_status, new_facts_count)
             
-            # Periodically print the reputation list for debugging/observation.
             print("\n--- Current Peer Reputations ---")
             if not self.peers:
                 print("No peers known.")
@@ -182,7 +234,6 @@ class AxiomNode:
                     print(f"  - {peer}: {data['reputation']:.4f}")
             print("------------------------------")
             
-            # --- REST PERIOD ---
             print(f"\n[Background Thread] Sleeping for 10 minutes before next cycle.")
             time.sleep(600)
 
