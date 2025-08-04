@@ -1,6 +1,7 @@
 # Axiom - p2p.py
-# This module handles all peer-to-peer networking logic.
-# CORRECTED: No longer inserts facts directly. Returns them as leads.
+# Copyright (C) 2025 The Axiom Contributors
+# This program is licensed under the Peer Production License (PPL).
+# See the LICENSE file for full details.
 
 import requests
 

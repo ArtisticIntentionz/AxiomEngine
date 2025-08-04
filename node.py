@@ -1,4 +1,4 @@
-# The Axiom Node - FINAL, SIMPLIFIED GUNICORN-COMPATIBLE VERSION
+# Axiom - node.py
 # Copyright (C) 2025 The Axiom Contributors
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.

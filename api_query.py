@@ -1,7 +1,7 @@
 # Axiom - api_query.py
 # Copyright (C) 2025 The Axiom Contributors
-# This program is licensed under the Peer Production License.
-# See the LICENSE file for details.
+# This program is licensed under the Peer Production License (PPL).
+# See the LICENSE file for full details.
 
 import sqlite3
 
