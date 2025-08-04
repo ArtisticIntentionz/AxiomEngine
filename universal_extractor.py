@@ -1,13 +1,10 @@
-# Axiom - universal _extractor.py
-# Copyright (C) 2025 The Axiom Contributors
-# This program is licensed under the Peer Production License.
-# See the LICENSE file for details.
+# Axiom - universal_extractor.py
+# Finds authoritative web sources for a topic and extracts clean, main content.
 
 from googlesearch import search
 import trafilatura
 
 # A curated list of domains the system trusts for high-quality information.
-# This helps filter out blogs, social media, and low-quality content.
 TRUSTED_DOMAINS = [
     'wikipedia.org', 'reuters.com', 'apnews.com', 'bbc.com', 'nytimes.com',
     'wsj.com', 'britannica.com', '.gov', '.edu', 'forbes.com', 'nature.com'
@@ -25,8 +22,15 @@ def find_and_extract(topic, max_sources=3):
     
     try:
         # Perform the search and filter the results.
-        all_urls = search(query, num=10, stop=10, pause=1.0)
-        urls = [url for url in all_urls if any(domain in url for domain in TRUSTED_DOMAINS)]
+        # --- THIS IS THE FINAL CORRECTED LINE ---
+        # All unsupported arguments ('num', 'stop', 'pause') have been removed.
+        # The 'num_results' argument is used to control the number of search results.
+        all_urls = search(query, num_results=10)
+        
+        # The search function returns a generator. We convert it to a list to work with it.
+        urls_list = list(all_urls)
+        
+        urls = [url for url in urls_list if any(domain in url for domain in TRUSTED_DOMAINS)]
         
         if not urls:
             print(f"[Pathfinder] No trusted sources found for '{topic}'.")

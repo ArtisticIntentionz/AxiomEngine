@@ -1,75 +1,61 @@
 # Axiom - p2p.py
-# Copyright (C) 2025 The Axiom Contributors
-# This program is licensed under the Peer Production License.
-# See the LICENSE file for details.
+# This module handles all peer-to-peer networking logic.
+# CORRECTED: No longer inserts facts directly. Returns them as leads.
 
 import requests
-from ledger import insert_fact
-from api_query import search_ledger_for_api
 
-def get_all_fact_ids_from_ledger():
+def get_all_fact_ids_from_ledger(search_ledger_for_api_func):
     """A helper function to get a set of all fact_ids for quick comparison."""
-    all_facts = search_ledger_for_api('')
+    # We must include uncorroborated facts for sync.
+    all_facts = search_ledger_for_api_func('', include_uncorroborated=True) 
     return {fact['fact_id'] for fact in all_facts}
 
 def sync_with_peer(self_node, peer_url):
     """
-    The core synchronization logic. It now returns a status report for reputation adjustment.
+    The core synchronization logic. Now returns new facts as "leads" instead of inserting them.
     
-    Returns a tuple: (status_code, new_facts_count)
-    status_code can be:
-        'SUCCESS_NEW_FACTS' - Synced and downloaded new facts.
-        'SUCCESS_UP_TO_DATE' - Synced, but ledger was already current.
-        'CONNECTION_FAILED' - Could not connect to the peer.
-        'SYNC_ERROR' - A different error occurred during the process.
+    Returns a tuple: (status_code, list_of_new_facts)
     """
     print(f"\n--- [P2P Sync] Attempting to sync with peer: {peer_url} ---")
     
     try:
-        # --- Step 1: Gossip - Get the peer's list of peers ---
+        # 1. Gossip - Get the peer's list of peers.
         response = requests.get(f"{peer_url}/get_peers", timeout=5)
         response.raise_for_status()
-        peers_of_peer = response.json().get('peers', {}) # Expecting a dictionary now
-        
-        # Add any newly discovered peers to our own list using our node's method.
+        peers_of_peer = response.json().get('peers', {})
         for new_peer_url in peers_of_peer.keys():
             self_node.add_or_update_peer(new_peer_url)
 
-        # --- Step 2: Knowledge Sync - Compare Fact IDs ---
+        # 2. Compare Fact IDs
         response = requests.get(f"{peer_url}/get_fact_ids", timeout=5)
         response.raise_for_status()
         peer_fact_ids = set(response.json().get('fact_ids', []))
         
-        our_fact_ids = get_all_fact_ids_from_ledger()
-        
+        # Use the node's own search function, passed via self_node reference
+        our_fact_ids = get_all_fact_ids_from_ledger(self_node.search_ledger_for_api)
         missing_ids = peer_fact_ids - our_fact_ids
         
-        # --- Step 3: Act based on comparison ---
         if not missing_ids:
             print(f"[P2P Sync] Ledger is already up-to-date with {peer_url}.")
-            return ('SUCCESS_UP_TO_DATE', 0)
+            return ('SUCCESS_UP_TO_DATE', [])
 
         print(f"[P2P Sync] Found {len(missing_ids)} new facts to download from {peer_url}.")
         
-        # Request the full data for only the facts we are missing.
+        # 3. Download full fact data.
         response = requests.post(f"{peer_url}/get_facts_by_id", json={'fact_ids': list(missing_ids)}, timeout=10)
         response.raise_for_status()
         new_facts = response.json().get('facts', [])
         
         if not new_facts:
-            # This can happen if there's a race condition or error on the peer's side.
-            return ('SYNC_ERROR', 0)
+            return ('SYNC_ERROR', [])
 
-        # Add each new fact to our own ledger.
-        for fact in new_facts:
-            insert_fact(fact['fact_id'], fact['fact_content'], fact['source_url'])
-        
-        print(f"[P2P Sync] Successfully downloaded and stored {len(new_facts)} new facts.")
-        return ('SUCCESS_NEW_FACTS', len(new_facts))
+        print(f"[P2P Sync] Successfully downloaded {len(new_facts)} facts as new leads.")
+        # Return the facts so the main loop can process them as leads.
+        return ('SUCCESS_NEW_FACTS', new_facts)
 
     except requests.exceptions.RequestException:
         print(f"[P2P Sync] ERROR: Could not connect to peer {peer_url}. Peer may be offline.")
-        return ('CONNECTION_FAILED', 0)
+        return ('CONNECTION_FAILED', [])
     except Exception as e:
         print(f"[P2P Sync] ERROR: An unexpected error occurred during sync: {e}")
-        return ('SYNC_ERROR', 0)
+        return ('SYNC_ERROR', [])
