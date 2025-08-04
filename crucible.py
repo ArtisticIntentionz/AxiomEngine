@@ -5,57 +5,56 @@
 
 import spacy
 import hashlib
-from ledger import insert_fact # Imports the function to save facts to the database.
+import re
+# --- UPDATED LEDGER IMPORTS ---
+from ledger import insert_uncorroborated_fact, find_similar_fact_from_different_domain, update_fact_corroboration
 
-# Load the spaCy English language model once when the module is loaded.
-# This is efficient as it prevents reloading the model every time.
 NLP_MODEL = spacy.load("en_core_web_sm")
-
-# A set of words that often indicate an opinion, not a fact.
-# This helps the AI filter out subjective statements.
 OPINION_WORDS = {'believe', 'think', 'feel', 'seems', 'appears', 'argues', 'suggests', 'perhaps'}
 
 def extract_facts_from_text(source_url, text_content):
     """
-    Uses a Natural Language Processing (NLP) pipeline to analyze text
-    and extract high-quality, objective factual statements.
+    Uses an NLP pipeline to analyze text and applies the Corroboration Rule
+    before saving facts to the ledger.
     """
     print(f"\n--- [The Crucible] Analyzing content from {source_url[:60]}...")
     
     try:
-        # Process the entire text content with the NLP model.
+        # Extract the domain from the source URL for comparison.
+        source_domain_match = re.search(r'https?://(?:www\.)?([^/]+)', source_url)
+        if not source_domain_match:
+            print("[The Crucible] ERROR: Could not parse domain from source URL.")
+            return
+        source_domain = source_domain_match.group(1)
+
         doc = NLP_MODEL(text_content)
         
-        facts_found_in_doc = 0
-        # Iterate through each sentence detected in the document.
+        facts_processed = 0
         for sent in doc.sents:
-            # --- The Crucible's Rules of Verification ---
-
-            # Rule 1: The sentence must have a subject and an object. A simple proxy
-            # is checking for a reasonable length.
+            # --- Verification Rules (Unchanged) ---
             if len(sent.text.split()) < 8 or len(sent.text.split()) > 100:
                 continue
-            
-            # Rule 2: The sentence must contain at least one recognized "Named Entity"
-            # (e.g., a person, organization, place). Facts are about things.
             if not sent.ents:
                 continue
-            
-            # Rule 3: The sentence must NOT contain any subjective opinion words.
             if any(word in sent.text.lower() for word in OPINION_WORDS):
                 continue
-
-            # If a sentence passes all rules, it is considered a potential fact.
+            
+            # --- New Corroboration Logic ---
             fact_content = sent.text.strip().replace('\n', ' ')
             
-            # Create a unique, deterministic ID for this fact by hashing its content.
-            fact_id = hashlib.sha256(fact_content.encode('utf-8')).hexdigest()
+            # Check if a similar fact from a DIFFERENT domain already exists.
+            similar_fact = find_similar_fact_from_different_domain(fact_content, source_domain)
             
-            # Attempt to insert the fact into the ledger.
-            # The ledger function will handle duplicates automatically.
-            if insert_fact(fact_id, fact_content, source_url):
-                facts_found_in_doc += 1
+            if similar_fact:
+                # If it exists, we don't insert a new one. We update the existing one.
+                update_fact_corroboration(similar_fact['fact_id'], source_url)
+            else:
+                # If no similar fact exists, we insert this as a new, uncorroborated fact.
+                fact_id = hashlib.sha256(fact_content.encode('utf-8')).hexdigest()
+                insert_uncorroborated_fact(fact_id, fact_content, source_url)
+            
+            facts_processed += 1
 
-        print(f"[The Crucible] Analysis complete. Stored {facts_found_in_doc} new facts.")
+        print(f"[The Crucible] Analysis complete. Processed {facts_processed} potential facts.")
     except Exception as e:
         print(f"[The Crucible] ERROR: Failed to process text. {e}")
