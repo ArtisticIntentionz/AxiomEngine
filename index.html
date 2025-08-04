@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Axiom - A Decentralized Knowledge Network</title>
+    <style>
+        /* A simple, clean, modern stylesheet */
+        :root {
+            --background-color: #121212;
+            --text-color: #EAEAEA;
+            --primary-color: #00BFFF; /* Deep Sky Blue */
+            --secondary-color: #333333;
+            --card-color: #1E1E1E;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            max-width: 800px;
+            width: 90%;
+            margin: 2rem auto;
+            padding: 1rem;
+        }
+        header {
+            text-align: center;
+            padding: 4rem 1rem;
+            border-bottom: 1px solid var(--secondary-color);
+        }
+        header h1 {
+            font-size: 3.5rem;
+            color: var(--text-color);
+            margin: 0;
+        }
+        header h1 span {
+            color: var(--primary-color);
+        }
+        header p {
+            font-size: 1.2rem;
+            color: #AAAAAA;
+        }
+        section {
+            padding: 3rem 0;
+            border-bottom: 1px solid var(--secondary-color);
+        }
+        h2 {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .card {
+            background-color: var(--card-color);
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        .card h3 {
+            margin-top: 0;
+            font-size: 1.8rem;
+        }
+        .button {
+            display: inline-block;
+            background-color: var(--primary-color);
+            color: var(--background-color);
+            padding: 12px 25px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: transform 0.2s ease;
+            text-align: center;
+        }
+        .button:hover {
+            transform: scale(1.05);
+        }
+        .button.secondary {
+            background-color: transparent;
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+        }
+        .download-grid, .community-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+        footer {
+            text-align: center;
+            padding: 2rem;
+            font-size: 0.9rem;
+            color: #777777;
+        }
+        footer a {
+            color: #999999;
+            text-decoration: none;
+        }
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+
+        <header>
+            <h1>Axiom<span>.</span></h1>
+            <p>A Decentralized Network for Verifiable Truth.</p>
+        </header>
+
+        <main>
+            <!-- The Mission Section -->
+            <section id="mission">
+                <h2>The Mission</h2>
+                <div class="card">
+                    <h3>Rebuilding Reality's Bedrock.</h3>
+                    <p>In an age of misinformation and digital noise, shared truth is decaying. Axiom is a new kind of network—an autonomous, decentralized organism designed to discover, verify, and preserve objective knowledge.</p>
+                    <p>It is not a company, a search engine, or a social media platform. It is a permanent, public utility for truth, owned and operated by its community, and built to be immune to censorship, manipulation, and control.</p>
+                    <a href="#" class="button secondary">Read the Whitepaper &rarr;</a>
+                </div>
+            </section>
+
+            <!-- Download Client Section -->
+            <section id="download">
+                <h2>Get the Axiom Client</h2>
+                <div class="card">
+                    <h3>Access the Network.</h3>
+                    <p>The Axiom Client is your secure, private gateway to the network's collective intelligence. Ask any question, and get a clean, verifiable answer sourced from the entire network, not from a single algorithm. Your curiosity is always protected.</p>
+                    <div class="download-grid">
+                        <a href="#" class="button">Download for macOS</a>
+                        <a href="#" class="button">Download for Windows</a>
+                        <a href="#" class="button">Download for Linux</a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Run a Node Section -->
+            <section id="run-a-node">
+                <h2>Become a Guardian of Truth</h2>
+                <div class="card">
+                    <h3>Run a Node. Strengthen the Network.</h3>
+                    <p>Axiom is powered by a global community of independent node operators. By running a node, you contribute your computer's idle resources to help the network learn, verify, and share knowledge. You become a crucial part of a new digital commonwealth.</p>
+                    <p>All software is open-source and licensed to protect the network from commercial exploitation. Your contribution directly supports a free and permanent public record of truth.</p>
+                    <a href="#" class="button secondary">View on GitHub &rarr;</a>
+                </div>
+            </section>
+
+            <!-- Community Section -->
+            <section id="community">
+                <h2>Join the Community</h2>
+                <div class="card">
+                    <h3>The Future is Collaborative.</h3>
+                    <p>The development and governance of the Axiom protocol are managed by its community. Join the discussion, help shape the future of the network, and connect with others dedicated to building a more truthful digital world.</p>
+                    <div class="community-grid">
+                        <a href="#" class="button">Join our Discord</a>
+                        <a href="#" class="button">Join our Reddit</a>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <footer>
+            <p>The Axiom Protocol is free, open-source software gifted to the world.</p>
+            <p>
+                <a href="#">Whitepaper</a> | 
+                <a href="#">GitHub</a> | 
+                <a href="#">DAO Charter</a>
+            </p>
+            <p>&copy; 2025 The Axiom Contributors. All rights reserved under the PPL.</p>
+        </footer>
+
+    </div>
+
+</body>
+</html>
