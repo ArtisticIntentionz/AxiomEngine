@@ -1,5 +1,7 @@
-# Axiom - universal_extractor.py
-# Finds authoritative web sources for a topic and extracts clean, main content.
+# Axiom - universal _extractor.py
+# Copyright (C) 2025 The Axiom Contributors
+# This program is licensed under the Peer Production License.
+# See the LICENSE file for details.
 
 from googlesearch import search
 import trafilatura
