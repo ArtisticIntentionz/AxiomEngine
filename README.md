@@ -4,7 +4,7 @@ Axiom is a decentralized AI network that autonomously discovers, verifies, and a
 
 # Axiom Engine
 
-![Axiom Logo](https://raw.githubusercontent.com/vicsanity623/AxiomEngine/main/AXIOM_logo.png) <!-- Placeholder for a future logo -->
+![Axiom Logo](https://raw.githubusercontent.com/vicsanity623/AxiomEngine/main/Axiom_logo.PNG) <!-- Placeholder for a future logo -->
 
 **Axiom is a decentralized AI network that autonomously discovers, verifies, and archives objective truth. It creates a permanent, anonymous, and incorruptible public knowledge base, free from corporate and governmental control.**
 
