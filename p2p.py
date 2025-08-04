@@ -1,5 +1,7 @@
 # Axiom - p2p.py
-# This module will handle all peer-to-peer networking logic.
+# Copyright (C) 2025 The Axiom Contributors
+# This program is licensed under the Peer Production License.
+# See the LICENSE file for details.
 
 import requests
 from ledger import insert_fact
