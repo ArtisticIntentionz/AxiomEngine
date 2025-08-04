@@ -1,5 +1,7 @@
 # Axiom - zeitgeist_engine.py
-# Discovers currently relevant topics from global news sources.
+# Copyright (C) 2025 The Axiom Contributors
+# This program is licensed under the Peer Production License.
+# See the LICENSE file for details.
 
 # --- NEW: Import the 'os' library to access environment variables ---
 import os
