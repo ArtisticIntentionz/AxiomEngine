@@ -1,5 +1,7 @@
-# This is the REPLACEMENT for the _configure_api_routes method in node.py
-# The rest of the AxiomNode class remains the same.
+# Axiom - node.py
+# Copyright (C) 2025 The Axiom Contributors
+# This program is licensed under the Peer Production License.
+# See the LICENSE file for details.
 
 def _configure_api_routes(self):
     """A private method to define all the API endpoints for this node."""
