@@ -1,5 +1,7 @@
 # Axiom - crucible.py
-# The AI core that analyzes text to extract and verify objective facts.
+# Copyright (C) 2025 The Axiom Contributors
+# This program is licensed under the Peer Production License.
+# See the LICENSE file for details.
 
 import spacy
 import hashlib
