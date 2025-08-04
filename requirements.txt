@@ -30,7 +30,8 @@ newsapi-python==0.2.7
 # The spaCy English language model is not included in this file.
 # After the above dependencies are installed, it must be downloaded separately by running:
 #
-# python3 -m spacy download en_core_web_sm
+# 
+python3 -m spacy download en_core_web_sm
 #
 
 ------------------------------------------------------------------------------------------------
