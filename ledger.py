@@ -1,5 +1,7 @@
 # Axiom - ledger.py
-# Manages all interactions with the SQLite database.
+# Copyright (C) 2025 The Axiom Contributors
+# This program is licensed under the Peer Production License.
+# See the LICENSE file for details.
 
 import sqlite3
 from datetime import datetime
