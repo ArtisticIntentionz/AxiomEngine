@@ -1,5 +1,7 @@
 # Axiom - api_query.py
-# Provides query logic that returns structured data for API responses.
+# Copyright (C) 2025 The Axiom Contributors
+# This program is licensed under the Peer Production License.
+# See the LICENSE file for details.
 
 import sqlite3
 
