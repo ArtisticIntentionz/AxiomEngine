@@ -1,146 +1,36 @@
+
+
 # Axiom Engine - Core Dependencies
 # --------------------------------
-# To install all dependencies, run:
+# To install all dependencies for this project, run the following command
+# in your terminal from the project's root directory:
+#
 # pip3 install -r requirements.txt
+#
 
+# --- Core Web & Networking ---
+Flask==3.0.3
+gunicorn==22.0.0
+requests==2.31.0
 
-annotated-types==0.7.0
-antlr4-python3-runtime==4.9.3
-archspec @ file:///home/conda/feedstock_root/build_artifacts/archspec_1737352602016/work
-audioread==3.0.1
-babel==2.17.0
-beautifulsoup4==4.13.4
-blinker==1.9.0
-blis==0.7.11
-boltons @ file:///home/conda/feedstock_root/build_artifacts/boltons_1733827268945/work
-Brotli @ file:///Users/runner/miniforge3/conda-bld/brotli-split_1725267521616/work
-catalogue==2.0.10
-certifi @ file:///home/conda/feedstock_root/build_artifacts/certifi_1746569525376/work/certifi
-cffi @ file:///Users/runner/miniforge3/conda-bld/cffi_1725560565029/work
-charset-normalizer @ file:///home/conda/feedstock_root/build_artifacts/charset-normalizer_1746214863626/work
-click==8.2.1
-cloudpathlib==0.21.1
-cloudpickle==3.1.1
-colorama @ file:///home/conda/feedstock_root/build_artifacts/colorama_1733218098505/work
-conda @ file:///Users/runner/miniforge3/conda-bld/conda_1743046506581/work/conda-src
-conda-libmamba-solver @ file:///home/conda/feedstock_root/build_artifacts/conda-libmamba-solver_1742219570693/work/src
-conda-package-handling @ file:///home/conda/feedstock_root/build_artifacts/conda-package-handling_1736345463896/work
-conda_package_streaming @ file:///home/conda/feedstock_root/build_artifacts/conda-package-streaming_1741620732069/work
-confection==0.1.5
-courlan==1.3.2
-cymem==2.0.11
-dateparser==1.2.2
-decorator==5.2.1
-demucs==4.0.1
-distro @ file:///home/conda/feedstock_root/build_artifacts/distro_1734729835256/work
-dora_search==0.1.12
-einops==0.8.1
-en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl#sha256=86cc141f63942d4b2c5fcee06630fd6f904788d2f0ab005cce45aadb8fb73889
-filelock==3.18.0
-Flask==3.1.1
-frozendict @ file:///Users/runner/miniforge3/conda-bld/frozendict_1728841357330/work
-fsspec==2025.7.0
-googlesearch-python==1.3.0
-gunicorn==23.0.0
-h2 @ file:///home/conda/feedstock_root/build_artifacts/h2_1738578511449/work
-hpack @ file:///home/conda/feedstock_root/build_artifacts/hpack_1737618293087/work
-htmldate==1.9.3
-hyperframe @ file:///home/conda/feedstock_root/build_artifacts/hyperframe_1737618333194/work
-idna @ file:///home/conda/feedstock_root/build_artifacts/idna_1733211830134/work
-itsdangerous==2.2.0
-Jinja2==3.1.6
-joblib==1.5.1
-jsonpatch @ file:///home/conda/feedstock_root/build_artifacts/jsonpatch_1733814567314/work
-jsonpointer @ file:///Users/runner/miniforge3/conda-bld/jsonpointer_1725302889955/work
-julius==0.2.7
-jusText==3.0.2
-lameenc==1.8.1
-langcodes==3.5.0
-language_data==1.3.0
-lazy_loader==0.4
-libmambapy @ file:///Users/runner/miniforge3/conda-bld/mamba-split_1746515861348/work/libmambapy
-librosa==0.11.0
-llvmlite==0.44.0
-lxml==5.4.0
-lxml_html_clean==0.4.2
-marisa-trie==1.2.1
-markdown-it-py==3.0.0
-MarkupSafe==3.0.2
-mdurl==0.1.2
-menuinst @ file:///Users/runner/miniforge3/conda-bld/menuinst_1731147002256/work
-mpmath==1.3.0
-msgpack==1.1.1
-murmurhash==1.0.13
-networkx==3.5
+# --- Web Scraping & Data Extraction ---
+googlesearch-python==1.2.4
+trafilatura==1.9.0
+beautifulsoup4==4.12.3
+
+# --- AI & Natural Language Processing ---
+spacy==3.7.4
+
+# --- API Interaction ---
 newsapi-python==0.2.7
-numba==0.61.2
-numpy==1.26.4
-omegaconf==2.3.0
-openunmix==1.3.0
-packaging @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_packaging_1745345660/work
-pgzero==1.2.1
-platformdirs @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_platformdirs_1746710438/work
-pluggy @ file:///home/conda/feedstock_root/build_artifacts/pluggy_1733222765875/work
-pooch==1.8.2
-preshed==3.0.10
-pycosat @ file:///Users/runner/miniforge3/conda-bld/pycosat_1732588447334/work
-pycparser @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_pycparser_1733195786/work
-pydantic==2.11.7
-pydantic_core==2.33.2
-pygame==2.6.1
-Pygments==2.19.2
-PyQt6==6.9.1
-PyQt6-Qt6==6.9.1
-PyQt6_sip==13.10.2
-PySocks @ file:///home/conda/feedstock_root/build_artifacts/pysocks_1733217236728/work
-python-dateutil==2.9.0.post0
-pytz==2025.2
-PyYAML==6.0.2
-regex==2025.7.34
-requests==2.32.4
-retrying==1.4.2
-rich==14.1.0
-ruamel.yaml @ file:///Users/runner/miniforge3/conda-bld/ruamel.yaml_1736248070901/work
-ruamel.yaml.clib @ file:///Users/runner/miniforge3/conda-bld/ruamel.yaml.clib_1728724470051/work
-scikit-learn==1.7.1
-scipy==1.16.1
-setuptools==80.9.0
-shellingham==1.5.4
-six==1.17.0
-smart_open==7.3.0.post1
-soundfile==0.13.1
-soupsieve==2.7
-soxr==0.5.0.post1
-spacy==3.7.5
-spacy-legacy==3.0.12
-spacy-loggers==1.0.5
-srsly==2.5.1
-submitit==1.5.3
-sympy==1.14.0
-thinc==8.2.5
-threadpoolctl==3.6.0
-tkinterdnd2==0.4.3
-tld==0.13.1
-torchaudio==2.2.2
-tqdm @ file:///home/conda/feedstock_root/build_artifacts/tqdm_1735661334605/work
-trafilatura==2.0.0
-treetable==0.2.5
-truststore @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_truststore_1739009763/work
-typer==0.16.0
-typing-inspection==0.4.1
-typing_extensions==4.14.1
-tzlocal==5.3.1
-urllib3 @ file:///home/conda/feedstock_root/build_artifacts/urllib3_1744323578849/work
-wasabi==1.1.3
-weasel==0.4.1
-Werkzeug==3.1.3
-wheel==0.45.1
-wrapt==1.17.2
-zstandard==0.23.0
+
 
 ------------------------------------------------------------------------------------------------
-# AI Language Model (manual download required, follow steps below...)
-
-# After installing the above, run:
-
+# --- NOTE on AI Language Model ---
+# The spaCy English language model is not included in this file.
+# After the above dependencies are installed, it must be downloaded separately by running:
+#
 # python3 -m spacy download en_core_web_sm
+#
+
+------------------------------------------------------------------------------------------------
