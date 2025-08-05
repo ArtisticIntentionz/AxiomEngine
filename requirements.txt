@@ -1,9 +1,7 @@
-
-
 # Axiom Engine - Core Dependencies
 # --------------------------------
-# To install all dependencies for this project, run the following command
-# in your terminal from the project's root directory:
+# To install all dependencies for this project, including the AI model,
+# simply run the following command from the project's root directory:
 #
 # pip3 install -r requirements.txt
 #
@@ -18,20 +16,12 @@ googlesearch-python==1.2.4
 trafilatura==1.9.0
 beautifulsoup4==4.12.3
 
-# --- AI & Natural Language Processing ---
-spacy==3.7.4
-
 # --- API Interaction ---
 newsapi-python==0.2.7
 
+# --- AI & Natural Language Processing ---
+spacy==3.7.4
 
-------------------------------------------------------------------------------------------------
-# --- NOTE on AI Language Model ---
-# The spaCy English language model is not included in this file.
-# After the above dependencies are installed, it must be downloaded separately by running:
-#
-# 
-python3 -m spacy download en_core_web_sm
-#
-
-------------------------------------------------------------------------------------------------
+# Direct link to the required spaCy model.
+# This allows for a fully automated, one-step installation.
+https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl#sha256=86cc141f63942d4b2c5fcee06630fd6f904788d2f0ab005cce45aadb8fb73889
