@@ -1,58 +1,71 @@
 # Axiom - universal_extractor.py
-# Copyright (C) 2025 The Axiom Contributors
-# This program is licensed under the Peer Production License (PPL).
-# See the LICENSE file for full details.
+# --- FINAL, CORRECTED VERSION USING SERPAPI FOR SEARCH AND SCRAPERAPI FOR FETCHING ---
 
-from googlesearch import search
+import os
+import requests
+from serpapi import GoogleSearch
 import trafilatura
 
-# A curated list of domains the system trusts for high-quality information.
+# Get API keys from environment variables
+SERPAPI_API_KEY = os.environ.get("SERPAPI_API_KEY")
+SCRAPER_API_KEY = os.environ.get("SCRAPER_API_KEY") # <-- NEW KEY
+
 TRUSTED_DOMAINS = [
     'wikipedia.org', 'reuters.com', 'apnews.com', 'bbc.com', 'nytimes.com',
     'wsj.com', 'britannica.com', '.gov', '.edu', 'forbes.com', 'nature.com'
 ]
 
-def find_and_extract(topic, max_sources=3):
-    """
-    Performs a web search for a topic, filters for trusted domains,
-    and extracts the primary text content from the top results.
-    Returns a list of dictionaries, each containing a source URL and its content.
-    """
-    print(f"\n--- [Pathfinder] Seeking sources for '{topic}'...")
-    # Formulate a search query designed to find factual, historical information.
-    query = f'"{topic}" official information history facts filetype:html'
+def find_and_extract(topic, max_sources=1):
+    print(f"\n--- [Pathfinder] Seeking sources for '{topic}' using SerpApi...")
     
+    if not SERPAPI_API_KEY or not SCRAPER_API_KEY:
+        print("[Pathfinder/Extractor] ERROR: SERPAPI_API_KEY or SCRAPER_API_KEY environment variable not set.")
+        return []
+
+    # Step 1: Use SerpApi to find the URLs
+    search_params = {
+        "api_key": SERPAPI_API_KEY, "engine": "google",
+        "q": f'"{topic}" official information history facts filetype:html', "num": 20
+    }
     try:
-        # Perform the search and filter the results.
-        # --- THIS IS THE FINAL CORRECTED LINE ---
-        # All unsupported arguments ('num', 'stop', 'pause') have been removed.
-        # The 'num_results' argument is used to control the number of search results.
-        all_urls = search(query, num_results=10)
+        search = GoogleSearch(search_params)
+        results = search.get_dict()
+        organic_results = results.get("organic_results", [])
+        all_urls = [res['link'] for res in organic_results]
+        trusted_urls = [url for url in all_urls if any(domain in url for domain in TRUSTED_DOMAINS)]
         
-        # The search function returns a generator. We convert it to a list to work with it.
-        urls_list = list(all_urls)
-        
-        urls = [url for url in urls_list if any(domain in url for domain in TRUSTED_DOMAINS)]
-        
-        if not urls:
+        if not trusted_urls:
             print(f"[Pathfinder] No trusted sources found for '{topic}'.")
             return []
-
-        print(f"[Universal Extractor] Found {len(urls)} potential sources. Extracting content...")
-        
-        extracted_content = []
-        # Process the top N sources.
-        for url in urls[:max_sources]:
-            print(f"  -> Extracting from: {url}")
-            # trafilatura downloads the page and intelligently extracts only the main article body.
-            downloaded = trafilatura.fetch_url(url)
-            main_text = trafilatura.extract(downloaded, include_comments=False, include_tables=False, include_images=False)
-            
-            if main_text:
-                extracted_content.append({'source_url': url, 'content': main_text})
-        
-        return extracted_content
     except Exception as e:
-        # Handle potential search or network errors.
-        print(f"[Pathfinder/Extractor] ERROR: An exception occurred. {e}")
+        print(f"[Pathfinder] ERROR: SerpApi search failed. {e}")
         return []
+
+    # Step 2: Use ScraperAPI to reliably download the HTML content
+    print(f"[Universal Extractor] Found {len(trusted_urls)} potential trusted sources. Fetching content via ScraperAPI...")
+    extracted_content = []
+    for url in trusted_urls[:max_sources]:
+        try:
+            print(f"  -> Fetching: {url}")
+            scraper_api_url = f'http://api.scraperapi.com?api_key={SCRAPER_API_KEY}&url={url}'
+            
+            response = requests.get(scraper_api_url, timeout=60) # Increased timeout for scraper
+            response.raise_for_status() # Will raise an error for 4xx/5xx responses
+            
+            downloaded_html = response.text
+            
+            if downloaded_html:
+                main_text = trafilatura.extract(downloaded_html)
+                if main_text:
+                    print("  -> Extraction successful.")
+                    extracted_content.append({'source_url': url, 'content': main_text})
+                else:
+                    print("  -> Extraction failed. Page was downloaded, but no main article content was found.")
+            else:
+                print("  -> Fetch failed. ScraperAPI returned empty content.")
+
+        except requests.exceptions.RequestException as e:
+            print(f"  -> Fetch failed for {url}. Error: {e}")
+            continue # Move to the next URL
+
+    return extracted_content

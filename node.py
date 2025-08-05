@@ -2,6 +2,7 @@
 # Copyright (C) 2025 The Axiom Contributors
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.
+# --- FINAL, COMPLETE VERSION WITH SYNTHESIZER SUPPORT ---
 
 import time
 import threading
@@ -9,22 +10,22 @@ import sys
 import requests
 import math
 import os
+import traceback
+import sqlite3
 from flask import Flask, jsonify, request
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
-# Import all our system components
+# Import all our system components, including the new Synthesizer
 import zeitgeist_engine
 import universal_extractor
 import crucible
+import synthesizer
 from ledger import initialize_database
 from api_query import search_ledger_for_api
-from p2p import sync_with_peer, get_all_fact_ids_from_ledger
+from p2p import sync_with_peer
 
 # --- GLOBAL APP AND NODE INSTANCE ---
-# This is the key change. We create both the Flask app and the Node instance
-# here in the global scope. This ensures that when Gunicorn imports this file,
-# these variables are immediately available.
 app = Flask(__name__)
 node_instance = None
 # ------------------------------------
@@ -74,7 +75,8 @@ class AxiomNode:
 
     def _fetch_from_peer(self, peer_url, search_term):
         try:
-            query_url = f"{peer_url}/local_query?term={search_term}"
+            # We add include_uncorroborated=True to get all relevant facts from peers
+            query_url = f"{peer_url}/local_query?term={search_term}&include_uncorroborated=true"
             response = requests.get(query_url, timeout=5)
             response.raise_for_status()
             return response.json().get('results', [])
@@ -83,24 +85,41 @@ class AxiomNode:
             return []
 
     def _background_loop(self):
+        """The main, continuous loop for learning, synthesizing, and syncing."""
         print("[Background Thread] Starting continuous cycle.")
         while True:
             print("\n====== [AXIOM ENGINE CYCLE START] ======")
-            if self.investigation_queue:
-                print(f"[Engine] Prioritizing {len(self.investigation_queue)} leads from peer network.")
-                lead = self.investigation_queue.pop(0)
-                content_list = universal_extractor.find_and_extract(lead['fact_content'][:100], max_sources=1)
-                for item in content_list:
-                    crucible.extract_facts_from_text(item['source_url'], item['content'])
-            else:
-                print("[Engine] No leads in queue. Discovering new topics.")
-                topics = zeitgeist_engine.get_trending_topics(top_n=1)
-                if topics:
-                    for topic in topics:
-                        content_list = universal_extractor.find_and_extract(topic, max_sources=1)
-                        for item in content_list:
-                            crucible.extract_facts_from_text(item['source_url'], item['content'])
+            
+            try:
+                topic_to_investigate = None
+                if self.investigation_queue:
+                    print(f"[Engine] Prioritizing {len(self.investigation_queue)} leads from peer network.")
+                    lead = self.investigation_queue.pop(0)
+                    topic_to_investigate = lead['fact_content'][:100]
+                else:
+                    print("[Engine] No leads in queue. Discovering new topics.")
+                    topics = zeitgeist_engine.get_trending_topics(top_n=1)
+                    if topics:
+                        topic_to_investigate = topics[0]
+                
+                newly_created_facts_batch = []
+                if topic_to_investigate:
+                    content_list = universal_extractor.find_and_extract(topic_to_investigate, max_sources=1)
+                    for item in content_list:
+                        new_facts_from_source = crucible.extract_facts_from_text(item['source_url'], item['content'])
+                        if new_facts_from_source:
+                            newly_created_facts_batch.extend(new_facts_from_source)
+                
+                if newly_created_facts_batch:
+                    synthesizer.link_related_facts(newly_created_facts_batch)
+
+            except Exception:
+                print(f"\n--- !!! CRITICAL ERROR IN LEARNING/SYNTHESIS LOOP !!! ---\n")
+                traceback.print_exc()
+                print("\n--- END OF CRITICAL ERROR ---\n")
+
             print("====== [AXIOM ENGINE CYCLE FINISH] ======")
+            
             sorted_peers = sorted(self.peers.items(), key=lambda item: item[1]['reputation'], reverse=True)
             print(f"\n[P2P Sync] Beginning sync process with {len(sorted_peers)} known peers...")
             for peer_url, peer_data in sorted_peers:
@@ -108,49 +127,40 @@ class AxiomNode:
                 self._update_reputation(peer_url, sync_status, len(new_facts))
                 if sync_status == 'SUCCESS_NEW_FACTS' and new_facts:
                     self.investigation_queue.extend(new_facts)
-                    print(f"[Engine] Added {len(new_facts)} new leads to the investigation queue.")
+            
             print("\n--- Current Peer Reputations ---")
-            if not self.peers:
-                print("No peers known.")
+            if not self.peers: print("No peers known.")
             else:
                 for peer, data in sorted(self.peers.items(), key=lambda item: item[1]['reputation'], reverse=True):
                     print(f"  - {peer}: {data['reputation']:.4f}")
             print("------------------------------")
-            sleep_duration_seconds = 21600
-            print(f"\n[Background Thread] Sleeping for {sleep_duration_seconds / 3600:.0f} hours before next cycle.")
-            time.sleep(sleep_duration_seconds)
+            
+            time.sleep(21600)
 
     def start_background_tasks(self):
-        print("--- [Axiom Node] Starting background learning and sync thread... ---")
         background_thread = threading.Thread(target=self._background_loop, daemon=True)
         background_thread.start()
 
-# --- CONFIGURE API ROUTES USING THE GLOBAL NODE INSTANCE ---
-# This section defines the API endpoints. It is now outside the class.
-@app.route('/query', methods=['GET'])
-def handle_federated_query():
-    search_term = request.args.get('term', '')
-    if not search_term: return jsonify({"error": "A 'term' parameter is required."}), 400
-    all_facts = {}; local_results = node_instance.search_ledger_for_api(search_term)
-    for fact in local_results: all_facts[fact['fact_id']] = fact
-    future_to_peer = {node_instance.thread_pool.submit(node_instance._fetch_from_peer, peer, search_term): peer for peer in node_instance.peers}
-    for future in future_to_peer:
-        peer_results = future.result()
-        for fact in peer_results: all_facts[fact['fact_id']] = fact
-    consolidated_results = list(all_facts.values())
-    return jsonify({"query_term": search_term, "result_count": len(consolidated_results), "results": consolidated_results})
-
+# --- CONFIGURE API ROUTES ---
 @app.route('/local_query', methods=['GET'])
 def handle_local_query():
     search_term = request.args.get('term', '')
-    results = node_instance.search_ledger_for_api(search_term)
+    # The string 'true' from a URL parameter needs to be converted to a boolean
+    include_uncorroborated = request.args.get('include_uncorroborated', 'false').lower() == 'true'
+    results = node_instance.search_ledger_for_api(search_term, include_uncorroborated=include_uncorroborated)
     return jsonify({"results": results})
 
 @app.route('/get_peers', methods=['GET'])
 def handle_get_peers(): return jsonify({'peers': node_instance.peers})
 
 @app.route('/get_fact_ids', methods=['GET'])
-def handle_get_fact_ids(): return jsonify({'fact_ids': list(get_all_fact_ids_from_ledger(node_instance.search_ledger_for_api))})
+def handle_get_fact_ids():
+    conn = sqlite3.connect('axiom_ledger.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT fact_id FROM facts")
+    fact_ids = [row[0] for row in cursor.fetchall()]
+    conn.close()
+    return jsonify({'fact_ids': fact_ids})
 
 @app.route('/get_facts_by_id', methods=['POST'])
 def handle_get_facts_by_id():
@@ -163,12 +173,18 @@ def handle_anonymous_query():
     data = request.json; search_term = data.get('term'); circuit = data.get('circuit', []); sender_peer = data.get('sender_peer')
     node_instance.add_or_update_peer(sender_peer)
     if not circuit:
-        all_facts = {}; local_results = node_instance.search_ledger_for_api(search_term)
+        all_facts = {}
+        # --- THIS IS THE FIX ---
+        # We now correctly call the API to include uncorroborated facts by default.
+        local_results = node_instance.search_ledger_for_api(search_term, include_uncorroborated=True)
         for fact in local_results: all_facts[fact['fact_id']] = fact
+        
         future_to_peer = {node_instance.thread_pool.submit(node_instance._fetch_from_peer, peer, search_term): peer for peer in node_instance.peers}
         for future in future_to_peer:
             peer_results = future.result()
-            for fact in peer_results: all_facts[fact['fact_id']] = fact
+            for fact in peer_results:
+                if fact['fact_id'] not in all_facts:
+                    all_facts[fact['fact_id']] = fact
         return jsonify({"results": list(all_facts.values())})
     else:
         next_node_url = circuit.pop(0)
@@ -203,27 +219,13 @@ def handle_submit_vote():
     return jsonify({"status": "success", "message": "Vote recorded."})
 
 # --- MAIN EXECUTION BLOCK ---
-if __name__ == "__main__":
-    # This block is used for BOTH production (via Gunicorn) and development.
-    print("--- [Axiom Node] Initializing global instance... ---")
-    port = int(os.environ.get("PORT", 5000))
-    bootstrap = os.environ.get("BOOTSTRAP_PEER")
-    
-    # Create the single instance of the node that the API routes will use.
-    node_instance = AxiomNode(port=port, bootstrap_peer=bootstrap)
-    
-    # Start the background tasks. This happens once per process.
-    node_instance.start_background_tasks()
-    
-    # If we are running this file directly, start the dev server.
-    # Gunicorn will NOT run this block; it only imports the 'app' object.
-    if os.environ.get('WERKZEUG_RUN_MAIN') is None: # A check to see if we're not in dev server reload
+if __name__ == "__main__" or "gunicorn" in sys.argv[0]:
+    if node_instance is None:
+        print(f"--- [Axiom Node] Initializing global instance for {'PRODUCTION' if 'gunicorn' in sys.argv[0] else 'DEVELOPMENT'}... ---")
+        port = int(os.environ.get("PORT", 5000))
+        bootstrap = os.environ.get("BOOTSTRAP_PEER")
+        node_instance = AxiomNode(port=port, bootstrap_peer=bootstrap)
+        node_instance.start_background_tasks()
+    if __name__ == "__main__":
         print("--- [Axiom Node] Starting in DEVELOPMENT mode... ---")
-        app.run(host='0.0.0.0', port=port)
-else:
-    # This block is executed when Gunicorn imports the file.
-    print("--- [Axiom Node] Initializing global instance for PRODUCTION... ---")
-    port = int(os.environ.get("PORT", 5000))
-    bootstrap = os.environ.get("BOOTSTRAP_PEER")
-    node_instance = AxiomNode(port=port, bootstrap_peer=bootstrap)
-    node_instance.start_background_tasks()
+        app.run(host='0.0.0.0', port=port, debug=False)
