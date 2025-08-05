@@ -1,115 +1,127 @@
+# Axiom: A Decentralized Network for Verifiable Truth
 
-# Axiom Engine
+![Axiom Logo](https-://raw.githubusercontent.com/ArtisticIntentionz/AxiomEngine/main/main/Axiom_logo.PNG)
 
-![Axiom Logo](https://raw.githubusercontent.com/ArtisticIntentionz/AxiomEngine/main/main/Axiom_logo.PNG)
+**Axiom is a decentralized, autonomous, and anonymous P2P network designed to create a permanent and verifiable public record of truth. It is not a website or a search engine; it is a new, foundational layer for knowledge, built to be immune to censorship, manipulation, and corporate control.**
 
-**Axiom is a decentralized AI network that autonomously discovers, verifies, and archives objective truth. It creates a permanent, anonymous, and incorruptible public knowledge base, free from corporate and governmental control.**
+---
+
+## The Mission: Forging a Digital Bedrock for Reality
+
+Our digital world is in crisis. We are drowning in information, but the bedrock of shared, objective reality is fracturing. Search engines and social media are not designed for truth; they are designed for engagement, and outrage is highly engaging. This has created a "hellhole" of misinformation, paranoia, and noise—a problem that is not just theoretical, but a direct threat to mental well-being and a functioning society.
+
+Axiom was born from a deeply personal need for a tool that could filter the signal from this noise. A tool that could provide clean, objective, and verifiable information without the cryptic articles, paranoia-inducing ads, and emotional manipulation of the modern web. It is a system designed for clarity in an age of chaos.
+
+This project is a statement: **truth matters, and it should belong to everyone.** We are building a public utility—a digital commonwealth—that serves as a permanent, incorruptible, and safe harbor for human knowledge.
 
 ---
 
 ## Table of Contents
-- [The Problem: The Information Crisis](#the-problem-the-information-crisis)
-- [The Solution: Axiom](#the-solution-axiom)
-- [How It Works: A Living Knowledge Organism](#how-it-works-a-living-knowledge-organism)
-  - [1. Autonomous Learning (The Brain)](#1-autonomous-learning-the-brain)
-  - [2. Distributed Memory (The Heart)](#2-distributed-memory-the-heart)
-  - [3. Anonymous Inquiry (The Voice)](#3-anonymous-inquiry-the-voice)
-- [Core Principles](#core-principles)
-- [Why the World Needs Axiom](#why-the-world-needs-axiom)
-- [Current Project Status](#current-project-status)
-- [Getting Started](#getting-started)
-  - [For Users](#for-users)
-  - [For Node Operators](#for-node-operators)
+- [How It Works: An Autonomous Knowledge Organism](#how-it-works-an-autonomous-knowledge-organism)
+  - [Phase 1: Autonomous Learning](#phase-1-autonomous-learning)
+  - [Phase 2: AI-Powered Verification (The Crucible)](#phase-2-ai-powered-verification-the-crucible)
+  - [Phase 3: P2P Synchronization & Memory](#phase-3-p2p-synchronization--memory)
+- [Core Architecture & Technical Principles](#core-architecture--technical-principles)
+- [The Axiom Ethos: Our Core Philosophies](#the-axiom-ethos-our-core-philosophies)
+- [Comparison to Existing Alternatives](#comparison-to-existing-alternatives)
+- [The Roadmap: From Prototype to Protocol](#the-roadmap-from-prototype-to-protocol)
+- [Current Status: Genesis Stage](#current-status-genesis-stage)
+- [How to Contribute](#how-to-contribute)
 - [License](#license)
-- [Contributing](#contributing)
 
 ---
 
-## The Problem: The Information Crisis
+## How It Works: An Autonomous Knowledge Organism
 
-In the modern world, we are drowning in data but starving for wisdom. Our primary information systems—search engines and social media—are not designed to provide objective truth. They are designed to maximize engagement and sell advertisements. This has created a critical failure in our shared reality, leading to:
+Axiom is not a static database; it is a living, learning network of independent nodes. Each node in the network executes a continuous, autonomous cycle.
 
--   **Rampant Misinformation:** "Fake news" and propaganda spread faster than truth because they are often more engaging.
--   **Censorship and Manipulation:** Centralized platforms can delete information, shadow-ban topics, and alter search results to comply with governmental pressure or corporate agendas.
--   **Ephemeral Knowledge:** The internet is a sandcastle. Important articles, scientific papers, and historical records disappear due to link rot, website shutdowns, or deliberate removal.
--   **Erosion of Trust:** With no reliable baseline of objective fact, society fractures into polarized tribes, unable to agree on even basic realities.
+### Phase 1: Autonomous Learning
+The engine begins by asking, "What is important to learn?" It uses a multi-modal **Discovery Engine** to find topics.
+- **Zeitgeist Engine:** Identifies currently trending global topics from high-volume data streams (e.g., News APIs). This keeps the network relevant.
+- **Encyclopedic Drive:** Systematically crawls foundational knowledge domains (e.g., the category structure of Wikipedia) to ensure the network builds a deep base layer of historical and scientific knowledge, not just fleeting news.
+- **Curiosity Drive:** A planned future module that will allow the network to autonomously identify and investigate gaps in its own knowledge by finding "unlinked entities" within its own ledger.
 
-## The Solution: Axiom
+### Phase 2: AI-Powered Verification (The Crucible)
+Once a topic is chosen, the node finds and analyzes high-trust sources. This is where **The Crucible**, Axiom's AI brain, takes over.
+- **It is NOT a generative LLM.** The Crucible uses a lightweight **Analytical AI (spaCy)** for precise Natural Language Processing. It cannot "hallucinate" or invent facts. Its job is to analyze and structure, not to create.
+- **It surgically extracts objective statements.** It dissects every sentence, discarding opinions, speculation, and emotionally-charged language.
+    - **Example:** A source might say, "It seems the controversial bill, signed Tuesday, could be a disaster." The Crucible discards the opinionated parts and extracts the verifiable core: `"The bill was signed on Tuesday."`
+- **The Corroboration Rule:** A fact is **never** trusted on first sight. It is stored with a `status: uncorroborated`. Only when another, independent, high-trust source makes the same factual claim does the fact's `trust_score` increase and its `status` become **`trusted`**.
+- **It detects contradictions.** If two trusted sources make opposing factual claims (e.g., "The capital of Texas is Austin" vs. "The capital of Texas is Dallas"), The Crucible flags both facts with `status: disputed` and links them. This transparently acknowledges real-world disagreement and removes the conflicting information from the pool of trusted knowledge.
 
-Axiom is a radical solution to this crisis. It is not another website or a better search engine. It is a new, foundational layer for the internet—a **decentralized public utility for verifiable truth.**
+### Phase 3: P2P Synchronization & Memory
+- **The Immutable Ledger:** Every fact is cryptographically hashed, creating a unique, tamper-proof ID. This knowledge is stored in a local, immutable SQLite ledger on each node. This means an attacker cannot secretly modify a fact; any change would alter its hash and be instantly rejected by peers.
+- **Reputation-Aware Syncing:** Nodes constantly "gossip" with each other, sharing their knowledge. This process is governed by a **reputation system** where nodes that consistently provide reliable, verifiable information gain influence. New or malicious nodes start with zero reputation, preventing them from poisoning the network. This provides a strong defense against network-flooding (Sybil) attacks.
 
-Axiom is a peer-to-peer network of independent nodes that work together to build a single, shared, and incorruptible database of objective facts. It is designed from the ground up to be autonomous, anonymous, and forever free from the control of any single entity.
+---
 
-## How It Works: A Living Knowledge Organism
+## Core Architecture & Technical Principles
 
-Axiom functions like a digital organism, with distinct systems that allow it to sense, learn, remember, and communicate.
+- **Backend:** The node is a multi-threaded Python application built on a production-ready **Gunicorn/Flask** server, designed for stability and efficiency.
+- **Database:** A simple, robust **SQLite** database on each node creates a distributed, massively redundant ledger. There is no central database to attack or shut down.
+- **AI:** Lightweight **spaCy** models for efficient NLP, allowing nodes to run on standard hardware (including a Raspberry Pi), making participation accessible to everyone.
+- **Anonymity:** End-user queries are protected by a **Tor-style anonymous circuit** built into the client. The query is wrapped in layers of encryption and relayed through multiple nodes. No node in the circuit knows both the user's identity and the content of their query, ensuring the freedom to be curious without surveillance.
+- **Governance:** The network is designed to be governed by a **DAO (Decentralized Autonomous Organization)**, where voting power is tied to a node's proven reputation, not its owner's wealth. This is a true meritocracy.
 
-### 1. Autonomous Learning (The Brain)
+---
 
-The core of Axiom is the **Autonomous Scrubber Engine (ASE)** that runs on every node. It's a self-directing AI that continuously performs a learning cycle:
+## The Axiom Ethos: Our Core Philosophies
 
--   **Sensing (The Zeitgeist Engine):** It first senses what is important in the world by analyzing global news sources to identify trending topics. It also has an "encyclopedic" drive to systematically explore foundational knowledge and a "curiosity" drive to fill gaps in its own understanding.
--   **Investigating (The Pathfinder):** For a given topic, it finds authoritative sources across the web, prioritizing academic, journalistic, and scientific domains.
--   **Reading (The Universal Extractor):** It intelligently extracts the main textual content from these sources, stripping away ads, comments, and other irrelevant boilerplate.
--   **Reasoning (The Crucible):** This is the AI's reasoning center. It uses Natural Language Processing (NLP) to analyze every sentence. It discards opinions, speculation, and emotionally charged language. It identifies and extracts pure, objective statements of fact (e.g., "Company X acquired Company Y for $Z billion," "Water consists of hydrogen and oxygen").
+- **Default to Skepticism:** The network's primary state is one of disbelief. A fact is considered "unproven" until it passes the rigorous, automated corroboration process. We would rather provide no answer than a wrong one.
+- **Show, Don't Tell:** We do not ask for your trust; we provide the tools for your verification. Every trusted fact will eventually be traceable back to its multiple, independent sources.
+- **Radical Transparency:** The entire codebase, the governance process, and the logic of the AI are open-source. There are no secret algorithms or corporate agendas.
+- **Resilience over Speed:** The network is designed to be a patient, long-term historian, not a high-frequency news ticker. The 6-hour learning cycle is a deliberate choice that prioritizes sustainability and responsible network citizenship.
+- **Empower the Individual:** This is a tool of empowerment. It is designed to give any individual on Earth the ability to check a fact against the collective, verified knowledge of a global community, privately and without fear.
 
-### 2. Distributed Memory (The Heart)
+---
 
--   **The Corroboration Rule:** A fact is not considered "truth" until it has been independently corroborated. When The Crucible finds a new fact, it is initially stored as "uncorroborated." Only when the ASE finds a similar fact from a *different*, independent, high-trust source does the fact's `trust_score` increase and its status change to **"trusted."**
--   **The Immutable Ledger:** Every trusted fact is given a unique cryptographic identity (a SHA-256 hash) and stored in the Axiom Ledger. This ledger is an append-only database, meaning facts can be added but never altered or deleted.
--   **P2P Synchronization:** The network's nodes constantly "gossip" with each other, comparing their ledgers and efficiently sharing any facts that a peer is missing. This ensures the entire network quickly converges on a single, shared state of knowledge. The result is a massively redundant, self-healing, and incorruptible database that has no central point of failure.
+## Comparison to Existing Alternatives
 
-### 3. Anonymous Inquiry (The Voice)
+| | **Axiom** | **Search Engines (Google)** | **Encyclopedias (Wikipedia)** | **Blockchains (Bitcoin/IPFS)** |
+| :--- | :---: | :---: | :---: | :---: |
+| **Unit of Value** | Verifiable Facts | Links / Ads | Curated Articles | Data / Currency |
+| **Governed By** | Community (DAO) | Corporation | Foundation (Centralized) | Miners / Wealth |
+| **Truth Model**| Autonomous Corroboration | Secret Algorithm (PageRank) | Human Consensus | "Dumb" Storage (Truth Agnostic) |
+| **Anonymity** | Default for Users | Actively Tracks Users | Tracks Editors | Public Ledger (Pseudonymous) |
+| **Censorship** | Censorship-Resistant| Censorable | Censorable | Censorship-Resistant |
 
--   **The Axiom Client:** A user does not visit a website to use Axiom. They download a dedicated, open-source desktop client. This client is their secure gateway to the network.
--   **The Anonymity Layer:** Before sending a query, the client automatically builds a random, encrypted circuit of several nodes (onion routing). The query is relayed through this circuit, making it impossible for any node on the network to know who is asking the question.
--   **Federated Queries:** The final node in the circuit performs a "federated query," asking the entire network for facts related to the user's search term. The consolidated, de-duplicated results are then passed back along the anonymous path to the user. The user gets the collective intelligence of the entire network, with their privacy fully protected.
+---
 
-## Core Principles
+## The Roadmap: From Prototype to Protocol
 
-1.  **Decentralized:** No single point of failure or control.
-2.  **Autonomous:** Learns and operates without human intervention.
-3.  **Anonymous:** Protects the user's right to seek knowledge without surveillance.
-4.  **Verifiable:** Every fact is linked to its source(s) for independent verification.
-5.  **Incorruptible:** An immutable ledger secured by cryptography.
-6.  **Non-Commercial:** Protected by a "copyfarleft" license (PPL) to prevent corporate exploitation. Governance is based on contribution, not wealth.
+This project is ambitious, and we are just getting started. The path forward is focused on hardening, decentralizing, and improving the intelligence of the network.
 
-## Why the World Needs Axiom
+- **Short-Term Goals:**
+  - **Develop the v1 Desktop Client:** Package the client logic into a user-friendly GUI application (PyQt/Electron).
+  - **Improve Semantic Similarity:** Upgrade the corroboration logic from simple string comparison to a more sophisticated NLP vector similarity model to better understand the meaning of facts.
+  - **Launch the Official Website:** Deploy `axiom.foundation` with the client downloads and official documentation.
 
-Axiom is more than a technical project; it's a social necessity. By creating a universally accessible and trustworthy baseline of reality, it provides:
--   **An Antidote to Misinformation:** A tool for citizens and journalists to instantly verify claims against a neutral, fact-based ledger.
--   **A Permanent Historical Record:** A library that can't be burned down or rewritten by future rulers.
--   **A Tool for Unity:** The common ground of shared, objective facts required for rational debate and a functioning society.
--   **A truly Free Press:** The anonymous inquiry feature allows journalists in repressive regimes to conduct research without fear.
+- **Long-Term Goals:**
+  - **Fully Implement the DAO:** Build out the off-chain infrastructure for proposals and voting, handing full control of the protocol to the community.
+  - **Decentralize Discovery:** Implement a robust DHT (like Kademlia) for peer discovery to eliminate the reliance on bootstrap nodes.
+  - **Implement Source Weighting:** Create the DAO-governed system for assigning variable trust weights to different sources based on their expertise.
+  - **Integrate Node Anonymity:** Add optional support for nodes to route their own outbound traffic through networks like Tor to protect node operators.
 
-## Current Project Status
+---
 
-This project is currently in active development. The core functionalities for the Axiom Node—including the autonomous learning engine, P2P synchronization, and the API layer—have been built and are undergoing testing.
+## Current Status: Genesis Stage
 
-The next major phases involve developing the public-facing client application and hardening the network protocols for a public release.
+**The Axiom Network is LIVE.**
 
-## Getting Started
+The first Genesis Nodes are currently running, executing the learning cycles and populating the initial knowledge ledger. The backend engine is stable and feature-complete for its v1 implementation. The next major phase is the development of the user-facing **Axiom Client** desktop application.
 
-### For Users
+---
 
-Once the Axiom Client is released, you will be able to download it from the official project website (to be announced). You will not need any technical skill to use it.
+## How to Contribute
 
-### For Node Operators
+This is a ground-floor opportunity to shape a new digital commonwealth. We are actively seeking contributors who believe in this mission.
 
-The `AxiomEngine` repository contains the full software for running an Axiom Node. To participate in the network:
-1.  Clone this repository.
-2.  Install the required dependencies (see `requirements.txt` when available).
-3.  Set your `NEWS_API_KEY` environment variable.
-4.  Run the `node.py` script.
+1.  **Read the [CONTRIBUTING.md](CONTRIBUTING.md)** for the full step-by-step guide to setting up your development environment and making your first contribution.
+2.  **Join the conversation** on our official [Discord server](Your Discord Invite Link) and our [Subreddit](Your Subreddit Link).
+3.  **Check out the open "Issues"** on the repository to see where you can help.
 
-Full instructions can be found in the official documentation (coming soon).
+We need developers, security researchers, UI/UX designers, and anyone passionate about building a more truthful world.
 
 ## License
 
-This project is licensed under the **Peer Production License (PPL)**. This means it is free to use, modify, and distribute for individuals, cooperatives, and non-profits. For-profit, shareholder-based corporations are legally restricted from using this software for commercial gain without contributing back to the commons.
-
-Please see the `LICENSE` file for the full text.
-
-## Contributing
-
-Axiom is an open-source, community-driven project. We welcome contributions from developers, researchers, designers, and anyone who believes in the mission of building a more truthful digital world. Please see our `CONTRIBUTING.md` file (coming soon) for details on how to get involved.
+This project is licensed under the **Peer Production License (PPL)**. This legally ensures that Axiom remains a non-commercial public utility. It can be freely used by individuals and non-profits, but is legally protected from being co-opted or exploited by for-profit corporations. See the `LICENSE` file for details.
