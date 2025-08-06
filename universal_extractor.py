@@ -1,38 +1,63 @@
 # Axiom - universal_extractor.py
-# --- FINAL, CORRECTED VERSION USING SERPAPI FOR SEARCH AND SCRAPERAPI FOR FETCHING ---
+# --- FINAL, CORRECTED VERSION WITH HARDENED DOMAIN VALIDATION ---
 
 import os
 import requests
 from serpapi import GoogleSearch
 import trafilatura
+from urllib.parse import urlparse 
 
 # Get API keys from environment variables
 SERPAPI_API_KEY = os.environ.get("SERPAPI_API_KEY")
-SCRAPER_API_KEY = os.environ.get("SCRAPER_API_KEY") # <-- NEW KEY
+SCRAPER_API_KEY = os.environ.get("SCRAPER_API_KEY")
 
 TRUSTED_DOMAINS = [
     'wikipedia.org', 'reuters.com', 'apnews.com', 'bbc.com', 'nytimes.com',
     'wsj.com', 'britannica.com', '.gov', '.edu', 'forbes.com', 'nature.com'
 ]
 
-def find_and_extract(topic, max_sources=1):
+def is_trusted_domain(url):
+    """
+    A new, more secure helper function to validate a URL's domain.
+    It correctly parses the domain and prevents simple substring spoofing.
+    """
+    try:
+        # urlparse extracts components like scheme, netloc (domain:port), path, etc.
+        netloc = urlparse(url).netloc
+        if not netloc: # If netloc is empty (e.g., malformed URL)
+            return False
+        
+        # Remove common prefixes like 'www.' for a cleaner domain comparison
+        domain_without_www = netloc.lower().replace('www.', '')
+
+        # Check if the extracted domain ends with one of our trusted suffixes.
+        # This is much safer and more precise than a simple 'in' check.
+        for trusted_suffix in TRUSTED_DOMAINS:
+            if domain_without_www.endswith(trusted_suffix.lower()):
+                return True
+        return False
+    except Exception as e:
+        print(f"[Domain Validator] Error parsing URL {url}: {e}")
+        return False
+
+def find_and_extract(topic, max_sources=3):
     print(f"\n--- [Pathfinder] Seeking sources for '{topic}' using SerpApi...")
     
     if not SERPAPI_API_KEY or not SCRAPER_API_KEY:
         print("[Pathfinder/Extractor] ERROR: SERPAPI_API_KEY or SCRAPER_API_KEY environment variable not set.")
         return []
 
-    # Step 1: Use SerpApi to find the URLs
     search_params = {
         "api_key": SERPAPI_API_KEY, "engine": "google",
         "q": f'"{topic}" official information history facts filetype:html', "num": 20
     }
     try:
-        search = GoogleSearch(search_params)
-        results = search.get_dict()
-        organic_results = results.get("organic_results", [])
+        search_results = GoogleSearch(search_params)
+        results_dict = search_results.get_dict()
+        organic_results = results_dict.get("organic_results", [])
         all_urls = [res['link'] for res in organic_results]
-        trusted_urls = [url for url in all_urls if any(domain in url for domain in TRUSTED_DOMAINS)]
+        
+        trusted_urls = [url for url in all_urls if is_trusted_domain(url)]
         
         if not trusted_urls:
             print(f"[Pathfinder] No trusted sources found for '{topic}'.")
@@ -41,7 +66,6 @@ def find_and_extract(topic, max_sources=1):
         print(f"[Pathfinder] ERROR: SerpApi search failed. {e}")
         return []
 
-    # Step 2: Use ScraperAPI to reliably download the HTML content
     print(f"[Universal Extractor] Found {len(trusted_urls)} potential trusted sources. Fetching content via ScraperAPI...")
     extracted_content = []
     for url in trusted_urls[:max_sources]:
@@ -49,8 +73,8 @@ def find_and_extract(topic, max_sources=1):
             print(f"  -> Fetching: {url}")
             scraper_api_url = f'http://api.scraperapi.com?api_key={SCRAPER_API_KEY}&url={url}'
             
-            response = requests.get(scraper_api_url, timeout=60) # Increased timeout for scraper
-            response.raise_for_status() # Will raise an error for 4xx/5xx responses
+            response = requests.get(scraper_api_url, timeout=60)
+            response.raise_for_status()
             
             downloaded_html = response.text
             
@@ -66,6 +90,6 @@ def find_and_extract(topic, max_sources=1):
 
         except requests.exceptions.RequestException as e:
             print(f"  -> Fetch failed for {url}. Error: {e}")
-            continue # Move to the next URL
+            continue
 
     return extracted_content
