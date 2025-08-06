@@ -11,7 +11,7 @@ from PyQt6.QtCore import QThread, pyqtSignal
 from PyQt6.QtGui import QFont, QIcon # QIcon can be used later to add a logo
 
 # --- CONFIGURATION (Same as CLI client) ---
-BOOTSTRAP_NODES = ["http://127.0.0.1:5000"]
+BOOTSTRAP_NODES = ["..."]
 CIRCUIT_LENGTH = 3
 # -------------------------------------------
 
