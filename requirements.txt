@@ -18,6 +18,8 @@ beautifulsoup4==4.12.3
 
 # --- API Interaction ---
 newsapi-python==0.2.7
+serpapi==2.1.0
+
 
 # --- AI & Natural Language Processing ---
 spacy==3.7.4

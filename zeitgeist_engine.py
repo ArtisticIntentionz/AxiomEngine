@@ -2,52 +2,70 @@
 # Copyright (C) 2025 The Axiom Contributors
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.
+# --- V2.2: FINAL, CORRECTED VERSION USING get_everything() ---
 
-# --- NEW: Import the 'os' library to access environment variables ---
 import os
 from newsapi import NewsApiClient
 from collections import Counter
-import re
+import spacy
+from datetime import datetime, timedelta
 
-# --- SECURE CONFIGURATION ---
-# The script now reads the API key from an environment variable named 'NEWS_API_KEY'.
-# The .get() method is used to safely retrieve it. If the variable is not set,
-# it will return None, and the program will handle it gracefully.
-API_KEY = os.environ.get("NEWS_API_KEY")
-# --------------------------
+NEWS_API_KEY = os.environ.get("NEWS_API_KEY")
+NLP_MODEL = spacy.load("en_core_web_sm")
 
-def get_trending_topics(top_n=5):
+def get_trending_topics(top_n=3):
     """
-    Connects to the News API and analyzes headlines to find the most
-    frequently mentioned topics (proper nouns).
-    Returns a list of the top N topics.
+    Fetches recent articles using the get_everything endpoint to enable date filtering,
+    then identifies the most frequently mentioned entities as trending topics.
     """
-    # --- NEW: Add a check to ensure the API key exists ---
-    if not API_KEY:
-        print("[Zeitgeist Engine] ERROR: NEWS_API_KEY environment variable not set. Cannot proceed.")
+    if not NEWS_API_KEY:
+        print("[Zeitgeist Engine] ERROR: NEWS_API_KEY environment variable not set.")
         return []
-    # ------------------------------------------------------
     
     print("\n--- [Zeitgeist Engine] Discovering trending topics...")
     try:
-        newsapi = NewsApiClient(api_key=API_KEY)
-        top_headlines = newsapi.get_top_headlines(
-            sources='bbc-news,reuters,associated-press,the-wall-street-journal',
-            language='en'
-        )
-        all_headlines = " ".join([article['title'] for article in top_headlines['articles']])
-        potential_topics = re.findall(r'\b[A-Z][a-z]{2,}\b', all_headlines)
-        topic_counts = Counter(potential_topics)
+        newsapi = NewsApiClient(api_key=NEWS_API_KEY)
         
-        if not topic_counts:
-            print("[Zeitgeist Engine] No topics found in current headlines.")
+        to_date = datetime.utcnow().date()
+        from_date = to_date - timedelta(days=1)
+        
+
+        # We must use the get_everything() endpoint to filter by date.
+        # We will search for common, high-volume terms to get a broad sample.
+        all_articles_response = newsapi.get_everything(
+            q='world OR politics OR technology OR business OR science',
+            language='en',
+            from_param=from_date.isoformat(),
+            to=to_date.isoformat(),
+            sort_by='relevancy',
+            page_size=100
+        )
+
+
+        articles = all_articles_response.get('articles', [])
+        if not articles:
+            print("[Zeitgeist Engine] No articles found from NewsAPI for the last 24 hours.")
             return []
 
-        trending = [topic for topic, count in topic_counts.most_common(top_n)]
-        print(f"[Zeitgeist Engine] Top topics discovered: {trending}")
-        return trending
+        all_entities = []
+        for article in articles:
+            title = article.get('title', '')
+            if title:
+                doc = NLP_MODEL(title)
+                for ent in doc.ents:
+                    if ent.label_ in ['ORG', 'PERSON', 'GPE']:
+                        all_entities.append(ent.text)
+
+        if not all_entities:
+            print("[Zeitgeist Engine] No significant entities found in headlines.")
+            return []
+        
+        topic_counts = Counter(all_entities)
+        most_common_topics = [topic for topic, count in topic_counts.most_common(top_n)]
+        
+        print(f"[Zeitgeist Engine] Top topics discovered: {most_common_topics}")
+        return most_common_topics
 
     except Exception as e:
-        # The error message now points to a potentially invalid key, not just a missing one.
-        print(f"[Zeitgeist Engine] ERROR: Could not fetch topics. Is your API Key valid? Details: {e}")
+        print(f"[Zeitgeist Engine] ERROR: Could not fetch topics from NewsAPI. {e}")
         return []
