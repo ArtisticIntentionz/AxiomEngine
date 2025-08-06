@@ -37,21 +37,36 @@ Here is the standard workflow for submitting a code change to Axiom.
     ```bash
     pip3 install -r requirements.txt
     ```
-    *(There is no longer a separate step to download the spaCy model; this command handles everything.)*
 
 3.  **Set Up Your API Keys:**
     The Axiom Engine requires **two** API keys to function, which must be set as environment variables.
     *   **NewsAPI Key:** For discovering trending topics. Get a free key at [newsapi.org](https://newsapi.org/).
     *   **SerpApi Key:** For reliably searching and scraping web content without being rate-limited. Get a free key at [serpapi.com](https://serpapi.com/).
 
-4.  **Run the Node (Development Mode):**
-    To test your changes, you can run a single node in development mode. This command will provide more detailed debug output.
+4.  **Run Your Node:**
+    You have two options for running a node: local development or connecting to the live network.
+
+    **Option A: For Local Development & Testing:**
+    If you just want to run a node on its own to test your code changes, you can start it without a bootstrap peer.
     ```bash
-    # Make sure you are in the AxiomEngine directory
-    export NEWS_API_KEY="YOUR_KEY_HERE"
-    export SERPAPI_API_KEY="YOUR_KEY_HERE"
+    # This starts a new, isolated node on port 5000.
+    export NEWS_API_KEY="YOUR_API_KEY"
+    export SERPAPI_API_KEY="YOUR_API_KEY"
+    export PORT="5000"
     python3 node.py
     ```
+
+    **Option B: To Join the Live Axiom Network:**
+    To connect your node to the live network and synchronize with the collective ledger, you must point it to an official bootstrap node.
+    ```bash
+    # This connects your node (running on a different port, e.g., 5001) to the main network.
+    export NEWS_API_KEY="YOUR_API_KEY"
+    export SERPAPI_API_KEY="YOUR_API_KEY"
+    export PORT="5001"
+    export BOOTSTRAP_PEER="http://bootstrap.axiom.foundation:5000" # this server has not yet been implemented. check ROADMAP.md **Public Bootstrap Node Deployment**
+    python3 node.py
+    ```
+    *(Note: The official bootstrap nodes are maintained by the core contributors. As the network grows, this list will be expanded and managed by the DAO.)*
 
 ### Step 2: Make Your Changes
 
