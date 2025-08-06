@@ -2,13 +2,11 @@
 # Copyright (C) 2025 The Axiom Contributors
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.
-# --- UPGRADED WITH CONTRADICTION DETECTION ---
+# --- Corrected Function Call & Restored Return Value ---
 
 import spacy
 import hashlib
 import re
-import sqlite3
-from datetime import datetime
 from ledger import (
     get_all_facts_for_analysis, 
     mark_facts_as_disputed,
@@ -17,7 +15,6 @@ from ledger import (
     insert_uncorroborated_fact
 )
 
-DB_NAME = "axiom_ledger.db"
 NLP_MODEL = spacy.load("en_core_web_sm")
 SUBJECTIVITY_INDICATORS = {
     # Simple Opinion Verbs
@@ -35,8 +32,7 @@ SUBJECTIVITY_INDICATORS = {
     # Words that imply a conclusion
     'therefore', 'consequently', 'thus', 'hence', 'conclusion',
 
-    # --- NEW V2.1: Judgmental Words ---
-    # These words imply a verdict by the author, not an objective observation.
+    # V2.1: Judgmental Words
     'untrue', 'false', 'incorrect', 'correctly', 'rightly', 'wrongly',
     'inappropriate', 'disparage', 'sycophants', 'unwelcome', 'flatly'
 }
@@ -70,9 +66,7 @@ def _check_for_contradiction(new_fact_doc, all_existing_facts):
             new_is_negated = any(tok.dep_ == 'neg' for tok in new_fact_doc)
             existing_is_negated = any(tok.dep_ == 'neg' for tok in existing_fact_doc)
             
-            if new_is_negated != existing_is_negated:
-                 return existing_fact
-            elif not new_is_negated and not existing_is_negated:
+            if new_is_negated != existing_is_negated or (not new_is_negated and not existing_is_negated):
                  return existing_fact
             
     return None
@@ -110,7 +104,8 @@ def extract_facts_from_text(source_url, text_content):
                 continue
 
             # Step 2: Check for Corroboration
-            # We now pass the full list of facts for a more efficient check inside the function
+            # --- THIS IS THE FIX ---
+            # We now call the function with only the two required arguments.
             similar_fact = find_similar_fact_from_different_domain(fact_content, source_domain, all_facts_in_ledger)
             if similar_fact:
                 update_fact_corroboration(similar_fact['fact_id'], source_url)
