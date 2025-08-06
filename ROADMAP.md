@@ -1,9 +1,3 @@
-# The Axiom Project Roadmap
-
-This document outlines the strategic development plan for the Axiom network. It is a living document that will be updated by the community as the project evolves. Our development is divided into distinct phases, each building upon the last to create a more intelligent, resilient, and useful public utility for truth.
-
----
-
 ## ✅ Phase 1: The Genesis Engine (V1) - COMPLETE
 
 **Goal:** To prove the core concept of an autonomous, fact-gathering P2P network.
@@ -26,6 +20,10 @@ This document outlines the strategic development plan for the Axiom network. It 
 ### Sub-System: The AI Brain (Crucible & Synthesizer)
 -   **[✓] V2.2 Contradiction Detection:** The database schema and core logic are in place to detect, flag, and link directly contradictory facts.
 -   **[✓] V2.0 Fact Relationship Linking:** The `synthesizer.py` module and `fact_relationships` table are implemented, transforming the ledger from a simple list into a foundational Knowledge Graph.
+-   **[PLANNED] V2.3 Weighted Trust Model:**
+    -   **Action:** Evolve the `trust_score` from a simple integer count to a more nuanced floating-point score.
+    -   **Action:** Research and integrate a data-driven source rating system (such as the **Ad Fontes Media Bias Chart**) to create a `SOURCE_REPUTATION` dictionary.
+    -   **Action:** A fact's initial trust score will be based on its source's reputation. Corroborations will add the new source's reputation score to the total.
 -   **[PLANNED] V3.0 Coreference Resolution:** A major AI upgrade. Teach The Crucible to understand and resolve pronouns (e.g., "he," "she," "it") to create contextually complete facts.
 
 ### Sub-System: The Network (P2P & Governance)
@@ -47,6 +45,6 @@ This document outlines the strategic development plan for the Axiom network. It 
 -   **[PLANNED] The Axiom Client (GUI):** Design and build the official open-source desktop client for macOS, Windows, and Linux.
     -   **V1: Simple Search:** A clean, minimal interface for submitting queries.
     -   **V2: Cognitive Prosthesis:** A more advanced UI, designed with input from UX and mental health experts, that helps users navigate conflicting information by visualizing evidence and providing consensus weights.
--   **[PLANNANED] The Public Website (`axiom.foundation`):** Launch the official website with clear explanations, a link to the whitepaper, and secure, signed downloads for the client.
+-   **[PLANNED] The Public Website (`axiom.foundation`):** Launch the official website with clear explanations, a link to the whitepaper, and secure, signed downloads for the client.
 -   **[PLANNED] GitHub Advanced Security:** Formally enable and configure CodeQL, Dependabot, and Secret Scanning to create a perpetually secure development environment.
 -   **[PLANNED] Community Growth:** Actively engage with open-source, privacy, and academic communities to grow our base of node operators and contributors.
