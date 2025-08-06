@@ -20,12 +20,25 @@ from ledger import (
 DB_NAME = "axiom_ledger.db"
 NLP_MODEL = spacy.load("en_core_web_sm")
 SUBJECTIVITY_INDICATORS = {
+    # Simple Opinion Verbs
     'believe', 'think', 'feel', 'seems', 'appears', 'argues', 'suggests', 
-    'contends', 'opines', 'speculates', 'especially', 'notably', 'remarkably', 
-    'surprisingly', 'unfortunately', 'clearly', 'obviously', 'reportedly', 
-    'allegedly', 'routinely', 'likely', 'apparently', 'essentially', 'largely',
+    'contends', 'opines', 'speculates',
+
+    # Judgmental Adverbs & Qualifiers
+    'especially', 'notably', 'remarkably', 'surprisingly', 'unfortunately',
+    'clearly', 'obviously', 'reportedly', 'allegedly', 'routinely', 'likely',
+    'apparently', 'essentially', 'largely',
+
+    # Metaphorical / Idiomatic Phrases
     'wedded to', 'new heights', 'war on facts', 'playbook', 'art of',
-    'therefore', 'consequently', 'thus', 'hence', 'conclusion'
+
+    # Words that imply a conclusion
+    'therefore', 'consequently', 'thus', 'hence', 'conclusion',
+
+    # --- NEW V2.1: Judgmental Words ---
+    # These words imply a verdict by the author, not an objective observation.
+    'untrue', 'false', 'incorrect', 'correctly', 'rightly', 'wrongly',
+    'inappropriate', 'disparage', 'sycophants', 'unwelcome', 'flatly'
 }
 
 def _get_subject_and_object(doc):
