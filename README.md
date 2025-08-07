@@ -1,8 +1,10 @@
-# Axiom: A Decentralized Network for Verifiable Truth
+# Axiom: A Decentralized Network for Verifiable Truth - A Grounding Engine
 
 ![Axiom Logo](https://raw.githubusercontent.com/ArtisticIntentionz/AxiomEngine/main/main/Axiom_logo.PNG)
 
-**Axiom is a decentralized, autonomous, and anonymous P2P network designed to create a permanent and verifiable public record of truth. It is not a website or a search engine; it is a new, foundational layer for knowledge, built to be immune to censorship, manipulation, and corporate control.**
+**Axiom is a decentralized, autonomous, and anonymous P2P network designed to create a permanent and verifiable public record of truth. It is not a website or a search engine; it is a new, foundational layer for knowledge, built to be immune to censorship, manipulation, and corporate control.
+
+Axiom IS NOT a truth engine it wont be a LIE detector it actually aims to be a grounding engine that can ease the mind**
 
 ---
 
