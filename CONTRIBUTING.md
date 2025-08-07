@@ -32,11 +32,21 @@ Here is the standard workflow for submitting a code change to Axiom.
     cd AxiomEngine
     ```
 
-2.  **Install All Dependencies (One-Step Automated Install):**
-    All of Axiom's required Python libraries, including the specific AI model, are listed in the `requirements.txt` file. This is a fully automated process. Simply run:
+2.  **Install All Dependencies (Two-Step Process):**
+    Setting up the Axiom Engine is a simple two-step process.
+
+    **First, install the required Python libraries:**
+    This command reads the `requirements.txt` file and installs all the necessary packages.
     ```bash
     pip3 install -r requirements.txt
     ```
+
+    **Second, download the specific AI model:**
+    This command uses spaCy's built-in downloader to fetch the English language model that The Crucible needs to function.
+    ```bash
+    python3 -m spacy download en_core_web_sm
+    ````
+    *(There is no longer a separate step to download the spaCy model; this command handles everything.)*
 
 3.  **Set Up Your API Keys:**
     The Axiom Engine requires **two** API keys to function, which must be set as environment variables.
