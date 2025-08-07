@@ -24,12 +24,5 @@ serpapi==2.1.0
 # --- AI & Natural Language Processing ---
 spacy==3.7.4
 
-# Direct link to the required spaCy model.
-# This allows for a fully automated, one-step installation.
 
 
-#install serpapi
-python3 -m spacy download en_core_web_sm
-
-link below was reported to have setup error:
-#https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl#sha256=86cc141f63942d4b2c5fcee06630fd6f904788d2f0ab005cce45aadb8fb73889
