@@ -18,7 +18,7 @@ beautifulsoup4==4.12.3
 
 # --- API Interaction ---
 newsapi-python==0.2.7
-serpapi==2.1.0
+serpapi==0.1.5
 
 
 # --- AI & Natural Language Processing ---
