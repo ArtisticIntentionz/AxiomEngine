@@ -4,6 +4,8 @@
 # See the LICENSE file for full details.
 # --- V2.2: ADDED TEXT SANITIZATION PRE-PROCESSOR ---
 
+import logging
+import sys
 import spacy
 import hashlib
 import re
@@ -15,17 +17,17 @@ from ledger import (
     insert_uncorroborated_fact
 )
 
-NLP_MODEL = spacy.load("en_core_web_sm")
-SUBJECTIVITY_INDICATORS = {
-    'believe', 'think', 'feel', 'seems', 'appears', 'argues', 'suggests', 
-    'contends', 'opines', 'speculates', 'especially', 'notably', 'remarkably', 
-    'surprisingly', 'unfortunately', 'clearly', 'obviously', 'reportedly', 
-    'allegedly', 'routinely', 'likely', 'apparently', 'essentially', 'largely',
-    'wedded to', 'new heights', 'war on facts', 'playbook', 'art of',
-    'therefore', 'consequently', 'thus', 'hence', 'conclusion',
-    'untrue', 'false', 'incorrect', 'correctly', 'rightly', 'wrongly',
-    'inappropriate', 'disparage', 'sycophants', 'unwelcome', 'flatly'
-}
+from common import NLP_MODEL, SUBJECTIVITY_INDICATORS
+
+logger = logging.getLogger("crucible")
+
+stdout_handler = logging.StreamHandler(stream=sys.stdout)
+stdout_handler.setFormatter(logging.Formatter(
+    "[{name}] {asctime} | %(levelname)s | %(filename)s:%(lineno)s >>> %(message)s"
+))
+
+logger.addHandler(stdout_handler)
+logger.setLevel(logging.INFO)
 
 def _sanitize_and_preprocess_text(text):
     """
@@ -79,7 +81,7 @@ def extract_facts_from_text(source_url, text_content):
     """
     The main V2.2 Crucible pipeline. It now sanitizes text before analysis.
     """
-    print(f"\n--- [The Crucible] Analyzing content from {source_url[:60]}...")
+    logger.info(f"analyzing content from {source_url[:60]}...")
     newly_created_facts = []
     try:
         source_domain_match = re.search(r'https?://(?:www\.)?([^/]+)', source_url)
@@ -121,7 +123,7 @@ def extract_facts_from_text(source_url, text_content):
                 newly_created_facts.append(new_fact_data)
 
     except Exception as e:
-        print(f"[The Crucible] ERROR: Failed to process text. {e}")
+        logger.exception(f"failed to process text: {e}")
     
-    print(f"[The Crucible] Analysis complete. Created {len(newly_created_facts)} new facts.")
+    logger.info(f"analysis complete. Created {len(newly_created_facts)} new facts.")
     return newly_created_facts

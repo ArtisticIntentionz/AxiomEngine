@@ -12,6 +12,7 @@ import math
 import os
 import traceback
 import sqlite3
+import logging
 from flask import Flask, jsonify, request
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
@@ -24,6 +25,21 @@ import synthesizer
 from ledger import initialize_database
 from api_query import search_ledger_for_api
 from p2p import sync_with_peer
+
+logger = logging.getLogger("axiom-node")
+
+stdout_handler = logging.StreamHandler(stream=sys.stdout)
+stdout_handler.setFormatter(logging.Formatter(
+    "[{name}] {asctime} | %(levelname)s | %(filename)s:%(lineno)s >>> %(message)s"
+))
+
+logger.addHandler(stdout_handler)
+logger.setLevel(logging.INFO)
+
+background_thread_logger = logging.getLogger("axiom-node-background-thread")
+
+background_thread_logger.addHandler(stdout_handler)
+background_thread_logger.setLevel(logging.INFO)
 
 # --- GLOBAL APP AND NODE INSTANCE ---
 app = Flask(__name__)
@@ -94,9 +110,9 @@ class AxiomNode:
         """
         The main, continuous loop. This version has the corrected logic.
         """
-        print("[Background Thread] Starting continuous cycle.")
+        background_thread_logger.info("starting continuous cycle.")
         while True:
-            print("\n====== [AXIOM ENGINE CYCLE START] ======")
+            background_thread_logger.info("axiom engine cycle start")
             
             try:
                 topic_to_investigate = None
@@ -118,11 +134,10 @@ class AxiomNode:
                     if newly_created_facts:
                         synthesizer.link_related_facts(newly_created_facts)
 
-            except Exception:
-                print(f"\n--- !!! CRITICAL ERROR IN LEARNING/SYNTHESIS LOOP !!! ---\n")
-                traceback.print_exc()
+            except Exception as e:
+                background_thread_logger.exception(e)
 
-            print("====== [AXIOM ENGINE CYCLE FINISH] ======")
+            background_thread_logger.info("axiom engine cycle finish")
             
             sorted_peers = sorted(self.peers.items(), key=lambda item: item[1]['reputation'], reverse=True)
             for peer_url, peer_data in sorted_peers:
@@ -133,12 +148,11 @@ class AxiomNode:
                 self._update_reputation(peer_url, sync_status, len(new_facts))
                 # We NO LONGER add synced facts to the investigation queue, which was the source of the bug.
             
-            print("\n--- Current Peer Reputations ---")
-            if not self.peers: print("No peers known.")
+            background_thread_logger.info("Current Peer Reputations")
+            if not self.peers: background_thread_logger.info("No peers known.")
             else:
                 for peer, data in sorted(self.peers.items(), key=lambda item: item[1]['reputation'], reverse=True):
-                    print(f"  - {peer}: {data['reputation']:.4f}")
-            print("------------------------------")
+                    background_thread_logger.info(f"  - {peer}: {data['reputation']:.4f}")
             
             time.sleep(10800) # Sleep for 3 hours
 
@@ -224,11 +238,11 @@ def handle_submit_vote():
 # --- MAIN EXECUTION BLOCK ---
 if __name__ == "__main__" or "gunicorn" in sys.argv[0]:
     if node_instance is None:
-        print(f"--- [Axiom Node] Initializing global instance for {'PRODUCTION' if 'gunicorn' in sys.argv[0] else 'DEVELOPMENT'}... ---")
+        logger.info(f"initializing global instance for {'PRODUCTION' if 'gunicorn' in sys.argv[0] else 'DEVELOPMENT'}...")
         port = int(os.environ.get("PORT", 5000))
         bootstrap = os.environ.get("BOOTSTRAP_PEER")
         node_instance = AxiomNode(port=port, bootstrap_peer=bootstrap)
         node_instance.start_background_tasks()
     if __name__ == "__main__":
-        print("--- [Axiom Node] Starting in DEVELOPMENT mode... ---")
+        logger.info("starting in DEVELOPMENT mode...")
         app.run(host='0.0.0.0', port=port, debug=False)
