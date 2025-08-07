@@ -4,9 +4,21 @@
 # See the LICENSE file for full details.
 # --- UNIFIED V2 VERSION WITH ALL REQUIRED FUNCTIONS ---
 
+import sys
+import logging
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 import re
+
+logger = logging.getLogger("ledger")
+
+stdout_handler = logging.StreamHandler(stream=sys.stdout)
+stdout_handler.setFormatter(logging.Formatter(
+    "[{name}] {asctime} | %(levelname)s | %(filename)s:%(lineno)s >>> %(message)s"
+))
+
+logger.addHandler(stdout_handler)
+logger.setLevel(logging.INFO)
 
 DB_NAME = "axiom_ledger.db"
 
@@ -16,7 +28,7 @@ def initialize_database():
     """
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    print("[Ledger] Initializing and verifying database schema...")
+    logger.info("initializing and verifying database schema...")
 
     # --- Table 1: The 'facts' table ---
     cursor.execute("""
@@ -47,7 +59,7 @@ def initialize_database():
 
     conn.commit()
     conn.close()
-    print("[Ledger] Database schema is up-to-date.")
+    logger.info("database schema is up-to-date.")
 
 def get_all_facts_for_analysis():
     """Retrieves all facts for the Crucible and Synthesizer."""
@@ -105,13 +117,13 @@ def update_fact_corroboration(fact_id, new_source_url):
     """, (new_score, new_sources, fact_id))
     conn.commit()
     conn.close()
-    print(f"  [Ledger] SUCCESS: Corroborated existing fact. New trust score: {new_score}")
+    logger.info(f"SUCCESS: Corroborated existing fact. New trust score: {new_score}")
 
 def insert_uncorroborated_fact(fact_id, fact_content, source_url):
     """Inserts a fact for the first time."""
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    timestamp = datetime.utcnow().isoformat()
+    timestamp = datetime.now(timezone.utc).isoformat()
     try:
         cursor.execute("""
             INSERT INTO facts (fact_id, fact_content, source_url, ingest_timestamp_utc, trust_score, status)
@@ -149,7 +161,7 @@ def mark_facts_as_disputed(original_fact_id, new_fact_id, new_fact_content, new_
     """
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    timestamp = datetime.utcnow().isoformat()
+    timestamp = datetime.now(timezone.utc).isoformat()
     
     try:
         # Insert the new fact, marking it as disputed and linking it to the original.
@@ -166,8 +178,10 @@ def mark_facts_as_disputed(original_fact_id, new_fact_id, new_fact_content, new_
         """, (new_fact_id, original_fact_id))
         
         conn.commit()
-        print(f"  [Ledger] CONTRADICTION DETECTED: Facts {original_fact_id[:6]}... and {new_fact_id[:6]}... have been marked as disputed.")
+        logger.info(f"CONTRADICTION DETECTED: Facts {original_fact_id[:6]}... and {new_fact_id[:6]}... have been marked as disputed.")
+
     except Exception as e:
-        print(f"  [Ledger] ERROR: Could not mark facts as disputed. {e}")
+        logger.exception(f"could not mark facts as disputed: {e}")
+
     finally:
         conn.close()

@@ -4,16 +4,28 @@
 # See the LICENSE file for full details.
 # --- V2.1: HARDENED SYNC LOGIC ---
 
+import logging
+import sys
 import requests
 import sqlite3
 from ledger import DB_NAME
+
+logger = logging.getLogger("p2p")
+
+stdout_handler = logging.StreamHandler(stream=sys.stdout)
+stdout_handler.setFormatter(logging.Formatter(
+    "[{name}] {asctime} | %(levelname)s | %(filename)s:%(lineno)s >>> %(message)s"
+))
+
+logger.addHandler(stdout_handler)
+logger.setLevel(logging.INFO)
 
 def sync_with_peer(node_instance, peer_url):
     """
     Synchronizes the local ledger with a peer's ledger.
     This version correctly handles database integrity errors during sync.
     """
-    print(f"\n--- [P2P Sync] Attempting to sync with peer: {peer_url} ---")
+    logging.info(f"attempting to sync with peer: {peer_url} ---")
     
     try:
         # Step 1: Get the peer's list of all fact IDs
@@ -31,12 +43,12 @@ def sync_with_peer(node_instance, peer_url):
         missing_fact_ids = list(peer_fact_ids - local_fact_ids)
 
         if not missing_fact_ids:
-            print(f"[P2P Sync] Ledger is already up-to-date with {peer_url}.")
+            logging.info(f"ledger is already up-to-date with {peer_url}.")
             conn.close()
             return 'SUCCESS_UP_TO_DATE', []
 
         # Step 4: Request the full data for only the missing facts
-        print(f"[P2P Sync] Found {len(missing_fact_ids)} new facts to download from {peer_url}.")
+        logging.info(f"found {len(missing_fact_ids)} new facts to download from {peer_url}.")
         response = requests.post(f"{peer_url}/get_facts_by_id", json={'fact_ids': missing_fact_ids}, timeout=30)
         response.raise_for_status()
         new_facts = response.json().get('facts', [])
@@ -67,10 +79,10 @@ def sync_with_peer(node_instance, peer_url):
             return 'SUCCESS_UP_TO_DATE', []
 
     except requests.exceptions.RequestException as e:
-        print(f"[P2P Sync] FAILED to connect or communicate with peer {peer_url}. Error: {e}")
+        logging.exception(f"FAILED to connect or communicate with peer {peer_url}. Error: {e}")
         return 'CONNECTION_FAILED', []
     except Exception as e:
-        print(f"[P2P Sync] An unexpected error occurred during sync with {peer_url}. Error: {e}")
+        logging.exception(f"an unexpected error occurred during sync with {peer_url}. Error: {e}")
         if 'conn' in locals() and conn:
             conn.close()
         return 'SYNC_ERROR', []

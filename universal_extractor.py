@@ -5,10 +5,22 @@
 # --- FINAL, CORRECTED VERSION WITH HARDENED DOMAIN VALIDATION ADDED TRUSTED TECH SOURCES---
 
 import os
+import sys
+import logging
 import requests
 from serpapi import GoogleSearch
 import trafilatura
 from urllib.parse import urlparse
+
+logger = logging.getLogger("universal-extractor")
+
+stdout_handler = logging.StreamHandler(stream=sys.stdout)
+stdout_handler.setFormatter(logging.Formatter(
+    "[{name}] {asctime} | %(levelname)s | %(filename)s:%(lineno)s >>> %(message)s"
+))
+
+logger.addHandler(stdout_handler)
+logger.setLevel(logging.INFO)
 
 SERPAPI_API_KEY = os.environ.get("SERPAPI_API_KEY")
 SCRAPER_API_KEY = os.environ.get("SCRAPER_API_KEY")
@@ -34,10 +46,10 @@ def is_trusted_domain(url):
         return False
 
 def find_and_extract(topic, max_sources=3):
-    print(f"\n--- [Pathfinder] Seeking sources for '{topic}' using SerpApi...")
+    logging.info(f"seeking sources for '{topic}' using SerpApi...")
     
     if not SERPAPI_API_KEY or not SCRAPER_API_KEY:
-        print("[Pathfinder/Extractor] ERROR: API keys not set.")
+        logging.error("API keys not set.")
         return []
 
     # --- MORE FLEXIBLE QUERY ---
@@ -57,17 +69,17 @@ def find_and_extract(topic, max_sources=3):
         trusted_urls = [url for url in all_urls if is_trusted_domain(url)]
         
         if not trusted_urls:
-            print(f"[Pathfinder] No trusted sources found for '{topic}'.")
+            logging.info(f"no trusted sources found for '{topic}'.")
             return []
     except Exception as e:
-        print(f"[Pathfinder] ERROR: SerpApi search failed. {e}")
+        logging.exception(f"SerpApi search failed. {e}")
         return []
 
-    print(f"[Universal Extractor] Found {len(trusted_urls)} potential trusted sources. Fetching content via ScraperAPI...")
+    logging.info(f"found {len(trusted_urls)} potential trusted sources. Fetching content via ScraperAPI...")
     extracted_content = []
     for url in trusted_urls[:max_sources]:
         try:
-            print(f"  -> Fetching: {url}")
+            logger.info(f"fetching: {url}")
             scraper_api_url = f'http://api.scraperapi.com?api_key={SCRAPER_API_KEY}&url={url}'
             response = requests.get(scraper_api_url, timeout=60)
             response.raise_for_status()
@@ -76,10 +88,10 @@ def find_and_extract(topic, max_sources=3):
             if downloaded_html:
                 main_text = trafilatura.extract(downloaded_html)
                 if main_text:
-                    print("  -> Extraction successful.")
+                    logger.info("extraction successful.")
                     extracted_content.append({'source_url': url, 'content': main_text})
         except requests.exceptions.RequestException as e:
-            print(f"  -> Fetch failed for {url}. Error: {e}")
+            logger.exception(f"fetch failed for {url}. Error: {e}")
             continue
 
     return extracted_content
