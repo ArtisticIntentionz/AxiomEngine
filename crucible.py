@@ -29,15 +29,24 @@ SUBJECTIVITY_INDICATORS = {
 
 def _sanitize_and_preprocess_text(text):
     """
-    A new helper function to clean up extracted text before NLP analysis.
-    Fixes run-on sentences common in topic pages and summaries.
+    Cleans up extracted text before NLP analysis. Now includes a metadata filter
+    to remove common noise from web articles.
     """
-    # This regex looks for a year (e.g., 2024) followed by a capital letter,
-    # which often indicates the start of a new headline without a period.
-    # It inserts a period between them.
+    # --- THIS IS THE UPGRADE ---
+    # Rule 1: Remove read times and comment counts (e.g., "42 2 min read ")
+    # This regex looks for digits and spaces at the start, followed by "min read".
+    text = re.sub(r'^\d+[\d\s]*min read\s*', '', text)
+    
+    # Rule 2: Remove "Advertisement" from the start of a sentence (case-insensitive)
+    if text.lower().startswith('advertisement '):
+        text = text[14:] # Slice the string to remove "Advertisement "
+        
+    # Rule 3 (from before): Fix run-on sentences common in topic pages
     text = re.sub(r'(\d{4})([A-Z])', r'\1. \2', text)
-    # Replace multiple newlines with a single space for better sentence splitting.
+    
+    # Rule 4 (from before): Standardize all whitespace to single spaces
     text = re.sub(r'\s+', ' ', text).strip()
+    
     return text
 
 def _get_subject_and_object(doc):

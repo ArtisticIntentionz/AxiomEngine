@@ -2,7 +2,7 @@
 # Copyright (C) 2025 The Axiom Contributors
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.
-# --- FINAL, COMPLETE VERSION WITH SYNTHESIZER SUPPORT ---
+# --- V2.1: FINAL, CORRECTED VERSION WITH REPUTATION FIX ---
 
 import time
 import threading
@@ -16,7 +16,7 @@ from flask import Flask, jsonify, request
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
-# Import all our system components, including the new Synthesizer
+# Import all our system components
 import zeitgeist_engine
 import universal_extractor
 import crucible
@@ -46,7 +46,7 @@ class AxiomNode:
                 "last_seen": datetime.utcnow().isoformat()
             }
         
-        self.investigation_queue = []
+        self.investigation_queue = [] # Now used only for special, high-priority topics.
         self.active_proposals = {}
         self.thread_pool = ThreadPoolExecutor(max_workers=10)
         self.search_ledger_for_api = search_ledger_for_api
@@ -59,33 +59,41 @@ class AxiomNode:
                 "first_seen": datetime.utcnow().isoformat(),
                 "last_seen": datetime.utcnow().isoformat()
             }
-            print(f"[Peer Management] Discovered new peer via gossip: {peer_url}")
         elif peer_url in self.peers:
              self.peers[peer_url]['last_seen'] = datetime.utcnow().isoformat()
 
     def _update_reputation(self, peer_url, sync_status, new_facts_count):
         if peer_url not in self.peers: return
-        REP_PENALTY_CONNECTION_FAILED = 0.1; REP_REWARD_SUCCESS_UPTIME = 0.02; REP_REWARD_NEW_FACTS_BASE = 0.1
+        REP_PENALTY = 0.1
+        REP_REWARD_UPTIME = 0.02
+        REP_REWARD_NEW_DATA = 0.1
         current_rep = self.peers[peer_url]['reputation']
-        if sync_status in ('CONNECTION_FAILED', 'SYNC_ERROR'): new_rep = current_rep - REP_PENALTY_CONNECTION_FAILED
-        elif sync_status == 'SUCCESS_UP_TO_DATE': new_rep = current_rep + REP_REWARD_SUCCESS_UPTIME
-        elif sync_status == 'SUCCESS_NEW_FACTS': new_rep = current_rep + REP_REWARD_NEW_FACTS_BASE + (math.log10(1 + new_facts_count) * 0.1)
-        else: new_rep = current_rep
+        
+        if sync_status in ('CONNECTION_FAILED', 'SYNC_ERROR'):
+            new_rep = current_rep - REP_PENALTY
+        elif sync_status == 'SUCCESS_UP_TO_DATE':
+            new_rep = current_rep + REP_REWARD_UPTIME
+        elif sync_status == 'SUCCESS_NEW_FACTS':
+            # A bigger reward for sharing new, valuable information
+            new_rep = current_rep + REP_REWARD_UPTIME + (math.log10(1 + new_facts_count) * REP_REWARD_NEW_DATA)
+        else:
+            new_rep = current_rep
+            
         self.peers[peer_url]['reputation'] = max(0.0, min(1.0, new_rep))
 
     def _fetch_from_peer(self, peer_url, search_term):
         try:
-            # We add include_uncorroborated=True to get all relevant facts from peers
             query_url = f"{peer_url}/local_query?term={search_term}&include_uncorroborated=true"
             response = requests.get(query_url, timeout=5)
             response.raise_for_status()
             return response.json().get('results', [])
         except requests.exceptions.RequestException:
-            print(f"[Federation] Failed to connect to peer {peer_url}.")
             return []
 
     def _background_loop(self):
-        """The main, continuous loop for learning, synthesizing, and syncing."""
+        """
+        The main, continuous loop. This version has the corrected logic.
+        """
         print("[Background Thread] Starting continuous cycle.")
         while True:
             print("\n====== [AXIOM ENGINE CYCLE START] ======")
@@ -93,40 +101,37 @@ class AxiomNode:
             try:
                 topic_to_investigate = None
                 if self.investigation_queue:
-                    print(f"[Engine] Prioritizing {len(self.investigation_queue)} leads from peer network.")
-                    lead = self.investigation_queue.pop(0)
-                    topic_to_investigate = lead['fact_content'][:100]
+                    topic_to_investigate = self.investigation_queue.pop(0)
                 else:
-                    print("[Engine] No leads in queue. Discovering new topics.")
                     topics = zeitgeist_engine.get_trending_topics(top_n=1)
                     if topics:
                         topic_to_investigate = topics[0]
                 
-                newly_created_facts_batch = []
                 if topic_to_investigate:
                     content_list = universal_extractor.find_and_extract(topic_to_investigate, max_sources=1)
+                    newly_created_facts = []
                     for item in content_list:
-                        new_facts_from_source = crucible.extract_facts_from_text(item['source_url'], item['content'])
-                        if new_facts_from_source:
-                            newly_created_facts_batch.extend(new_facts_from_source)
-                
-                if newly_created_facts_batch:
-                    synthesizer.link_related_facts(newly_created_facts_batch)
+                        new_facts = crucible.extract_facts_from_text(item['source_url'], item['content'])
+                        if new_facts:
+                            newly_created_facts.extend(new_facts)
+                    
+                    if newly_created_facts:
+                        synthesizer.link_related_facts(newly_created_facts)
 
             except Exception:
                 print(f"\n--- !!! CRITICAL ERROR IN LEARNING/SYNTHESIS LOOP !!! ---\n")
                 traceback.print_exc()
-                print("\n--- END OF CRITICAL ERROR ---\n")
 
             print("====== [AXIOM ENGINE CYCLE FINISH] ======")
             
             sorted_peers = sorted(self.peers.items(), key=lambda item: item[1]['reputation'], reverse=True)
-            print(f"\n[P2P Sync] Beginning sync process with {len(sorted_peers)} known peers...")
             for peer_url, peer_data in sorted_peers:
+                # --- THIS IS THE FIX ---
+                # The new p2p.sync_with_peer is smarter and will return the correct status.
+                # The reputation system will now correctly reward good peers.
                 sync_status, new_facts = sync_with_peer(self, peer_url)
                 self._update_reputation(peer_url, sync_status, len(new_facts))
-                if sync_status == 'SUCCESS_NEW_FACTS' and new_facts:
-                    self.investigation_queue.extend(new_facts)
+                # We NO LONGER add synced facts to the investigation queue, which was the source of the bug.
             
             print("\n--- Current Peer Reputations ---")
             if not self.peers: print("No peers known.")
@@ -135,7 +140,7 @@ class AxiomNode:
                     print(f"  - {peer}: {data['reputation']:.4f}")
             print("------------------------------")
             
-            time.sleep(21600)
+            time.sleep(10800) # Sleep for 3 hours
 
     def start_background_tasks(self):
         background_thread = threading.Thread(target=self._background_loop, daemon=True)
@@ -145,7 +150,6 @@ class AxiomNode:
 @app.route('/local_query', methods=['GET'])
 def handle_local_query():
     search_term = request.args.get('term', '')
-    # The string 'true' from a URL parameter needs to be converted to a boolean
     include_uncorroborated = request.args.get('include_uncorroborated', 'false').lower() == 'true'
     results = node_instance.search_ledger_for_api(search_term, include_uncorroborated=include_uncorroborated)
     return jsonify({"results": results})
@@ -164,7 +168,8 @@ def handle_get_fact_ids():
 
 @app.route('/get_facts_by_id', methods=['POST'])
 def handle_get_facts_by_id():
-    requested_ids = request.json.get('fact_ids', []); all_facts = node_instance.search_ledger_for_api('', include_uncorroborated=True)
+    requested_ids = request.json.get('fact_ids', [])
+    all_facts = node_instance.search_ledger_for_api('', include_uncorroborated=True)
     facts_to_return = [fact for fact in all_facts if fact['fact_id'] in requested_ids]
     return jsonify({'facts': facts_to_return})
 
@@ -174,8 +179,6 @@ def handle_anonymous_query():
     node_instance.add_or_update_peer(sender_peer)
     if not circuit:
         all_facts = {}
-        # --- THIS IS THE FIX ---
-        # We now correctly call the API to include uncorroborated facts by default.
         local_results = node_instance.search_ledger_for_api(search_term, include_uncorroborated=True)
         for fact in local_results: all_facts[fact['fact_id']] = fact
         

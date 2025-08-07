@@ -2,61 +2,75 @@
 # Copyright (C) 2025 The Axiom Contributors
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.
+# --- V2.1: HARDENED SYNC LOGIC ---
 
 import requests
+import sqlite3
+from ledger import DB_NAME
 
-def get_all_fact_ids_from_ledger(search_ledger_for_api_func):
-    """A helper function to get a set of all fact_ids for quick comparison."""
-    # We must include uncorroborated facts for sync.
-    all_facts = search_ledger_for_api_func('', include_uncorroborated=True) 
-    return {fact['fact_id'] for fact in all_facts}
-
-def sync_with_peer(self_node, peer_url):
+def sync_with_peer(node_instance, peer_url):
     """
-    The core synchronization logic. Now returns new facts as "leads" instead of inserting them.
-    
-    Returns a tuple: (status_code, list_of_new_facts)
+    Synchronizes the local ledger with a peer's ledger.
+    This version correctly handles database integrity errors during sync.
     """
     print(f"\n--- [P2P Sync] Attempting to sync with peer: {peer_url} ---")
     
     try:
-        # 1. Gossip - Get the peer's list of peers.
-        response = requests.get(f"{peer_url}/get_peers", timeout=5)
-        response.raise_for_status()
-        peers_of_peer = response.json().get('peers', {})
-        for new_peer_url in peers_of_peer.keys():
-            self_node.add_or_update_peer(new_peer_url)
-
-        # 2. Compare Fact IDs
-        response = requests.get(f"{peer_url}/get_fact_ids", timeout=5)
+        # Step 1: Get the peer's list of all fact IDs
+        response = requests.get(f"{peer_url}/get_fact_ids", timeout=10)
         response.raise_for_status()
         peer_fact_ids = set(response.json().get('fact_ids', []))
-        
-        # Use the node's own search function, passed via self_node reference
-        our_fact_ids = get_all_fact_ids_from_ledger(self_node.search_ledger_for_api)
-        missing_ids = peer_fact_ids - our_fact_ids
-        
-        if not missing_ids:
-            print(f"[P2P Sync] Ledger is already up-to-date with {peer_url}.")
-            return ('SUCCESS_UP_TO_DATE', [])
 
-        print(f"[P2P Sync] Found {len(missing_ids)} new facts to download from {peer_url}.")
+        # Step 2: Get the local list of all fact IDs
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT fact_id FROM facts")
+        local_fact_ids = set(row[0] for row in cursor.fetchall())
         
-        # 3. Download full fact data.
-        response = requests.post(f"{peer_url}/get_facts_by_id", json={'fact_ids': list(missing_ids)}, timeout=10)
+        # Step 3: Determine which facts are missing locally
+        missing_fact_ids = list(peer_fact_ids - local_fact_ids)
+
+        if not missing_fact_ids:
+            print(f"[P2P Sync] Ledger is already up-to-date with {peer_url}.")
+            conn.close()
+            return 'SUCCESS_UP_TO_DATE', []
+
+        # Step 4: Request the full data for only the missing facts
+        print(f"[P2P Sync] Found {len(missing_fact_ids)} new facts to download from {peer_url}.")
+        response = requests.post(f"{peer_url}/get_facts_by_id", json={'fact_ids': missing_fact_ids}, timeout=30)
         response.raise_for_status()
         new_facts = response.json().get('facts', [])
         
-        if not new_facts:
-            return ('SYNC_ERROR', [])
+        # Step 5: Insert the new facts into the local ledger
+        facts_added_count = 0
+        for fact in new_facts:
+            try:
+                cursor.execute("""
+                    INSERT INTO facts (fact_id, fact_content, source_url, ingest_timestamp_utc, trust_score, status, corroborating_sources, contradicts_fact_id)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    fact['fact_id'], fact['fact_content'], fact['source_url'], fact['ingest_timestamp_utc'],
+                    fact['trust_score'], fact['status'], fact.get('corroborating_sources'), fact.get('contradicts_fact_id')
+                ))
+                facts_added_count += 1
+            except sqlite3.IntegrityError:
+                # This is not a failure. It means we discovered this fact on our own
+                # in the short time between starting and finishing the sync. We can safely ignore it.
+                continue
+        
+        conn.commit()
+        conn.close()
+        
+        if facts_added_count > 0:
+            return 'SUCCESS_NEW_FACTS', new_facts
+        else:
+            return 'SUCCESS_UP_TO_DATE', []
 
-        print(f"[P2P Sync] Successfully downloaded {len(new_facts)} facts as new leads.")
-        # Return the facts so the main loop can process them as leads.
-        return ('SUCCESS_NEW_FACTS', new_facts)
-
-    except requests.exceptions.RequestException:
-        print(f"[P2P Sync] ERROR: Could not connect to peer {peer_url}. Peer may be offline.")
-        return ('CONNECTION_FAILED', [])
+    except requests.exceptions.RequestException as e:
+        print(f"[P2P Sync] FAILED to connect or communicate with peer {peer_url}. Error: {e}")
+        return 'CONNECTION_FAILED', []
     except Exception as e:
-        print(f"[P2P Sync] ERROR: An unexpected error occurred during sync: {e}")
-        return ('SYNC_ERROR', [])
+        print(f"[P2P Sync] An unexpected error occurred during sync with {peer_url}. Error: {e}")
+        if 'conn' in locals() and conn:
+            conn.close()
+        return 'SYNC_ERROR', []
