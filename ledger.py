@@ -7,8 +7,12 @@
 import sys
 import logging
 import sqlite3
-from datetime import datetime, timezone
 import re
+import enum
+from datetime import datetime, timezone
+
+from sqlalchemy import Column, ForeignKey, String, Integer, Enum
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 logger = logging.getLogger("ledger")
 
@@ -23,6 +27,45 @@ logger.addHandler(stdout_handler)
 logger.setLevel(logging.INFO)
 
 DB_NAME = "axiom_ledger.db"
+
+
+class Base(DeclarativeBase):
+    ...
+
+
+class FactStatus(enum.Enum):
+    UNCORROBORATED = "uncorroborated"
+    CORROBORATED = "corroborated"
+
+
+class Fact(Base):
+    __tablename__ = "fact"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    content: Mapped[str]
+    status: Mapped[FactStatus]
+
+    source_id: Mapped[int] = mapped_column(ForeignKey("source.id"))
+    source: Mapped["Source"] = relationship("Source")
+
+
+class Source(Base):
+    __tablename__ = "source"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    domain: Mapped[str]
+
+class FactRelationship(Base):
+    __tablename__ = "fact_relationship"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    score: Mapped[int]
+
+    fact1_id: Mapped[int] = mapped_column(ForeignKey("fact.id"))
+    fact1: Mapped["Fact"] = relationship("Fact")
+
+    fact2_id: Mapped[int] = mapped_column(ForeignKey("fact.id"))
+    fact2: Mapped["Fact"] = relationship("Fact")
 
 
 def initialize_database():
