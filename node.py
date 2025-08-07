@@ -26,6 +26,8 @@ from ledger import initialize_database
 from api_query import search_ledger_for_api
 from p2p import sync_with_peer
 
+logging.basicConfig(level=logging.INFO)
+
 logger = logging.getLogger("axiom-node")
 
 stdout_handler = logging.StreamHandler(stream=sys.stdout)
