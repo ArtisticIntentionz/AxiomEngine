@@ -3,6 +3,8 @@
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.
 
+from __future__ import annotations
+
 import sys
 import requests
 import random
@@ -177,9 +179,15 @@ class AxiomClientApp(QWidget):
         
         self.results_output.setHtml(html)
 
-# --- Main Execution Block to Launch the Application ---
-if __name__ == '__main__':
+
+def cli_run() -> int:
+    """Application entrypoint."""
     app = QApplication(sys.argv)
     ex = AxiomClientApp()
     ex.show()
-    sys.exit(app.exec())
+    sys.exit(cli_run())
+
+
+# --- Main Execution Block to Launch the Application ---
+if __name__ == '__main__':
+    cli_run()

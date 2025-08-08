@@ -18,13 +18,15 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
 # Import all our system components
-import zeitgeist_engine
-import universal_extractor
-import crucible
-import synthesizer
-from ledger import initialize_database
-from api_query import search_ledger_for_api
-from p2p import sync_with_peer
+from axiom_server import zeitgeist_engine
+from axiom_server import universal_extractor
+from axiom_server import crucible
+from axiom_server import synthesizer
+from axiom_server.ledger import initialize_database
+from axiom_server.api_query import search_ledger_for_api
+from axiom_server.p2p import sync_with_peer
+
+__version__ = "0.1.0"
 
 logging.basicConfig(level=logging.INFO)
 
@@ -324,16 +326,33 @@ def handle_submit_vote():
     return jsonify({"status": "success", "message": "Vote recorded."})
 
 
+def build_instance() -> AxiomNode:
+    logger.info(
+        f"initializing global instance for {'PRODUCTION' if 'gunicorn' in sys.argv[0] else 'DEVELOPMENT'}..."
+    )
+    port = int(os.environ.get("PORT", 5000))
+    bootstrap = os.environ.get("BOOTSTRAP_PEER")
+    node_instance = AxiomNode(port=port, bootstrap_peer=bootstrap)
+    node_instance.start_background_tasks()
+    return node_instance
+
+
+def host_server() -> None:
+    logger.info("starting in DEVELOPMENT mode...")
+    app.run(host="0.0.0.0", port=port, debug=False)
+
+
+def cli_run(do_host: bool = True) -> None:
+    """Server entrypoint."""
+    # Setup instance
+    global node_instance
+    if node_instance is None:
+        node_instance = build_instance()
+    # Run server
+    if do_host:
+        host_server()
+
+
 # --- MAIN EXECUTION BLOCK ---
 if __name__ == "__main__" or "gunicorn" in sys.argv[0]:
-    if node_instance is None:
-        logger.info(
-            f"initializing global instance for {'PRODUCTION' if 'gunicorn' in sys.argv[0] else 'DEVELOPMENT'}..."
-        )
-        port = int(os.environ.get("PORT", 5000))
-        bootstrap = os.environ.get("BOOTSTRAP_PEER")
-        node_instance = AxiomNode(port=port, bootstrap_peer=bootstrap)
-        node_instance.start_background_tasks()
-    if __name__ == "__main__":
-        logger.info("starting in DEVELOPMENT mode...")
-        app.run(host="0.0.0.0", port=port, debug=False)
+    cli_run(__name__ == "__main__")

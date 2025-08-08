@@ -8,16 +8,15 @@ import logging
 import sys
 import hashlib
 import re
-from ledger import (
+
+from axiom_server.ledger import (
     get_all_facts_for_analysis,
     mark_facts_as_disputed,
     find_similar_fact_from_different_domain,
     update_fact_corroboration,
     insert_uncorroborated_fact,
 )
-
-# Community Change: NLP_MODEL and SUBJECTIVITY_INDICATORS are now imported from a central file.
-from common import NLP_MODEL, SUBJECTIVITY_INDICATORS
+from axiom_server.common import NLP_MODEL, SUBJECTIVITY_INDICATORS
 
 # Community Change: Professional logging setup.
 logger = logging.getLogger("crucible")
