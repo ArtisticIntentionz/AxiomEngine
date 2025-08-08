@@ -18,13 +18,13 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
 # Import all our system components
-import zeitgeist_engine
-import universal_extractor
-import crucible
-import synthesizer
-from ledger import initialize_database
-from api_query import search_ledger_for_api
-from p2p import sync_with_peer
+from axiom_server import zeitgeist_engine
+from axiom_server import universal_extractor
+from axiom_server import crucible
+from axiom_server import synthesizer
+from axiom_server.ledger import initialize_database
+from axiom_server.api_query import search_ledger_for_api
+from axiom_server.p2p import sync_with_peer
 
 __version__ = "0.1.0"
 

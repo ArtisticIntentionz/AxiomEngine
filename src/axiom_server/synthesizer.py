@@ -6,10 +6,9 @@
 
 import logging
 import sys
-from ledger import get_all_facts_for_analysis, insert_relationship
 
-# --- Community Upgrade: Import the shared NLP model for efficiency ---
-from common import NLP_MODEL
+from axiom_server.ledger import get_all_facts_for_analysis, insert_relationship
+from axiom_server.common import NLP_MODEL
 
 # --- Community Upgrade: Professional logging setup ---
 logger = logging.getLogger("synthesizer")
