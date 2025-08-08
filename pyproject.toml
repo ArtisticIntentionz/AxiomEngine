@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools >= 64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "axiom_server"
+dynamic = ["version"]
+authors = [
+  { name="Vic", email="victronevarez88@gmail.com" },
+]
+description = "Decentralized AI network that autonomously discovers, verifies, and archives objective truth"
+readme = {file = "README.md", content-type = "text/markdown"}
+license = {file = "LICENSE"}
+requires-python = ">=3.9"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Internet",
+    "Operating System :: OS Independent",
+]
+keywords = [
+    "ai", "p2p", "truth"
+]
+dependencies = [
+    # --- Core Web & Networking ---
+    "Flask==3.0.3",
+    "gunicorn==22.0.0",
+    "requests==2.31.0",
+
+    # --- Web Scraping & Data Extraction ---
+    "googlesearch-python==1.2.4",
+    "trafilatura==1.9.0",
+    "beautifulsoup4==4.12.3",
+
+    # --- API Interaction ---
+    "newsapi-python==0.2.7",
+    "serpapi==0.1.5",
+
+    # --- AI & Natural Language Processing ---
+    "spacy==3.7.4",
+]
+
+[tool.setuptools.dynamic]
+version = {attr = "axiom_server.node.__version__"}
+
+[project.urls]
+"Source" = "https://github.com/ArtisticIntentionz/AxiomEngine"
+"Bug Tracker" = "https://github.com/ArtisticIntentionz/AxiomEngine/issues"
+
+[project.gui-scripts]
+axiom_server = "axiom_server.node:cli_run"
+axiom_client = "axiom_client.main:cli_run"
+
+[tool.setuptools.package-data]
+axiom_server = ["py.typed", "*.html"]
+axiom_client = ["py.typed"]
