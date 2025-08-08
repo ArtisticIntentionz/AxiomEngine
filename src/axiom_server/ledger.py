@@ -19,7 +19,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
-from common import NLP_MODEL
+from axiom_server.common import NLP_MODEL
 
 logger = logging.getLogger("ledger")
 

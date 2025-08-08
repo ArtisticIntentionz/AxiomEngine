@@ -13,7 +13,7 @@ from typing import Callable
 
 from spacy.ml import Doc, Span
 from sqlalchemy.orm import Session
-from ledger import (
+from axiom_server.ledger import (
     Fact,
     add_fact_object_corroboration,
     get_all_facts_for_analysis,
