@@ -2,36 +2,49 @@
 # Copyright (C) 2025 The Axiom Contributors
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.
-# --- V2.2: ADDED TEXT SANITIZATION PRE-PROCESSOR ---
+# --- V2.5: UNIFIED VERSION WITH COMMUNITY REFACTOR AND ROBUST SANITIZATION ---
 
+from dataclasses import dataclass, field
 import logging
 import sys
-import spacy
+import hashlib
 import re
-from typing import Callable, Protocol
-from dataclasses import dataclass, field
-from enum import Enum
+from typing import Callable
 
-from spacy import pipeline
-from spacy.ml import Span
+from spacy.ml import Doc, Span
 from sqlalchemy.orm import Session
-from ledger import Fact, Source, add_fact_object_corroboration, insert_relationship, insert_relationship_object, mark_fact_objects_as_disputed, mark_facts_as_disputed
-from spacy.tokens import Doc
+from ledger import (
+    Fact,
+    add_fact_object_corroboration,
+    get_all_facts_for_analysis,
+    insert_relationship_object,
+    mark_fact_objects_as_disputed,
+    mark_facts_as_disputed,
+    find_similar_fact_from_different_domain,
+    update_fact_corroboration,
+    insert_uncorroborated_fact,
+)
 
+# Community Change: NLP_MODEL and SUBJECTIVITY_INDICATORS are now imported from a central file.
 from common import NLP_MODEL, SUBJECTIVITY_INDICATORS
 
+# Community Change: Professional logging setup.
 logger = logging.getLogger("crucible")
-
 stdout_handler = logging.StreamHandler(stream=sys.stdout)
 stdout_handler.setFormatter(
     logging.Formatter(
         "[%(name)s] %(asctime)s | %(levelname)s | %(filename)s:%(lineno)s >>> %(message)s"
     )
 )
-
 logger.addHandler(stdout_handler)
 logger.setLevel(logging.INFO)
 
+# --- OUR UPGRADE: A more robust list of noise patterns to be removed. ---
+METADATA_NOISE_PATTERNS = [
+    re.compile(r'^\d+\s*'),
+    re.compile(r'^(By and\s*)?\d*[\d\s]*(min read|Heard on the Street)\s*', re.IGNORECASE),
+    re.compile(r'^Advertisement\s*', re.IGNORECASE)
+]
 
 class CrucibleError(BaseException): ...
 

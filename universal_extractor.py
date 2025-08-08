@@ -2,18 +2,18 @@
 # Copyright (C) 2025 The Axiom Contributors
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.
-# --- FINAL, CORRECTED VERSION WITH HARDENED DOMAIN VALIDATION ADDED TRUSTED TECH SOURCES---
+# --- V2.5: UNIFIED VERSION WITH COMMUNITY REFACTOR ---
 
 import os
 import sys
 import logging
 import requests
-from serpapi import GoogleSearch
+from serpapi import GoogleSearch # This requires 'google-search-results' to be installed
 import trafilatura
 from urllib.parse import urlparse
 
-logger = logging.getLogger("universal-extractor")
-
+# --- Professional logging setup (Corrected) ---
+logger = logging.getLogger(__name__) # Use __name__ for automatic, correct logger naming.
 stdout_handler = logging.StreamHandler(stream=sys.stdout)
 stdout_handler.setFormatter(
     logging.Formatter(
@@ -27,7 +27,6 @@ logger.setLevel(logging.INFO)
 SERPAPI_API_KEY = os.environ.get("SERPAPI_API_KEY")
 SCRAPER_API_KEY = os.environ.get("SCRAPER_API_KEY")
 
-# --- EXPANDED WITH TECH SOURCES ---
 TRUSTED_DOMAINS = [
     "wikipedia.org",
     "reuters.com",
@@ -72,8 +71,6 @@ def find_and_extract(topic, max_sources=3) -> list[dict[str, str]]:
         logging.error("API keys not set.")
         return []
 
-    # --- MORE FLEXIBLE QUERY ---
-    # Removed overly restrictive terms like "history" to better handle diverse topics.
     search_query = f'"{topic}" news facts information'
 
     search_params = {
