@@ -17,6 +17,7 @@ classifiers = [
     "Intended Audience :: End Users/Desktop",
     "Natural Language :: English",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -54,8 +55,10 @@ version = {attr = "axiom_server.node.__version__"}
 "Source" = "https://github.com/ArtisticIntentionz/AxiomEngine"
 "Bug Tracker" = "https://github.com/ArtisticIntentionz/AxiomEngine/issues"
 
-[project.gui-scripts]
+[project.scripts]
 axiom_server = "axiom_server.node:cli_run"
+
+[project.gui-scripts]
 axiom_client = "axiom_client.main:cli_run"
 
 [tool.setuptools.package-data]
