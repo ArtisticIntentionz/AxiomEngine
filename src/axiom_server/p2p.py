@@ -8,7 +8,8 @@ import logging
 import sys
 import requests
 import sqlite3
-from ledger import DB_NAME
+
+from axiom_server.ledger import DB_NAME
 
 logger = logging.getLogger("p2p")
 
