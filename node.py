@@ -44,6 +44,25 @@ background_thread_logger = logging.getLogger("axiom-node-background-thread")
 background_thread_logger.addHandler(stdout_handler)
 background_thread_logger.setLevel(logging.INFO)
 
+logging.basicConfig(level=logging.INFO)
+
+logger = logging.getLogger("axiom-node")
+
+stdout_handler = logging.StreamHandler(stream=sys.stdout)
+stdout_handler.setFormatter(
+    logging.Formatter(
+        "[%(name)s] %(asctime)s | %(levelname)s | %(filename)s:%(lineno)s >>> %(message)s"
+    )
+)
+
+logger.addHandler(stdout_handler)
+logger.setLevel(logging.INFO)
+
+background_thread_logger = logging.getLogger("axiom-node-background-thread")
+
+background_thread_logger.addHandler(stdout_handler)
+background_thread_logger.setLevel(logging.INFO)
+
 # --- GLOBAL APP AND NODE INSTANCE ---
 app = Flask(__name__)
 node_instance = None
