@@ -62,7 +62,10 @@ def is_trusted_domain(url):
         return False
 
 
-def find_and_extract(topic, max_sources=3):
+def find_and_extract(topic, max_sources=3) -> list[dict[str, str]]:
+    """
+        returns {"source_url": url, "content": main_text}
+    """
     logging.info(f"seeking sources for '{topic}' using SerpApi...")
 
     if not SERPAPI_API_KEY or not SCRAPER_API_KEY:

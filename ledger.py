@@ -14,9 +14,10 @@ from typing import cast
 
 from spacy.ml import Doc
 from sqlalchemy import Engine, ForeignKey, String, Integer, Boolean
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, sessionmaker
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 
 from common import NLP_MODEL
 
@@ -34,6 +35,7 @@ logger.setLevel(logging.INFO)
 
 DB_NAME = "axiom_ledger.db"
 ENGINE = create_engine(f"sqlite:///{DB_NAME}")
+SessionMaker = sessionmaker(bind=ENGINE)
 
 
 class LedgerError(BaseException): ...
@@ -71,6 +73,17 @@ class Fact(Base):
         viewonly=True,
     )
 
+    @staticmethod
+    def from_model(model: FactModel) -> Fact:
+        return Fact(
+            content=model.content,
+            score=model.score,
+            disputed=model.disputed,
+            hash=model.hash,
+            last_checked=model.last_checked,
+            semantics=json.dumps(model.semantics),
+        )
+
     @property
     def corroborated(self) -> bool:
         return cast(bool, self.score > 0)
@@ -94,6 +107,27 @@ class Fact(Base):
     @staticmethod
     def set_doc(semantics: dict, doc: Doc):
         semantics["doc"] = doc.to_json()
+
+class FactModel(BaseModel):
+    content: str
+    score: int
+    disputed: bool
+    hash: str
+    last_checked: str
+    semantics: dict
+    sources: list[str]
+
+    @staticmethod
+    def from_fact(fact: Fact) -> FactModel:
+        return FactModel(
+            content=fact.content,
+            score=fact.score,
+            disputed=fact.disputed,
+            hash=fact.hash,
+            last_checked=fact.last_checked,
+            semantics=fact.get_semantics(),
+            sources=[ source.domain for source in fact.sources ],
+        )
 
 
 class Source(Base):
@@ -203,6 +237,9 @@ def insert_relationship(session: Session, fact_id_1: int, fact_id_2: int, score:
         logger.error(f"fact not found: {fact_id_2=}")
         raise LedgerError(f"fact(s) not found: {fact_id_2=}")
 
+    insert_relationship_object(session, fact1, fact2, score)
+
+def insert_relationship_object(session: Session, fact1: Fact, fact2: Fact, score: int):
     link = FactLink(
         score=score,
         fact1=fact1,
@@ -210,7 +247,7 @@ def insert_relationship(session: Session, fact_id_1: int, fact_id_2: int, score:
     )
     session.add(link)
     logger.info(
-        f"inserted relationship between {fact_id_1=} and {fact_id_2=} with {score=}"
+        f"inserted relationship between {fact1.id=} and {fact2.id=} with {score=}"
     )
 
 

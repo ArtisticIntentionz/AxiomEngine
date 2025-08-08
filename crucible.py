@@ -15,7 +15,7 @@ from enum import Enum
 from spacy import pipeline
 from spacy.ml import Span
 from sqlalchemy.orm import Session
-from ledger import Fact, Source, add_fact_object_corroboration, mark_fact_objects_as_disputed, mark_facts_as_disputed
+from ledger import Fact, Source, add_fact_object_corroboration, insert_relationship, insert_relationship_object, mark_fact_objects_as_disputed, mark_facts_as_disputed
 from spacy.tokens import Doc
 
 from common import NLP_MODEL, SUBJECTIVITY_INDICATORS
@@ -169,6 +169,8 @@ def _get_subject_and_object(doc: Doc) -> tuple[str | None, str | None]:
 def extract_facts_from_text(text_content: str) -> list[Fact]:
     """
     The main V2.2 Crucible pipeline. It now sanitizes text before analysis.
+    It outputs Facts that are not added to the database and not linked to any source.
+    It only has pre computed semantics, and went through the FACT_PREANALYSIS pipeline.
     """
     facts: list[Fact] = []
     sanitized_text = TEXT_SANITIZATION.run(text_content)
@@ -219,9 +221,11 @@ class CrucibleFactAdder:
     addition_count: int = 0
     existing_facts: list[Fact] = field(default_factory=lambda : [ ])
 
-    def add(self, fact: Fact, source: Source):
-        self.session.add(fact)
-        self.session.commit()
+    def add(self, fact: Fact):
+        """
+            fact is assumed to already exist in the database
+        """
+        assert fact.id is not None
 
         pipeline = Pipeline(
             "Crucible Fact Addition",
@@ -229,6 +233,7 @@ class CrucibleFactAdder:
                 Transformation(self._set_hash, "Computing"),
                 Transformation(self._contradiction_check, "Contradiction Check"),
                 Transformation(self._corroborate_against_existing_facts, "Corroboration against existing facts"),
+                Transformation(self._detect_relationships, "Relationship strength detection")
             ]
         )
 
@@ -294,5 +299,25 @@ class CrucibleFactAdder:
             ):
                 for source in fact.sources:
                     add_fact_object_corroboration(existing_fact, source)
+
+        return fact
+    
+    def _detect_relationships(self, fact: Fact) -> Fact|None:
+        new_semantics = fact.get_semantics()
+        new_doc = Fact.get_doc(new_semantics)
+        new_entities = { ent.text.lower() for ent in new_doc.ents }
+
+        for existing_fact in self.existing_facts:
+            if existing_fact == fact:
+                continue
+
+            existing_semantics = existing_fact.get_semantics()
+            existing_doc = Fact.get_doc(existing_semantics)
+            existing_entities = { ent.text.lower() for ent in existing_doc.ents }
+
+            score = len(new_entities & existing_entities)
+
+            if score > 0:
+                insert_relationship_object(self.session, fact, existing_fact, score)
 
         return fact

@@ -4,27 +4,26 @@
 # See the LICENSE file for full details.
 # --- V2.1: FINAL, CORRECTED VERSION WITH REPUTATION FIX ---
 
+import json
 import time
 import threading
 import sys
 import requests
 import math
 import os
-import traceback
-import sqlite3
 import logging
 from flask import Flask, jsonify, request
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Import all our system components
 import zeitgeist_engine
 import universal_extractor
 import crucible
-import synthesizer
-from ledger import initialize_database
+from ledger import ENGINE, Fact, FactModel, SessionMaker, Source, initialize_database
 from api_query import search_ledger_for_api
 from p2p import sync_with_peer
+from urllib.parse import urlparse
 
 logging.basicConfig(level=logging.INFO)
 
@@ -64,8 +63,8 @@ class AxiomNode:
         if bootstrap_peer:
             self.peers[bootstrap_peer] = {
                 "reputation": 0.5,
-                "first_seen": datetime.utcnow().isoformat(),
-                "last_seen": datetime.utcnow().isoformat(),
+                "first_seen": datetime.now(timezone.utc).isoformat(),
+                "last_seen": datetime.now(timezone.utc).isoformat(),
             }
 
         self.investigation_queue = (
@@ -74,17 +73,17 @@ class AxiomNode:
         self.active_proposals = {}
         self.thread_pool = ThreadPoolExecutor(max_workers=10)
         self.search_ledger_for_api = search_ledger_for_api
-        initialize_database()
+        initialize_database(ENGINE)
 
     def add_or_update_peer(self, peer_url):
         if peer_url and peer_url not in self.peers and peer_url != self.self_url:
             self.peers[peer_url] = {
                 "reputation": 0.1,
-                "first_seen": datetime.utcnow().isoformat(),
-                "last_seen": datetime.utcnow().isoformat(),
+                "first_seen": datetime.now(timezone.utc).isoformat(),
+                "last_seen": datetime.now(timezone.utc).isoformat(),
             }
         elif peer_url in self.peers:
-            self.peers[peer_url]["last_seen"] = datetime.utcnow().isoformat()
+            self.peers[peer_url]["last_seen"] = datetime.now(timezone.utc).isoformat()
 
     def _update_reputation(self, peer_url, sync_status, new_facts_count):
         if peer_url not in self.peers:
@@ -126,63 +125,73 @@ class AxiomNode:
         The main, continuous loop. This version has the corrected logic.
         """
         background_thread_logger.info("starting continuous cycle.")
-        while True:
-            background_thread_logger.info("axiom engine cycle start")
+        
+        with SessionMaker() as session:
+            while True:
+                background_thread_logger.info("axiom engine cycle start")
 
-            try:
-                topic_to_investigate = None
-                if self.investigation_queue:
-                    topic_to_investigate = self.investigation_queue.pop(0)
-                else:
-                    topics = zeitgeist_engine.get_trending_topics(top_n=1)
-                    if topics:
-                        topic_to_investigate = topics[0]
+                try:
+                    topic_to_investigate = None
+                    if self.investigation_queue:
+                        topic_to_investigate = self.investigation_queue.pop(0)
+                    else:
+                        topics = zeitgeist_engine.get_trending_topics(top_n=1)
+                        if topics:
+                            topic_to_investigate = topics[0]
 
-                if topic_to_investigate:
-                    content_list = universal_extractor.find_and_extract(
-                        topic_to_investigate, max_sources=1
-                    )
-                    newly_created_facts = []
-                    for item in content_list:
-                        new_facts = crucible.extract_facts_from_text(
-                            item["source_url"], item["content"]
+                    if topic_to_investigate:
+                        content_list = universal_extractor.find_and_extract(
+                            topic_to_investigate, max_sources=1
                         )
-                        if new_facts:
-                            newly_created_facts.extend(new_facts)
 
-                    if newly_created_facts:
-                        synthesizer.link_related_facts(newly_created_facts)
+                        for item in content_list:
+                            domain = urlparse(item["source_url"]).netloc
+                            source = session.query(Source).filter(Source.domain == domain).one_or_none()
 
-            except Exception as e:
-                background_thread_logger.exception(e)
+                            if source is None:
+                                source = Source(domain=domain)
+                                session.add(source)
+                                session.commit()
 
-            background_thread_logger.info("axiom engine cycle finish")
+                            new_facts = crucible.extract_facts_from_text(item["content"])
+                            adder = crucible.CrucibleFactAdder(session)
 
-            sorted_peers = sorted(
-                self.peers.items(), key=lambda item: item[1]["reputation"], reverse=True
-            )
-            for peer_url, peer_data in sorted_peers:
-                # --- THIS IS THE FIX ---
-                # The new p2p.sync_with_peer is smarter and will return the correct status.
-                # The reputation system will now correctly reward good peers.
-                sync_status, new_facts = sync_with_peer(self, peer_url)
-                self._update_reputation(peer_url, sync_status, len(new_facts))
-                # We NO LONGER add synced facts to the investigation queue, which was the source of the bug.
+                            for fact in new_facts:
+                                session.add(fact)
+                                fact.sources.append(source)
+                                session.commit()
+                                adder.add(fact)
 
-            background_thread_logger.info("Current Peer Reputations")
-            if not self.peers:
-                background_thread_logger.info("No peers known.")
-            else:
-                for peer, data in sorted(
-                    self.peers.items(),
-                    key=lambda item: item[1]["reputation"],
-                    reverse=True,
-                ):
-                    background_thread_logger.info(
-                        f"  - {peer}: {data['reputation']:.4f}"
-                    )
+                except Exception as e:
+                    background_thread_logger.exception(e)
 
-            time.sleep(10800)  # Sleep for 3 hours
+                background_thread_logger.info("axiom engine cycle finish")
+
+                sorted_peers = sorted(
+                    self.peers.items(), key=lambda item: item[1]["reputation"], reverse=True
+                )
+                for peer_url, peer_data in sorted_peers:
+                    # --- THIS IS THE FIX ---
+                    # The new p2p.sync_with_peer is smarter and will return the correct status.
+                    # The reputation system will now correctly reward good peers.
+                    sync_status, new_facts = sync_with_peer(self, peer_url)
+                    self._update_reputation(peer_url, sync_status, len(new_facts))
+                    # We NO LONGER add synced facts to the investigation queue, which was the source of the bug.
+
+                background_thread_logger.info("Current Peer Reputations")
+                if not self.peers:
+                    background_thread_logger.info("No peers known.")
+                else:
+                    for peer, data in sorted(
+                        self.peers.items(),
+                        key=lambda item: item[1]["reputation"],
+                        reverse=True,
+                    ):
+                        background_thread_logger.info(
+                            f"  - {peer}: {data['reputation']:.4f}"
+                        )
+
+                time.sleep(10800)  # Sleep for 3 hours
 
     def start_background_tasks(self):
         background_thread = threading.Thread(target=self._background_loop, daemon=True)
@@ -192,82 +201,108 @@ class AxiomNode:
 # --- CONFIGURE API ROUTES ---
 @app.route("/local_query", methods=["GET"])
 def handle_local_query():
+    assert node_instance is not None
     search_term = request.args.get("term", "")
     include_uncorroborated = (
         request.args.get("include_uncorroborated", "false").lower() == "true"
     )
-    results = node_instance.search_ledger_for_api(
-        search_term, include_uncorroborated=include_uncorroborated
-    )
-    return jsonify({"results": results})
+
+    with SessionMaker() as session:
+        results = node_instance.search_ledger_for_api(
+            session, search_term, include_uncorroborated=include_uncorroborated
+        )
+        return jsonify({"results": results})
 
 
 @app.route("/get_peers", methods=["GET"])
 def handle_get_peers():
+    assert node_instance is not None
     return jsonify({"peers": node_instance.peers})
 
 
 @app.route("/get_fact_ids", methods=["GET"])
 def handle_get_fact_ids():
-    conn = sqlite3.connect("axiom_ledger.db")
-    cursor = conn.cursor()
-    cursor.execute("SELECT fact_id FROM facts")
-    fact_ids = [row[0] for row in cursor.fetchall()]
-    conn.close()
-    return jsonify({"fact_ids": fact_ids})
+    with SessionMaker() as session:
+        fact_ids: list[int] = [ fact.id for fact in session.query(Fact).all() ]
+        return jsonify({"fact_ids": fact_ids})
+
+
+@app.route("/get_fact_hashes", methods=["GET"])
+def handle_get_fact_hashes():
+    with SessionMaker() as session:
+        fact_ids: list[str] = [ fact.hash for fact in session.query(Fact).all() ]
+        return jsonify({"fact_hashes": fact_ids})
 
 
 @app.route("/get_facts_by_id", methods=["POST"])
 def handle_get_facts_by_id():
-    requested_ids = request.json.get("fact_ids", [])
-    all_facts = node_instance.search_ledger_for_api("", include_uncorroborated=True)
-    facts_to_return = [fact for fact in all_facts if fact["fact_id"] in requested_ids]
-    return jsonify({"facts": facts_to_return})
+    assert request.json is not None
+    requested_ids: set[int] = set(request.json.get("fact_ids", []))
+    
+    with SessionMaker() as session:
+        facts = list(session.query(Fact).filter(Fact.id.in_(requested_ids)))
+        fact_models = [FactModel.from_fact(fact).model_dump() for fact in facts]
+        return jsonify({"facts": json.dumps(fact_models)})
 
+@app.route("/get_facts_by_hash", methods=["POST"])
+def handle_get_facts_by_hash():
+    assert request.json is not None
+    requested_hashes: set[int] = set(request.json.get("fact_hashes", []))
+    
+    with SessionMaker() as session:
+        facts = list(session.query(Fact).filter(Fact.hash.in_(requested_hashes)))
+        fact_models = [FactModel.from_fact(fact).model_dump() for fact in facts]
+        return jsonify({"facts": json.dumps(fact_models)})
 
 @app.route("/anonymous_query", methods=["POST"])
 def handle_anonymous_query():
     data = request.json
+    assert data is not None
+    assert node_instance is not None
     search_term = data.get("term")
     circuit = data.get("circuit", [])
     sender_peer = data.get("sender_peer")
     node_instance.add_or_update_peer(sender_peer)
-    if not circuit:
-        all_facts = {}
-        local_results = node_instance.search_ledger_for_api(
-            search_term, include_uncorroborated=True
-        )
-        for fact in local_results:
-            all_facts[fact["fact_id"]] = fact
 
-        future_to_peer = {
-            node_instance.thread_pool.submit(
-                node_instance._fetch_from_peer, peer, search_term
-            ): peer
-            for peer in node_instance.peers
-        }
-        for future in future_to_peer:
-            peer_results = future.result()
-            for fact in peer_results:
-                if fact["fact_id"] not in all_facts:
-                    all_facts[fact["fact_id"]] = fact
-        return jsonify({"results": list(all_facts.values())})
-    else:
-        next_node_url = circuit.pop(0)
-        try:
-            response = requests.post(
-                f"{next_node_url}/anonymous_query",
-                json={
-                    "term": search_term,
-                    "circuit": circuit,
-                    "sender_peer": node_instance.self_url,
-                },
-                timeout=10,
+    with SessionMaker() as session:
+        if not circuit:
+            all_facts: dict[int, Fact] = { }
+
+            local_results = node_instance.search_ledger_for_api(
+                session, search_term, include_uncorroborated=True
             )
-            response.raise_for_status()
-            return jsonify(response.json())
-        except requests.exceptions.RequestException:
-            return jsonify({"error": f"Relay node {next_node_url} is offline."}), 504
+
+            for fact in local_results:
+                all_facts[fact.id] = fact
+
+            future_to_peer = {
+                node_instance.thread_pool.submit(
+                    node_instance._fetch_from_peer, peer, search_term
+                ): peer
+                for peer in node_instance.peers
+            }
+            for future in future_to_peer:
+                peer_results = future.result()
+                for fact in peer_results:
+                    if fact["fact_id"] not in all_facts:
+                        all_facts[fact["fact_id"]] = fact
+            return jsonify({"results": list(all_facts.values())})
+        else:
+            next_node_url = circuit.pop(0)
+            try:
+                response = requests.post(
+                    f"{next_node_url}/anonymous_query",
+                    json={
+                        "term": search_term,
+                        "circuit": circuit,
+                        "sender_peer": node_instance.self_url,
+                    },
+                    timeout=10,
+                )
+                response.raise_for_status()
+                return jsonify(response.json())
+            except requests.exceptions.RequestException:
+                return jsonify({"error": f"Relay node {next_node_url} is offline."}), 504
 
 
 @app.route("/dao/proposals", methods=["GET"])
