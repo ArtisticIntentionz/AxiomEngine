@@ -7,8 +7,9 @@
 import logging
 import sys
 import requests
-from ledger import DB_NAME, Fact, SessionMaker, Source
-from node import FactModel
+import sqlite3
+
+from axiom_server.ledger import DB_NAME, Fact, FactModel, SessionMaker, Source
 
 logger = logging.getLogger("p2p")
 

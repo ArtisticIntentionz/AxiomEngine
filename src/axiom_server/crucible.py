@@ -22,9 +22,7 @@ from ledger import (
     mark_facts_as_disputed,
     insert_uncorroborated_fact,
 )
-
-# Community Change: NLP_MODEL and SUBJECTIVITY_INDICATORS are now imported from a central file.
-from common import NLP_MODEL, SUBJECTIVITY_INDICATORS
+from axiom_server.common import NLP_MODEL, SUBJECTIVITY_INDICATORS
 
 # Community Change: Professional logging setup.
 logger = logging.getLogger("crucible")

@@ -12,7 +12,7 @@ from collections import Counter
 import spacy
 from datetime import datetime, timedelta
 
-from common import NLP_MODEL
+from axiom_server.common import NLP_MODEL
 
 logger = logging.getLogger("zeitgeist")
 
