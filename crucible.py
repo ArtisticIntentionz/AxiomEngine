@@ -20,8 +20,6 @@ from ledger import (
     insert_relationship_object,
     mark_fact_objects_as_disputed,
     mark_facts_as_disputed,
-    find_similar_fact_from_different_domain,
-    update_fact_corroboration,
     insert_uncorroborated_fact,
 )
 
