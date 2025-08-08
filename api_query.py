@@ -5,47 +5,32 @@
 # --- UPGRADED TO HANDLE DISPUTED FACTS ---
 
 import sqlite3
+from typing import Iterable
+
+from sqlalchemy.orm import Session
+
+from .ledger import Fact
 
 DB_NAME = "axiom_ledger.db"
 
-def search_ledger_for_api(search_term, include_uncorroborated=False, include_disputed=False):
+def search_ledger_for_api(
+    session: Session,
+    search_term: str, include_uncorroborated: bool = False, include_disputed: bool = False
+) -> Iterable[Fact]:
     """
     Searches the ledger for facts containing the search term.
     - By default, ONLY returns 'trusted' facts.
     - By default, ALWAYS excludes 'disputed' facts.
     """
-    try:
-        conn = sqlite3.connect(DB_NAME)
-        conn.row_factory = sqlite3.Row 
-        cursor = conn.cursor()
-        
-        # Base query now selects all columns to provide complete data to the client.
-        base_query = "SELECT * FROM facts WHERE fact_content LIKE ?"
-        params = [f'%{search_term}%']
-        
-        # --- NEW: Logic to handle disputed facts ---
-        # By default, we protect users from seeing information that the network
-        # has identified as contradictory.
-        if not include_disputed:
-            base_query += " AND status != 'disputed'"
-        # ------------------------------------------
+    query = session.query(Fact).filter(Fact.content.ilike(f"%{search_term}%"))
 
-        if not include_uncorroborated:
-            # The default, safe query for public consumption, returns only trusted facts.
-            query = base_query + " AND status = 'trusted'"
-        else:
-            # For internal use (like P2P sync), we can see all non-disputed facts.
-            query = base_query
+    if include_uncorroborated:
+        query = query.filter(Fact.score >= 0)
 
-        cursor.execute(query, params)
-        results = cursor.fetchall()
-        
-        facts_list = [dict(row) for row in results]
-        return facts_list
+    else:
+        query = query.filter(Fact.score > 0)
 
-    except Exception as e:
-        print(f"[API Query] An error occurred during database search: {e}")
-        return []
-    finally:
-        if conn:
-            conn.close()
+    if not include_disputed:
+        query = query.filter(Fact.disputed == False)
+
+    return query.all()
