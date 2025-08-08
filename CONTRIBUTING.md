@@ -35,10 +35,10 @@ Here is the standard workflow for submitting a code change to Axiom.
 2.  **Install All Dependencies (Two-Step Process):**
     Setting up the Axiom Engine is a simple two-step process.
 
-    **First, install the required Python libraries:**
-    This command reads the `requirements.txt` file and installs all the necessary packages.
+    **First, install the project and its dependencies:**
+    This command reads the `pyproject.toml` file and installs all the necessary packages.
     ```bash
-    pip3 install -r requirements.txt
+    pip3 install -e .
     ```
 
     **Second, download the specific AI model:**
@@ -63,7 +63,7 @@ Here is the standard workflow for submitting a code change to Axiom.
     export NEWS_API_KEY="YOUR_API_KEY"
     export SERPAPI_API_KEY="YOUR_API_KEY"
     export PORT="5000"
-    python3 node.py
+    axiom_server
     ```
 
     **Option B: To Join the Live Axiom Network:**
@@ -74,7 +74,7 @@ Here is the standard workflow for submitting a code change to Axiom.
     export SERPAPI_API_KEY="YOUR_API_KEY"
     export PORT="5001"
     export BOOTSTRAP_PEER="http://bootstrap.axiom.foundation:5000" # this server has not yet been implemented. check ROADMAP.md **Public Bootstrap Node Deployment**
-    python3 node.py
+    axiom_server
     ```
     *(Note: The official bootstrap nodes are maintained by the core contributors. As the network grows, this list will be expanded and managed by the DAO.)*
 
