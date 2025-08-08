@@ -324,16 +324,33 @@ def handle_submit_vote():
     return jsonify({"status": "success", "message": "Vote recorded."})
 
 
+def build_instance() -> AxiomNode:
+    logger.info(
+        f"initializing global instance for {'PRODUCTION' if 'gunicorn' in sys.argv[0] else 'DEVELOPMENT'}..."
+    )
+    port = int(os.environ.get("PORT", 5000))
+    bootstrap = os.environ.get("BOOTSTRAP_PEER")
+    node_instance = AxiomNode(port=port, bootstrap_peer=bootstrap)
+    node_instance.start_background_tasks()
+    return node_instance
+
+
+def host_server() -> None:
+    logger.info("starting in DEVELOPMENT mode...")
+    app.run(host="0.0.0.0", port=port, debug=False)
+
+
+def cli_run(do_host: bool = True) -> None:
+    """Server entrypoint."""
+    # Setup instance
+    global node_instance
+    if node_instance is None:
+        node_instance = build_instance()
+    # Run server
+    if do_host:
+        host_server()
+
+
 # --- MAIN EXECUTION BLOCK ---
 if __name__ == "__main__" or "gunicorn" in sys.argv[0]:
-    if node_instance is None:
-        logger.info(
-            f"initializing global instance for {'PRODUCTION' if 'gunicorn' in sys.argv[0] else 'DEVELOPMENT'}..."
-        )
-        port = int(os.environ.get("PORT", 5000))
-        bootstrap = os.environ.get("BOOTSTRAP_PEER")
-        node_instance = AxiomNode(port=port, bootstrap_peer=bootstrap)
-        node_instance.start_background_tasks()
-    if __name__ == "__main__":
-        logger.info("starting in DEVELOPMENT mode...")
-        app.run(host="0.0.0.0", port=port, debug=False)
+    cli_run(__name__ == "__main__")
