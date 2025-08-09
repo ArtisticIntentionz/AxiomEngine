@@ -373,7 +373,7 @@ def build_instance() -> AxiomNode:
     return node_instance, port
 
 
-def host_server(port) -> None:
+def host_server(port: int) -> None:
     logger.info(f"starting in DEVELOPMENT mode on port {port}...")
     app.run(host="0.0.0.0", port=port, debug=False)
 
