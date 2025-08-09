@@ -74,7 +74,7 @@ class NetworkWorker(QThread):
             self.progress.emit(f"Sending query into the network via entry node: {circuit[0]}")
             final_response = self._send_anonymous_query(circuit, self.query_term)
             self.finished.emit(final_response)
-        
+
         except Exception as e:
             self.finished.emit({"error": f"An unexpected error occurred: {e}"})
 
@@ -152,7 +152,7 @@ class AxiomClientApp(QWidget):
         self.status_label = QLabel("Status: Idle")
         self.status_label.setFont(QFont('Arial', 10))
         self.layout.addWidget(self.status_label)
-        
+
         # Results Display Area
         self.results_output = QTextEdit()
         self.results_output.setReadOnly(True)
@@ -167,7 +167,7 @@ class AxiomClientApp(QWidget):
 
         self.search_button.setEnabled(False)
         self.results_output.setText("...")
-        
+
         # Start the network operations in the background thread
         self.network_worker = NetworkWorker(query)
         self.network_worker.progress.connect(self.update_status)
@@ -182,7 +182,7 @@ class AxiomClientApp(QWidget):
         """Called when the worker thread is finished. Displays the final results."""
         self.status_label.setText("Status: Idle")
         self.search_button.setEnabled(True)
-        
+
         if not response_data or response_data.get("error"):
             response_data = cast("ErrorResponse", response_data)
             error_msg = response_data.get("error", "An unknown error occurred.")
@@ -192,7 +192,7 @@ class AxiomClientApp(QWidget):
         response_data = cast("FactResponse", response_data)
 
         results: list[Fact] = response_data.get('results', [])
-        
+
         # Build an HTML string to display the results nicely
         html = f"<h2>Found {len(results)} unique, trusted facts.</h2>"
         if not results:
@@ -203,7 +203,7 @@ class AxiomClientApp(QWidget):
                 html += f"<h4>[Result {i+1}] (Trust Score: {fact.get('trust_score', 'N/A')})</h4>"
                 html += f"<p><b>Fact:</b> \"{fact.get('fact_content', '')}\"</p>"
                 html += f"<p><i>Source: {fact.get('source_url', '')}</i></p><hr>"
-        
+
         self.results_output.setHtml(html)
 
 

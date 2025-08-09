@@ -80,7 +80,7 @@ class Pipeline[T]:
                 if not step.run(value):
                     logger.info(f"pipeline stopped after check: {step.description}")
                     return None
-                
+
             if isinstance(step, Transformation):
                 try:
                     assert current_value is not None
@@ -233,7 +233,7 @@ def check_contradiction(
         new_is_negated = any(tok.dep_ == "neg" for tok in new_doc)
         existing_is_negated = any(tok.dep_ == "neg" for tok in existing_doc)
         return new_is_negated != existing_is_negated or (not new_is_negated and not existing_is_negated)
-    
+
     return False
 
 
@@ -255,8 +255,10 @@ def check_corroboration(
 @dataclass
 class CrucibleFactAdder:
     session: Session
-    contradiction_count: int = 0 # count of facts contradicted
-    corroboration_count: int = 0 # count of facts corroborated
+    # count of facts contradicted
+    contradiction_count: int = 0
+    # count of facts corroborated
+    corroboration_count: int = 0
     addition_count: int = 0
     existing_facts: list[Fact] = field(default_factory=lambda : [])
 
@@ -338,7 +340,7 @@ class CrucibleFactAdder:
                     add_fact_object_corroboration(existing_fact, source)
 
         return fact
-    
+
     def _detect_relationships(self, fact: Fact) -> Fact:
         new_semantics = fact.get_semantics()
         new_doc = Fact.get_doc(new_semantics)

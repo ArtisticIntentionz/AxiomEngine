@@ -115,7 +115,7 @@ class Fact(Base):
             "subject": data.get("subject", ""),
             "object": data.get("object", ""),
         })
-    
+
     def set_semantics(self, semantics: Semantics) -> None:
         self.semantics = json.dumps(semantics)
 
@@ -186,7 +186,7 @@ class FactLink(Base):
     fact2: Mapped["Fact"] = relationship("Fact", foreign_keys=[fact2_id])
 
 
-def initialize_database(engine: Engine):
+def initialize_database(engine: Engine) -> None:
     """
     Ensures the database file and ALL required tables ('facts', 'fact_relationships') exist.
     """
@@ -304,7 +304,7 @@ def mark_fact_objects_as_disputed(session: Session, original_fact: Fact, new_fac
 class Votes(TypedDict):
     choice: str
     weight: float
-    
+
 
 
 class Proposal(TypedDict):
