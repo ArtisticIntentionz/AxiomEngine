@@ -9,20 +9,22 @@ import time
 import threading
 import sys
 from urllib.parse import urlparse
-import requests
 import math
 import os
 import logging
-from flask import Flask, jsonify, request
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
+from typing import cast, TypedDict
+
+import requests
+from flask import Flask, jsonify, request, Response
 
 # Import all our system components
 from axiom_server import zeitgeist_engine
 from axiom_server import universal_extractor
 from axiom_server import crucible
 from axiom_server import synthesizer
-from axiom_server.ledger import ENGINE, Fact, FactModel, SessionMaker, Source, initialize_database
+from axiom_server.ledger import ENGINE, Fact, FactModel, SessionMaker, Source, initialize_database, Proposal, Votes
 from axiom_server.api_query import search_ledger_for_api
 from axiom_server.p2p import sync_with_peer
 
@@ -49,8 +51,14 @@ background_thread_logger.setLevel(logging.INFO)
 
 # --- GLOBAL APP AND NODE INSTANCE ---
 app = Flask(__name__)
-node_instance = None
+node_instance: AxiomNode
 # ------------------------------------
+
+
+class Peer(TypedDict):
+    reputation: float
+    first_seen: str
+    last_seen: str
 
 
 class AxiomNode:
@@ -58,37 +66,35 @@ class AxiomNode:
     A class representing a single, complete Axiom node.
     """
 
-    def __init__(self, host="0.0.0.0", port=5000, bootstrap_peer=None):
+    def __init__(self, host: str = "0.0.0.0", port: int = 5000, bootstrap_peer: str | None = None) -> None:
         self.host = host
         self.port = port
         self.self_url = f"http://{self.host}:{port}"
-        self.peers = {}
+        self.peers: dict[str, Peer] = {}
         if bootstrap_peer:
-            self.peers[bootstrap_peer] = {
+            self.peers[bootstrap_peer] = Peer({
                 "reputation": 0.5,
                 "first_seen": datetime.now(timezone.utc).isoformat(),
                 "last_seen": datetime.now(timezone.utc).isoformat(),
-            }
+            })
 
-        self.investigation_queue = (
-            []
-        )  # Now used only for special, high-priority topics.
-        self.active_proposals = {}
+        # Now used only for special, high-priority topics.
+        self.investigation_queue: list[str] = []
+        self.active_proposals: dict[int, Proposal] = {}
         self.thread_pool = ThreadPoolExecutor(max_workers=10)
-        self.search_ledger_for_api = search_ledger_for_api
         initialize_database(ENGINE)
 
-    def add_or_update_peer(self, peer_url):
+    def add_or_update_peer(self, peer_url: str) -> None:
         if peer_url and peer_url not in self.peers and peer_url != self.self_url:
-            self.peers[peer_url] = {
+            self.peers[peer_url] = Peer({
                 "reputation": 0.1,
                 "first_seen": datetime.now(timezone.utc).isoformat(),
                 "last_seen": datetime.now(timezone.utc).isoformat(),
-            }
+            })
         elif peer_url in self.peers:
             self.peers[peer_url]["last_seen"] = datetime.now(timezone.utc).isoformat()
 
-    def _update_reputation(self, peer_url, sync_status, new_facts_count):
+    def _update_reputation(self, peer_url: str, sync_status: str, new_facts_count: int) -> None:
         if peer_url not in self.peers:
             return
         REP_PENALTY = 0.1
@@ -112,18 +118,18 @@ class AxiomNode:
 
         self.peers[peer_url]["reputation"] = max(0.0, min(1.0, new_rep))
 
-    def _fetch_from_peer(self, peer_url, search_term):
+    def _fetch_from_peer(self, peer_url: str, search_term: str) -> list[dict[str, str]]:
         try:
             query_url = (
                 f"{peer_url}/local_query?term={search_term}&include_uncorroborated=true"
             )
             response = requests.get(query_url, timeout=5)
             response.raise_for_status()
-            return response.json().get("results", [])
+            return cast("list[dict[str, str]]", response.json().get("results", []))
         except requests.exceptions.RequestException:
             return []
 
-    def _background_loop(self):
+    def _background_loop(self) -> None:
         """
         The main, continuous loop. This version has the corrected logic.
         """
@@ -196,49 +202,48 @@ class AxiomNode:
 
                 time.sleep(10800)  # Sleep for 3 hours
 
-    def start_background_tasks(self):
+    def start_background_tasks(self) -> None:
         background_thread = threading.Thread(target=self._background_loop, daemon=True)
         background_thread.start()
 
 
 # --- CONFIGURE API ROUTES ---
 @app.route("/local_query", methods=["GET"])
-def handle_local_query():
-    assert node_instance is not None
+def handle_local_query() -> Response:
     search_term = request.args.get("term", "")
     include_uncorroborated = (
         request.args.get("include_uncorroborated", "false").lower() == "true"
     )
 
     with SessionMaker() as session:
-        results = node_instance.search_ledger_for_api(
+        results = search_ledger_for_api(
             session, search_term, include_uncorroborated=include_uncorroborated
         )
         return jsonify({"results": results})
 
 
 @app.route("/get_peers", methods=["GET"])
-def handle_get_peers():
-    assert node_instance is not None
+def handle_get_peers() -> Response:
+    
     return jsonify({"peers": node_instance.peers})
 
 
 @app.route("/get_fact_ids", methods=["GET"])
-def handle_get_fact_ids():
+def handle_get_fact_ids() -> Response:
     with SessionMaker() as session:
         fact_ids: list[int] = [ fact.id for fact in session.query(Fact).all() ]
         return jsonify({"fact_ids": fact_ids})
 
 
 @app.route("/get_fact_hashes", methods=["GET"])
-def handle_get_fact_hashes():
+def handle_get_fact_hashes() -> Response:
     with SessionMaker() as session:
         fact_ids: list[str] = [ fact.hash for fact in session.query(Fact).all() ]
         return jsonify({"fact_hashes": fact_ids})
 
 
 @app.route("/get_facts_by_id", methods=["POST"])
-def handle_get_facts_by_id():
+def handle_get_facts_by_id() -> Response:
     assert request.json is not None
     requested_ids: set[int] = set(request.json.get("fact_ids", []))
     
@@ -248,7 +253,7 @@ def handle_get_facts_by_id():
         return jsonify({"facts": json.dumps(fact_models)})
 
 @app.route("/get_facts_by_hash", methods=["POST"])
-def handle_get_facts_by_hash():
+def handle_get_facts_by_hash() -> Response:
     assert request.json is not None
     requested_hashes: set[int] = set(request.json.get("fact_hashes", []))
     
@@ -258,10 +263,9 @@ def handle_get_facts_by_hash():
         return jsonify({"facts": json.dumps(fact_models)})
 
 @app.route("/anonymous_query", methods=["POST"])
-def handle_anonymous_query():
-    data = request.json
-    assert data is not None
-    assert node_instance is not None
+def handle_anonymous_query() -> Response | tuple[Response, int]:
+    data = request.json or {}
+    
     search_term = data.get("term")
     circuit = data.get("circuit", [])
     sender_peer = data.get("sender_peer")
@@ -269,9 +273,9 @@ def handle_anonymous_query():
 
     with SessionMaker() as session:
         if not circuit:
-            all_facts: dict[int, Fact] = { }
+            all_facts: dict[int, Fact] = {}
 
-            local_results = node_instance.search_ledger_for_api(
+            local_results = search_ledger_for_api(
                 session, search_term, include_uncorroborated=True
             )
 
@@ -285,8 +289,7 @@ def handle_anonymous_query():
                 for peer in node_instance.peers
             }
             for future in future_to_peer:
-                peer_results = future.result()
-                for fact in peer_results:
+                for fact in future.result():
                     if fact["fact_id"] not in all_facts:
                         all_facts[fact["fact_id"]] = fact
             return jsonify({"results": list(all_facts.values())})
@@ -309,28 +312,28 @@ def handle_anonymous_query():
 
 
 @app.route("/dao/proposals", methods=["GET"])
-def handle_get_proposals():
+def handle_get_proposals() -> Response:
     return jsonify(node_instance.active_proposals)
 
 
 @app.route("/dao/submit_proposal", methods=["POST"])
-def handle_submit_proposal():
-    data = request.json
+def handle_submit_proposal() -> Response | tuple[Response, int]:
+    data = request.json or {}
     proposer_url = data.get("proposer_url")
     aip_id = data.get("aip_id")
     aip_text = data.get("aip_text")
-    if not all([proposer_url, aip_id, aip_text]):
+    if not all((proposer_url, aip_id, aip_text)):
         return jsonify({"status": "error", "message": "Missing parameters."}), 400
     if (
         proposer_url in node_instance.peers
         and node_instance.peers[proposer_url]["reputation"] >= 0.75
     ):
         if aip_id not in node_instance.active_proposals:
-            node_instance.active_proposals[aip_id] = {
+            node_instance.active_proposals[aip_id] = Proposal({
                 "text": aip_text,
                 "proposer": proposer_url,
                 "votes": {},
-            }
+            })
             return jsonify({"status": "success", "message": f"AIP {aip_id} submitted."})
         else:
             return (
@@ -342,27 +345,32 @@ def handle_submit_proposal():
 
 
 @app.route("/dao/submit_vote", methods=["POST"])
-def handle_submit_vote():
-    data = request.json
+def handle_submit_vote() -> Response | tuple[Response, int]:
+    data = request.json or {}
     voter_url = data.get("voter_url")
     aip_id = data.get("aip_id")
     vote_choice = data.get("choice")
-    if not all([voter_url, aip_id, vote_choice]):
+    if not all((voter_url, aip_id, vote_choice)):
         return jsonify({"status": "error", "message": "Missing parameters."}), 400
     if aip_id not in node_instance.active_proposals:
         return jsonify({"status": "error", "message": "Proposal not found."}), 404
+
+    assert voter_url is not None
+    assert isinstance(vote_choice, str)
+    assert isinstance(voter_reputation, int | float)
+
     voter_data = node_instance.peers.get(voter_url)
     if not voter_data:
         return jsonify({"status": "error", "message": "Unknown peer."}), 403
     voter_reputation = voter_data.get("reputation", 0)
-    node_instance.active_proposals[aip_id]["votes"][voter_url] = {
+    node_instance.active_proposals[aip_id]["votes"][voter_url] = Votes({
         "choice": vote_choice,
         "weight": voter_reputation,
-    }
+    })
     return jsonify({"status": "success", "message": "Vote recorded."})
 
 
-def build_instance() -> AxiomNode:
+def build_instance() -> tuple[AxiomNode, int]:
     logger.info(
         f"initializing global instance for {'PRODUCTION' if 'gunicorn' in sys.argv[0] else 'DEVELOPMENT'}..."
     )
@@ -370,10 +378,10 @@ def build_instance() -> AxiomNode:
     bootstrap = os.environ.get("BOOTSTRAP_PEER")
     node_instance = AxiomNode(port=port, bootstrap_peer=bootstrap)
     node_instance.start_background_tasks()
-    return node_instance
+    return node_instance, port
 
 
-def host_server() -> None:
+def host_server(port: int) -> None:
     logger.info("starting in DEVELOPMENT mode...")
     app.run(host="0.0.0.0", port=port, debug=False)
 
@@ -382,11 +390,17 @@ def cli_run(do_host: bool = True) -> None:
     """Server entrypoint."""
     # Setup instance
     global node_instance
-    if node_instance is None:
-        node_instance = build_instance()
+    port = 5000
+    exists = True
+    try:
+        exists = node_instance is not None
+    except NameError:
+        exists = False
+    if not exists:
+        node_instance, port = build_instance()
     # Run server
     if do_host:
-        host_server()
+        host_server(port)
 
 
 # --- MAIN EXECUTION BLOCK ---

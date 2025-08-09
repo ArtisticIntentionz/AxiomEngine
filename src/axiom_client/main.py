@@ -6,31 +6,52 @@
 from __future__ import annotations
 
 import sys
-import requests
 import random
+from typing import TypedDict, TypeAlias, cast
+
+import requests
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLineEdit, QTextEdit, QPushButton, QLabel, QProgressBar
 from PyQt6.QtCore import QThread, pyqtSignal
-from PyQt6.QtGui import QFont, QIcon # QIcon can be used later to add a logo
+from PyQt6.QtGui import QFont, QIcon
+# QIcon can be used later to add a logo
 
 # --- CONFIGURATION (Same as CLI client) ---
 BOOTSTRAP_NODES = ["..."]
 CIRCUIT_LENGTH = 3
 # -------------------------------------------
 
+
+class Fact(TypedDict):
+    trust_score: float
+    fact_content: str
+    source_url: str
+
+
+class FactResponse(TypedDict):
+    results: list[Fact]
+
+
+class ErrorResponse(TypedDict):
+    error: str
+
+
+ResponseData: TypeAlias = ErrorResponse | FactResponse
+
+
 class NetworkWorker(QThread):
     """
     A separate thread to handle all network operations (discovery, querying)
     to prevent the GUI from freezing.
     """
-    finished = pyqtSignal(dict) # Signal to send results back to the main GUI
+    finished = pyqtSignal(ResponseData) # Signal to send results back to the main GUI
     progress = pyqtSignal(str)  # Signal to send status updates back to the GUI
 
-    def __init__(self, query_term):
+    def __init__(self, query_term: str) -> None:
         super().__init__()
         self.query_term = query_term
         self.is_running = True
 
-    def run(self):
+    def run(self) -> None:
         """The main logic that runs in the background thread."""
         try:
             # 1. Discover the network
@@ -57,11 +78,11 @@ class NetworkWorker(QThread):
         except Exception as e:
             self.finished.emit({"error": f"An unexpected error occurred: {e}"})
 
-    def stop(self):
+    def stop(self) -> None:
         self.is_running = False
 
     # --- Private methods for networking logic (copied from CLI client) ---
-    def _get_network_peers(self, bootstrap_nodes):
+    def _get_network_peers(self, bootstrap_nodes: list[str]) -> list[str]:
         all_known_peers = set()
         for node_url in bootstrap_nodes:
             try:
@@ -74,13 +95,13 @@ class NetworkWorker(QThread):
                 continue
         return list(all_known_peers)
 
-    def _build_anonymous_circuit(self, peers, length):
+    def _build_anonymous_circuit(self, peers: list[str], length: int) -> list[str]:
         if len(peers) < length:
             random.shuffle(peers)
             return peers
         return random.sample(peers, length)
 
-    def _send_anonymous_query(self, circuit, search_term):
+    def _send_anonymous_query(self, circuit: list[str], search_term: str) -> ResponseData:
         entry_node = circuit[0]
         relay_circuit = circuit[1:]
         response = requests.post(
@@ -89,19 +110,22 @@ class NetworkWorker(QThread):
             timeout=30
         )
         response.raise_for_status()
-        return response.json()
+        result = response.json()
+        if "error" in result:
+            return ErrorResponse({"error": result["error"]})
+        return FactResponse({"results": result["results"]})
 
 
 class AxiomClientApp(QWidget):
     """The main GUI window for the Axiom Client."""
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("Axiom Client")
         self.setGeometry(100, 100, 700, 500)
-        self.network_worker = None
+        self.network_worker: NetworkWorker
         self.initUI()
 
-    def initUI(self):
+    def initUI(self) -> None:
         # --- Layout and Widgets ---
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
@@ -135,7 +159,7 @@ class AxiomClientApp(QWidget):
         self.results_output.setFont(QFont('Arial', 12))
         self.layout.addWidget(self.results_output)
 
-    def start_search(self):
+    def start_search(self) -> None:
         """Called when the user clicks 'Search' or presses Enter."""
         query = self.query_input.text()
         if not query:
@@ -150,21 +174,24 @@ class AxiomClientApp(QWidget):
         self.network_worker.finished.connect(self.display_results)
         self.network_worker.start()
 
-    def update_status(self, message):
+    def update_status(self, message: str) -> None:
         """Updates the status label with messages from the worker thread."""
         self.status_label.setText(f"Status: {message}")
 
-    def display_results(self, response_data):
+    def display_results(self, response_data: ResponseData) -> None:
         """Called when the worker thread is finished. Displays the final results."""
         self.status_label.setText("Status: Idle")
         self.search_button.setEnabled(True)
         
         if not response_data or response_data.get("error"):
+            response_data = cast("ErrorResponse", response_data)
             error_msg = response_data.get("error", "An unknown error occurred.")
             self.results_output.setHtml(f"<h2>Error</h2><p>{error_msg}</p>")
             return
+        assert "results" in response_data
+        response_data = cast("FactResponse", response_data)
 
-        results = response_data.get('results', [])
+        results: list[Fact] = response_data.get('results', [])
         
         # Build an HTML string to display the results nicely
         html = f"<h2>Found {len(results)} unique, trusted facts.</h2>"
