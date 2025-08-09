@@ -44,7 +44,7 @@ dependencies = [
     "google-search-results==2.4.2",
     'sqlalchemy',
     # --- AI & Natural Language Processing ---
-    "spacy==3.7.4",
+    "spacy==3.8.7",
     # Client side
     "pyqt6>=6.9.1",
 ]
@@ -82,9 +82,6 @@ axiom_client = ["py.typed"]
 
 [tool.uv]
 package = true
-
-[tool.uv.sources]
-spacy = { url = "https://github.com/explosion/spaCy/releases/download/release-v3.8.7/spacy-3.8.7-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl" }
 
 [tool.mypy]
 files = ["src/axiom_server/", "src/axiom_client/"]
