@@ -41,11 +41,13 @@ stdout_handler.setFormatter(
 
 logger.addHandler(stdout_handler)
 logger.setLevel(logging.INFO)
+logger.propagate = False
 
 background_thread_logger = logging.getLogger("axiom-node-background-thread")
 
 background_thread_logger.addHandler(stdout_handler)
 background_thread_logger.setLevel(logging.INFO)
+background_thread_logger.propagate = False
 
 # --- GLOBAL APP AND NODE INSTANCE ---
 app = Flask(__name__)

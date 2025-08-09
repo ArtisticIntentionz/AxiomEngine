@@ -22,6 +22,7 @@ stdout_handler.setFormatter(
 
 logger.addHandler(stdout_handler)
 logger.setLevel(logging.INFO)
+logger.propagate = False
 
 
 def sync_with_peer(node_instance, peer_url) -> tuple[str, list[Fact]]:
