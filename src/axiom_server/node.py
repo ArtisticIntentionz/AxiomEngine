@@ -22,7 +22,7 @@ from axiom_server import zeitgeist_engine
 from axiom_server import universal_extractor
 from axiom_server import crucible
 from axiom_server import synthesizer
-from axiom_server.ledger import ENGINE, Fact, FactModel, SessionMaker, Source, initialize_database
+from axiom_server.ledger import ENGINE, Fact, FactModel, SessionMaker, Source, get_or_insert_source, initialize_database
 from axiom_server.api_query import search_ledger_for_api
 from axiom_server.p2p import sync_with_peer
 
@@ -151,12 +151,7 @@ class AxiomNode:
 
                         for item in content_list:
                             domain = urlparse(item["source_url"]).netloc
-                            source = session.query(Source).filter(Source.domain == domain).one_or_none()
-
-                            if source is None:
-                                source = Source(domain=domain)
-                                session.add(source)
-                                session.commit()
+                            source = get_or_insert_source(session, domain)
 
                             new_facts = crucible.extract_facts_from_text(item["content"])
                             adder = crucible.CrucibleFactAdder(session)

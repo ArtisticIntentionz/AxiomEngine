@@ -10,7 +10,7 @@ import logging
 import hashlib
 import datetime
 import json
-from typing import cast
+from typing import Any, cast
 
 from spacy.ml import Doc
 from sqlalchemy import Engine, ForeignKey, String, Integer, Boolean
@@ -56,14 +56,7 @@ class Fact(Base):
     last_checked: Mapped[str] = mapped_column(
         String, default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat(), nullable=False
     )
-    semantics: Mapped[str] = mapped_column(String, default="{}", nullable=False) # holds JSON string
-    """
-        {
-            "doc": str,
-            "subject": str,
-            "object": str,
-        }
-    """
+    semantics: Mapped[str] = mapped_column(String, default="{}", nullable=False) # holds JSON string, representing a dict which complies with the Semantics model
 
     sources: Mapped[list[Source]] = relationship(
         "Source", secondary="fact_source_link", back_populates="facts"
@@ -82,7 +75,7 @@ class Fact(Base):
             disputed=model.disputed,
             hash=model.hash,
             last_checked=model.last_checked,
-            semantics=json.dumps(model.semantics),
+            semantics=Semantics.model_validate(model.semantics).model_dump_json(),
         )
 
     @property
@@ -95,19 +88,24 @@ class Fact(Base):
     def set_hash(self):
         self.hash = hashlib.sha256(self.content.encode("utf-8")).hexdigest()
 
-    def get_semantics(self) -> dict:
-        return json.loads(self.semantics)
+    def get_semantics(self) -> Semantics:
+        return Semantics.model_validate_json(self.semantics)
     
-    def set_semantics(self, semantics: dict):
-        self.semantics = json.dumps(semantics)
+    def set_semantics(self, semantics: Semantics):
+        self.semantics = semantics.model_dump_json()
 
     @staticmethod
-    def get_doc(semantics: dict) -> Doc:
-        return Doc(NLP_MODEL.vocab).from_json(semantics["doc"])
+    def get_doc(semantics: Semantics) -> Doc:
+        return Doc(NLP_MODEL.vocab).from_json(semantics.doc)
     
     @staticmethod
-    def set_doc(semantics: dict, doc: Doc):
-        semantics["doc"] = doc.to_json()
+    def set_doc(semantics: Semantics, doc: Doc):
+        semantics.doc = doc.to_json()
+
+class Semantics(BaseModel):
+    doc: dict[str, Any]
+    subject: str
+    object: str
 
 class FactModel(BaseModel):
     content: str
@@ -126,7 +124,7 @@ class FactModel(BaseModel):
             disputed=fact.disputed,
             hash=fact.hash,
             last_checked=fact.last_checked,
-            semantics=fact.get_semantics(),
+            semantics=fact.get_semantics().model_dump(),
             sources=[ source.domain for source in fact.sources ],
         )
 
@@ -135,7 +133,7 @@ class Source(Base):
     __tablename__ = "source"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    domain: Mapped[str] = mapped_column(String, nullable=False)
+    domain: Mapped[str] = mapped_column(String, nullable=False, unique=True)
 
     facts: Mapped[list["Fact"]] = relationship(
         "Fact", secondary="fact_source_link", back_populates="sources"
@@ -178,6 +176,18 @@ def initialize_database(engine: Engine):
     """
     Base.metadata.create_all(engine)
     logger.info("initialized database")
+
+
+def get_or_insert_source(session: Session, domain: str) -> Source:
+    source = session.query(Source).filter_by(domain=domain).first()
+
+    if source is None:
+        source = Source(domain=domain)
+        session.add(source)
+        session.commit()
+        session.refresh(source)
+
+    return source
 
 
 def get_all_facts_for_analysis(session: Session) -> list[Fact]:

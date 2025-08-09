@@ -15,6 +15,7 @@ from spacy.ml import Doc, Span
 from sqlalchemy.orm import Session
 from axiom_server.ledger import (
     Fact,
+    Semantics,
     add_fact_object_corroboration,
     get_all_facts_for_analysis,
     insert_relationship_object,
@@ -146,8 +147,8 @@ def set_subject_and_object(fact: Fact) -> Fact|None:
     semantics = fact.get_semantics()
     subject, object = _get_subject_and_object(Fact.get_doc(semantics))
     assert subject is not None and object is not None
-    semantics["subject"] = subject
-    semantics["object"] = object
+    semantics.subject = subject
+    semantics.object = object
     fact.set_semantics(semantics)
     return fact
 
@@ -194,7 +195,7 @@ def extract_facts_from_text(text_content: str) -> list[Fact]:
     for sentence in doc.sents:
         if (sentence := SENTENCE_CHECKS.run(sentence)) is not None:
             fact = Fact(content=sentence.text.strip())
-            semantics = { }
+            semantics = Semantics(doc={ }, subject="", object="")
             Fact.set_doc(semantics, sentence.as_doc())
             fact.set_semantics(semantics)
 
@@ -205,10 +206,10 @@ def extract_facts_from_text(text_content: str) -> list[Fact]:
 
 
 def check_contradiction(
-    existing_fact: Fact, existing_semantics: dict, existing_doc: Doc, existing_subject: str, existing_object: str,
-    new_fact: Fact, new_semantics: dict, new_doc: Doc, new_subject: str, new_object: str
+    existing_fact: Fact, existing_semantics: Semantics, existing_doc: Doc,
+    new_fact: Fact, new_semantics: Semantics, new_doc: Doc,
 ) -> bool:
-    if new_subject == existing_subject and new_object != existing_object:
+    if new_semantics.subject == existing_semantics.subject and new_semantics.object != existing_semantics.object:
         new_is_negated = any(tok.dep_ == "neg" for tok in new_doc)
         existing_is_negated = any(tok.dep_ == "neg" for tok in existing_doc)
         return new_is_negated != existing_is_negated or (not new_is_negated and not existing_is_negated)
@@ -217,8 +218,8 @@ def check_contradiction(
 
 
 def check_corroboration(
-    existing_fact: Fact, existing_semantics: dict, existing_doc: Doc, existing_subject: str, existing_object: str,
-    new_fact: Fact, new_semantics: dict, new_doc: Doc, new_subject: str, new_object: str
+    existing_fact: Fact, existing_semantics: Semantics, existing_doc: Doc,
+    new_fact: Fact, new_semantics: Semantics, new_doc: Doc,
 ) -> bool:
     return existing_fact.content[:50] == new_fact.content[:50]
 
@@ -261,7 +262,6 @@ class CrucibleFactAdder:
     def _contradiction_check(self, fact: Fact) -> Fact|None:
         """ check with all existing facts if it contradicts with any, changing database accordingly """
         new_semantics = fact.get_semantics()
-        new_subject, new_object = new_semantics["subject"], new_semantics["object"]
         new_doc = Fact.get_doc(new_semantics)
 
         for existing_fact in self.existing_facts:
@@ -272,14 +272,11 @@ class CrucibleFactAdder:
                 continue
 
             existing_semantics = existing_fact.get_semantics()
-            existing_subject, existing_object = existing_semantics["subject"], existing_semantics["object"]
             existing_doc = Fact.get_doc(existing_semantics)
 
             if check_contradiction(
                 existing_fact, existing_semantics, existing_doc,
-                existing_subject, existing_object,
-                fact, new_semantics, new_doc,
-                new_subject, new_object
+                fact, new_semantics, new_doc
             ):
                 mark_fact_objects_as_disputed(self.session, existing_fact, fact)
                 self.session.commit()
@@ -290,7 +287,6 @@ class CrucibleFactAdder:
 
     def _corroborate_against_existing_facts(self, fact: Fact) -> Fact|None:
         new_semantics = fact.get_semantics()
-        new_subject, new_object = new_semantics["subject"], new_semantics["object"]
         new_doc = Fact.get_doc(new_semantics)
 
         for existing_fact in self.existing_facts:
@@ -298,14 +294,11 @@ class CrucibleFactAdder:
                 continue
 
             existing_semantics = existing_fact.get_semantics()
-            existing_subject, existing_object = existing_semantics["subject"], existing_semantics["object"]
             existing_doc = Fact.get_doc(existing_semantics)
 
             if check_corroboration(
                 existing_fact, existing_semantics, existing_doc,
-                existing_subject, existing_object,
-                fact, new_semantics, new_doc,
-                new_subject, new_object
+                fact, new_semantics, new_doc
             ):
                 for source in fact.sources:
                     add_fact_object_corroboration(existing_fact, source)
