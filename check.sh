@@ -81,6 +81,8 @@ if git status --porcelain | grep -q "uv.lock"; then
     echo "::endgroup::"
 fi
 
+codespell || EXIT_STATUS=$?
+
 # Finally, leave a really clear warning of any issues and exit
 if [ $EXIT_STATUS -ne 0 ]; then
     cat <<EOF

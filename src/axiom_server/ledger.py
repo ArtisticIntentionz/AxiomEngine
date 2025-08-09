@@ -52,10 +52,26 @@ class Base(DeclarativeBase):
     __slots__ = ()
 
 
+class SerializedSemantics(TypedDict):
+    doc: str
+    subject: NotRequired[str]
+    object: NotRequired[str]
+
+
 class Semantics(TypedDict):
     doc: Doc
     subject: NotRequired[str]
     object: NotRequired[str]
+
+
+def semantics_from_serialized(serialized: SerializedSemantics) -> Semantics:
+    return Semantics({
+        "doc": Doc(NLP_MODEL.vocab).from_json(
+            serialized["doc"],  # type: ignore[arg-type]
+        ),
+        "subject": serialized.get("subject", ""),
+        "object": serialized.get("object", ""),
+    })
 
 
 class Fact(Base):
@@ -108,13 +124,17 @@ class Fact(Base):
     def set_hash(self) -> None:
         self.hash = hashlib.sha256(self.content.encode("utf-8")).hexdigest()
 
-    def get_semantics(self) -> Semantics:
+    def get_serialized_semantics(self) -> SerializedSemantics:
         data = json.loads(self.semantics)
-        return Semantics({
-            "doc": Doc(NLP_MODEL.vocab).from_json(data["doc"]),
+        return SerializedSemantics({
+            "doc": data["doc"],
             "subject": data.get("subject", ""),
             "object": data.get("object", ""),
         })
+
+    def get_semantics(self) -> Semantics:
+        serializable = self.get_serialized_semantics()
+        return semantics_from_serialized(serializable)
 
     def set_semantics(self, semantics: Semantics) -> None:
         self.semantics = json.dumps(semantics)
@@ -126,7 +146,7 @@ class FactModel(BaseModel):
     disputed: bool
     hash: str
     last_checked: str
-    semantics: Semantics
+    semantics: SerializedSemantics
     sources: list[str]
 
     @classmethod
@@ -137,7 +157,7 @@ class FactModel(BaseModel):
             disputed=fact.disputed,
             hash=fact.hash,
             last_checked=fact.last_checked,
-            semantics=fact.get_semantics(),
+            semantics=fact.get_serialized_semantics(),
             sources=[ source.domain for source in fact.sources ],
         )
 
