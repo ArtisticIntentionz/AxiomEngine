@@ -20,6 +20,7 @@ stdout_handler.setFormatter(
 )
 logger.addHandler(stdout_handler)
 logger.setLevel(logging.INFO)
+logger.propagate = False
 
 
 def link_related_facts(new_facts_batch):

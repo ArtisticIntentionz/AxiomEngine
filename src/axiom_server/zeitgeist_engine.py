@@ -25,6 +25,7 @@ stdout_handler.setFormatter(
 
 logger.addHandler(stdout_handler)
 logger.setLevel(logging.INFO)
+logger.propagate = False
 
 NEWS_API_KEY = os.environ.get("NEWS_API_KEY")
 
