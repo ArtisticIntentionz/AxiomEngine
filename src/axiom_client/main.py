@@ -127,37 +127,37 @@ class AxiomClientApp(QWidget):
 
     def initUI(self) -> None:
         # --- Layout and Widgets ---
-        self.layout = QVBoxLayout()
-        self.setLayout(self.layout)
+        self.qv_box_layout = QVBoxLayout()
+        self.setLayout(self.qv_box_layout)
 
         # Title Label
         self.title_label = QLabel("AXIOM")
         self.title_label.setFont(QFont('Arial', 24, QFont.Weight.Bold))
-        self.layout.addWidget(self.title_label)
+        self.qv_box_layout.addWidget(self.title_label)
 
         # Input Field for Queries
         self.query_input = QLineEdit()
         self.query_input.setPlaceholderText("Ask Axiom a question...")
         self.query_input.setFont(QFont('Arial', 14))
         self.query_input.returnPressed.connect(self.start_search) # Allow pressing Enter
-        self.layout.addWidget(self.query_input)
+        self.qv_box_layout.addWidget(self.query_input)
 
         # Search Button
         self.search_button = QPushButton("Search")
         self.search_button.setFont(QFont('Arial', 14))
         self.search_button.clicked.connect(self.start_search)
-        self.layout.addWidget(self.search_button)
+        self.qv_box_layout.addWidget(self.search_button)
 
         # Status Label / Progress Bar
         self.status_label = QLabel("Status: Idle")
         self.status_label.setFont(QFont('Arial', 10))
-        self.layout.addWidget(self.status_label)
+        self.qv_box_layout.addWidget(self.status_label)
 
         # Results Display Area
         self.results_output = QTextEdit()
         self.results_output.setReadOnly(True)
         self.results_output.setFont(QFont('Arial', 12))
-        self.layout.addWidget(self.results_output)
+        self.qv_box_layout.addWidget(self.results_output)
 
     def start_search(self) -> None:
         """Called when the user clicks 'Search' or presses Enter."""

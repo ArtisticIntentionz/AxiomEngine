@@ -120,14 +120,14 @@ class AxiomNode:
 
         self.peers[peer_url]["reputation"] = max(0.0, min(1.0, new_rep))
 
-    def _fetch_from_peer(self, peer_url: str, search_term: str) -> list[dict[str, str]]:
+    def _fetch_from_peer(self, peer_url: str, search_term: str) -> list[Fact]:
         try:
             query_url = (
                 f"{peer_url}/local_query?term={search_term}&include_uncorroborated=true"
             )
             response = requests.get(query_url, timeout=5)
             response.raise_for_status()
-            return cast("list[dict[str, str]]", response.json().get("results", []))
+            return cast("list[Fact]", response.json().get("results", []))
         except requests.exceptions.RequestException:
             return []
 
@@ -293,8 +293,9 @@ def handle_anonymous_query() -> Response | tuple[Response, int]:
             }
             for future in future_to_peer:
                 for fact_result in future.result():
-                    if fact_result["fact_id"] not in all_facts:
-                        all_facts[fact["fact_id"]] = fact_result
+                    fact_id = int(fact_result["fact_id"])  # type: ignore[index]
+                    if fact_id not in all_facts:
+                        all_facts[fact_id] = fact_result
             return jsonify({"results": list(all_facts.values())})
         else:
             next_node_url = circuit.pop(0)

@@ -8,9 +8,9 @@ from __future__ import annotations
 
 import logging
 import sys
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING
 
-from axiom_server.ledger import get_all_facts_for_analysis, insert_relationship
+from axiom_server.ledger import get_all_facts_for_analysis, insert_relationship, Fact
 from axiom_server.common import NLP_MODEL
 
 if TYPE_CHECKING:
@@ -29,11 +29,6 @@ logger.setLevel(logging.INFO)
 logger.propagate = False
 
 
-class Fact(TypedDict):
-    fact_id: int
-    fact_content: str
-
-
 def link_related_facts(
     session: Session,
     new_facts_batch: list[Fact],
@@ -50,14 +45,14 @@ def link_related_facts(
 
     links_found = 0
     for new_fact in new_facts_batch:
-        new_doc = NLP_MODEL(new_fact['fact_content'])
+        new_doc = NLP_MODEL(new_fact['fact_content'])  # type: ignore[index]
         new_entities = {ent.text.lower() for ent in new_doc.ents}
 
         for existing_fact in all_facts_in_ledger:
-            if new_fact['fact_id'] == existing_fact['fact_id']:
+            if new_fact['fact_id'] == existing_fact['fact_id']:  # type: ignore[index]
                 continue
 
-            existing_doc = NLP_MODEL(existing_fact['fact_content'])
+            existing_doc = NLP_MODEL(existing_fact['fact_content'])  # type: ignore[index]
             existing_entities = {ent.text.lower() for ent in existing_doc.ents}
 
             shared_entities = new_entities.intersection(existing_entities)
@@ -66,8 +61,8 @@ def link_related_facts(
                 relationship_score = len(shared_entities)
                 insert_relationship(
                     session,
-                    new_fact['fact_id'],
-                    existing_fact['fact_id'],
+                    new_fact['fact_id'],  # type: ignore[index]
+                    existing_fact['fact_id'],  # type: ignore[index]
                     score=relationship_score,
                 )
                 links_found += 1

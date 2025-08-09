@@ -13,7 +13,7 @@ import datetime
 import json
 from typing import cast, TypedDict, TYPE_CHECKING, NotRequired
 
-from spacy.ml import Doc
+from spacy.tokens.doc import Doc
 from sqlalchemy import Engine, ForeignKey, String, Integer, Boolean
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, sessionmaker
 from sqlalchemy import create_engine
@@ -53,7 +53,7 @@ class Base(DeclarativeBase):
 
 
 class Semantics(TypedDict):
-    doc: str
+    doc: Doc
     subject: NotRequired[str]
     object: NotRequired[str]
 
@@ -100,7 +100,7 @@ class Fact(Base):
 
     @property
     def corroborated(self) -> bool:
-        return cast(bool, self.score > 0)
+        return self.score > 0
 
     def has_source(self, domain: str) -> bool:
         return any(source.domain == domain for source in self.sources)
@@ -111,17 +111,13 @@ class Fact(Base):
     def get_semantics(self) -> Semantics:
         data = json.loads(self.semantics)
         return Semantics({
-            "doc": data["doc"],
+            "doc": Doc(NLP_MODEL.vocab).from_json(data["doc"]),
             "subject": data.get("subject", ""),
             "object": data.get("object", ""),
         })
 
     def set_semantics(self, semantics: Semantics) -> None:
         self.semantics = json.dumps(semantics)
-
-    @staticmethod
-    def get_doc(semantics: Semantics) -> Doc:
-        return Doc(NLP_MODEL.vocab).from_json(semantics["doc"])
 
 
 class FactModel(BaseModel):

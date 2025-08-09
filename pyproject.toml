@@ -34,19 +34,17 @@ dependencies = [
     "Flask==3.0.3",
     "gunicorn==22.0.0",
     "requests==2.31.0",
-
     # --- Web Scraping & Data Extraction ---
     "googlesearch-python==1.2.4",
     "trafilatura==1.9.0",
     "beautifulsoup4==4.12.3",
-
     # --- API Interaction ---
     "newsapi-python==0.2.7",
     "google-search-results==2.4.2",
     'sqlalchemy',
-
     # --- AI & Natural Language Processing ---
     "spacy==3.7.4",
+    "pyqt6>=6.9.1",
 ]
 
 
@@ -98,3 +96,6 @@ local_partial_types = true
 no_implicit_optional = true
 strict = true
 warn_unreachable = true
+
+[tool.uv.sources]
+spacy = { url = "https://github.com/explosion/spaCy/releases/download/release-v3.8.7/spacy-3.8.7-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl" }
