@@ -22,6 +22,7 @@ echo "::group::Install dependencies"
 python -m pip install -U pip tomli
 python -m pip --version
 UV_VERSION=$(python -c 'import tomli; from pathlib import Path; print({p["name"]:p for p in tomli.loads(Path("uv.lock").read_text())["package"]}["uv"]["version"])')
+SPACY_VERSION=$(python -c 'import tomli; from pathlib import Path; print({p["name"]:p for p in tomli.loads(Path("uv.lock").read_text())["package"]}["spacy"]["version"])')
 python -m pip install uv==$UV_VERSION
 python -m uv --version
 
@@ -44,6 +45,23 @@ esac
 
 # Install uv in virtual environment
 python -m pip install uv==$UV_VERSION
+
+# Check if running on Linux and install spacy from binaries
+if [[ "${RUNNER_OS:-}" == "Linux" ]]; then
+    echo "::group::Installing dependencies for Linux"
+    # Get the Ubuntu version
+    UBUNTU_VERSION=$(lsb_release -rs)
+    PYTHON_VERSION=$(python -c 'import sys; print("".join(map(str, sys.version_info[:2])))')
+    # Install spacy from binaries
+    uv add "spacy @ https://github.com/explosion/spaCy/releases/download/release-v${SPACY_VERSION}/spacy-${SPACY_VERSION}-cp${PYTHON_VERSION}-cp${PYTHON_VERSION}-manylinux_2_17_x86_64.manylinux2014_x86_64.whl"
+    # Make sure installation was successful
+    SPACY_RUN_VERSION=$(python -c "import importlib.metadata; print(importlib.metadata.version('spacy'))")
+    if [[ "${SPACY_RUN_VERSION}" != "${SPACY_VERSION}" ]]; then
+        echo "::error:: spacy linux installation failed, version does not match expected."
+        exit 1
+    fi
+    echo "::endgroup::"
+fi
 
 if [ "$CHECK_FORMATTING" = "1" ]; then
     python -m uv sync --locked --extra tests --extra tools
