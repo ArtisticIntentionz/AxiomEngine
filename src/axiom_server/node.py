@@ -370,11 +370,11 @@ def build_instance() -> AxiomNode:
     bootstrap = os.environ.get("BOOTSTRAP_PEER")
     node_instance = AxiomNode(port=port, bootstrap_peer=bootstrap)
     node_instance.start_background_tasks()
-    return node_instance
+    return node_instance, port
 
 
 def host_server() -> None:
-    logger.info("starting in DEVELOPMENT mode...")
+    logger.info(f"starting in DEVELOPMENT mode on port {port}...")
     app.run(host="0.0.0.0", port=port, debug=False)
 
 
@@ -382,11 +382,13 @@ def cli_run(do_host: bool = True) -> None:
     """Server entrypoint."""
     # Setup instance
     global node_instance
+    port = 5000 # Default port
     if node_instance is None:
-        node_instance = build_instance()
+        # We now receive both values back from the build function.
+        node_instance, port = build_instance()
     # Run server
     if do_host:
-        host_server()
+        host_server(port) # And we pass the port to the host function.
 
 
 # --- MAIN EXECUTION BLOCK ---
