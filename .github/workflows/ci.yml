@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         python: ['3.9', '3.10', '3.11', '3.12', '3.13']
-        arch: ['x86', 'x64']
+        arch: ['x64']  # 'x86'  # Missing libxml2
     continue-on-error: >-
       ${{
         (
