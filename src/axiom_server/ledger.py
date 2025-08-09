@@ -5,12 +5,13 @@
 # --- UNIFIED V2 VERSION WITH ALL REQUIRED FUNCTIONS ---
 
 from __future__ import annotations
+
 import sys
 import logging
 import hashlib
 import datetime
 import json
-from typing import cast
+from typing import cast, TypedDict, TYPE_CHECKING, NotRequired
 
 from spacy.ml import Doc
 from sqlalchemy import Engine, ForeignKey, String, Integer, Boolean
@@ -20,6 +21,10 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from axiom_server.common import NLP_MODEL
+
+if TYPE_CHECKING:
+    from typing_extensions import Self
+
 
 logger = logging.getLogger("ledger")
 
@@ -50,10 +55,18 @@ ENGINE = create_engine(f"sqlite:///{DB_NAME}")
 SessionMaker = sessionmaker(bind=ENGINE)
 
 
-class LedgerError(BaseException): ...
+class LedgerError(BaseException):
+    __slots__ = ()
 
 
-class Base(DeclarativeBase): ...
+class Base(DeclarativeBase):
+    __slots__ = ()
+
+
+class Semantics(TypedDict):
+    doc: str
+    subject: NotRequired[str]
+    object: NotRequired[str]
 
 
 class Fact(Base):
@@ -69,11 +82,11 @@ class Fact(Base):
     )
     semantics: Mapped[str] = mapped_column(String, default="{}", nullable=False) # holds JSON string
     """
-        {
-            "doc": str,
-            "subject": str,
-            "object": str,
-        }
+    {
+        "doc": str,
+        "subject": str,
+        "object": str,
+    }
     """
 
     sources: Mapped[list[Source]] = relationship(
@@ -85,9 +98,9 @@ class Fact(Base):
         viewonly=True,
     )
 
-    @staticmethod
-    def from_model(model: FactModel) -> Fact:
-        return Fact(
+    @classmethod
+    def from_model(cls, model: FactModel) -> Self:
+        return cls(
             content=model.content,
             score=model.score,
             disputed=model.disputed,
@@ -103,22 +116,24 @@ class Fact(Base):
     def has_source(self, domain: str) -> bool:
         return any(source.domain == domain for source in self.sources)
 
-    def set_hash(self):
+    def set_hash(self) -> None:
         self.hash = hashlib.sha256(self.content.encode("utf-8")).hexdigest()
 
-    def get_semantics(self) -> dict:
-        return json.loads(self.semantics)
+    def get_semantics(self) -> Semantics:
+        data = json.loads(self.semantics)
+        return Semantics({
+            "doc": data["doc"],
+            "subject": data.get("subject", ""),
+            "object": data.get("object", ""),
+        })
     
-    def set_semantics(self, semantics: dict):
+    def set_semantics(self, semantics: Semantics) -> None:
         self.semantics = json.dumps(semantics)
 
     @staticmethod
-    def get_doc(semantics: dict) -> Doc:
+    def get_doc(semantics: Semantics) -> Doc:
         return Doc(NLP_MODEL.vocab).from_json(semantics["doc"])
-    
-    @staticmethod
-    def set_doc(semantics: dict, doc: Doc):
-        semantics["doc"] = doc.to_json()
+
 
 class FactModel(BaseModel):
     content: str
@@ -126,12 +141,12 @@ class FactModel(BaseModel):
     disputed: bool
     hash: str
     last_checked: str
-    semantics: dict
+    semantics: Semantics
     sources: list[str]
 
-    @staticmethod
-    def from_fact(fact: Fact) -> FactModel:
-        return FactModel(
+    @classmethod
+    def from_fact(cls, fact: Fact) -> Self:
+        return cls(
             content=fact.content,
             score=fact.score,
             disputed=fact.disputed,
@@ -168,9 +183,8 @@ class FactLink(Base):
     __tablename__ = "fact_link"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    score: Mapped[int] = mapped_column(
-        Integer, nullable=False
-    )  # >0 strong bond, -1 contradicting
+    # >0 strong bond, -1 contradicting
+    score: Mapped[int] = mapped_column(Integer, nullable=False)
 
     fact1_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("fact.id"), nullable=False
@@ -196,7 +210,7 @@ def get_all_facts_for_analysis(session: Session) -> list[Fact]:
     return session.query(Fact).all()
 
 
-def add_fact_corroboration(session: Session, fact_id: int, source_id: int):
+def add_fact_corroboration(session: Session, fact_id: int, source_id: int) -> None:
     """Increments a fact's trust score and add the source to it. Both must already exist"""
 
     fact = session.get(Fact, fact_id)
@@ -212,7 +226,8 @@ def add_fact_corroboration(session: Session, fact_id: int, source_id: int):
 
     add_fact_object_corroboration(fact, source)
 
-def add_fact_object_corroboration(fact: Fact, source: Source):
+
+def add_fact_object_corroboration(fact: Fact, source: Source) -> None:
     """ Increments a fact's trust score and add the source to it. Does nothing if the source already exists. """
     if source not in fact.sources:
         fact.sources.append(source)
@@ -220,7 +235,7 @@ def add_fact_object_corroboration(fact: Fact, source: Source):
         logger.info(f"corroborated existing fact {fact.id} {fact.score=} with source {source.id}")
 
 
-def insert_uncorroborated_fact(session: Session, content: str, source_id: int):
+def insert_uncorroborated_fact(session: Session, content: str, source_id: int) -> None:
     """Inserts a fact for the first time. The source must exist."""
 
     source = session.get(Source, source_id)
@@ -235,7 +250,7 @@ def insert_uncorroborated_fact(session: Session, content: str, source_id: int):
     logger.info(f"inserted uncorroborated fact {fact.id=}")
 
 
-def insert_relationship(session: Session, fact_id_1: int, fact_id_2: int, score: int):
+def insert_relationship(session: Session, fact_id_1: int, fact_id_2: int, score: int) -> None:
     """Inserts a relationship between two facts into the knowledge graph. Both facts must exist."""
 
     fact1 = session.get(Fact, fact_id_1)
@@ -251,7 +266,8 @@ def insert_relationship(session: Session, fact_id_1: int, fact_id_2: int, score:
 
     insert_relationship_object(session, fact1, fact2, score)
 
-def insert_relationship_object(session: Session, fact1: Fact, fact2: Fact, score: int):
+
+def insert_relationship_object(session: Session, fact1: Fact, fact2: Fact, score: int) -> None:
     link = FactLink(
         score=score,
         fact1=fact1,
@@ -263,7 +279,7 @@ def insert_relationship_object(session: Session, fact1: Fact, fact2: Fact, score
     )
 
 
-def mark_facts_as_disputed(session: Session, original_fact_id: int, new_fact_id: int):
+def mark_facts_as_disputed(session: Session, original_fact_id: int, new_fact_id: int) -> None:
     """
     Marks two facts as disputed and links them together.
     """
@@ -281,7 +297,8 @@ def mark_facts_as_disputed(session: Session, original_fact_id: int, new_fact_id:
 
     mark_fact_objects_as_disputed(session, original_fact, new_fact)
 
-def mark_fact_objects_as_disputed(session: Session, original_fact: Fact, new_fact: Fact):
+
+def mark_fact_objects_as_disputed(session: Session, original_fact: Fact, new_fact: Fact) -> None:
     original_fact.disputed = True
     new_fact.disputed = True
     link = FactLink(
@@ -293,3 +310,15 @@ def mark_fact_objects_as_disputed(session: Session, original_fact: Fact, new_fac
     logger.info(
         f"marked facts as disputed: {original_fact.id=}, {new_fact.id=}"
     )
+
+
+class Votes(TypedDict):
+    choice: str
+    weight: float
+    
+
+
+class Proposal(TypedDict):
+    text: str
+    proposer: str
+    votes: dict[str, Votes]
