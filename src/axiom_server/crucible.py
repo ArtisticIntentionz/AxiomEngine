@@ -11,7 +11,7 @@ import logging
 import sys
 import hashlib
 import re
-from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from spacy.tokens.doc import Doc
 from spacy.tokens.span import Span
@@ -28,6 +28,9 @@ from axiom_server.ledger import (
     Semantics,
 )
 from axiom_server.common import NLP_MODEL, SUBJECTIVITY_INDICATORS
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 # Community Change: Professional logging setup.

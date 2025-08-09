@@ -4,6 +4,8 @@
 # See the LICENSE file for full details.
 # --- V2.1: FINAL, CORRECTED VERSION WITH REPUTATION FIX ---
 
+from __future__ import annotations
+
 import json
 import time
 import threading
@@ -50,11 +52,6 @@ background_thread_logger = logging.getLogger("axiom-node-background-thread")
 background_thread_logger.addHandler(stdout_handler)
 background_thread_logger.setLevel(logging.INFO)
 background_thread_logger.propagate = False
-
-# --- GLOBAL APP AND NODE INSTANCE ---
-app = Flask(__name__)
-node_instance: AxiomNode
-# ------------------------------------
 
 
 class Peer(TypedDict):
@@ -207,6 +204,12 @@ class AxiomNode:
     def start_background_tasks(self) -> None:
         background_thread = threading.Thread(target=self._background_loop, daemon=True)
         background_thread.start()
+
+
+# --- GLOBAL APP AND NODE INSTANCE ---
+app = Flask(__name__)
+node_instance: AxiomNode
+# ------------------------------------
 
 
 # --- CONFIGURE API ROUTES ---
