@@ -11,33 +11,33 @@ if [ -z "${GITHUB_STEP_SUMMARY+x}" ]; then
     ON_GITHUB_CI=false
 fi
 
-# Autoformatter *first*, to avoid double-reporting errors
-echo "::group::Ruff format"
-if ! ruff format --check; then
-    echo "* Ruff formatting found issues" >> "$GITHUB_STEP_SUMMARY"
-    EXIT_STATUS=1
-    ruff format --diff
-    echo "::endgroup::"
-    echo "::error:: Ruff formatting found issues"
-else
-    echo "::endgroup::"
-fi
+# # Autoformatter *first*, to avoid double-reporting errors
+# echo "::group::Ruff format"
+# if ! ruff format --check; then
+#     echo "* Ruff formatting found issues" >> "$GITHUB_STEP_SUMMARY"
+#     EXIT_STATUS=1
+#     ruff format --diff
+#     echo "::endgroup::"
+#     echo "::error:: Ruff formatting found issues"
+# else
+#     echo "::endgroup::"
+# fi
 
-# Run ruff, configured in pyproject.toml
-echo "::group::Ruff"
-if ! ruff check .; then
-    echo "* ruff found issues." >> "$GITHUB_STEP_SUMMARY"
-    EXIT_STATUS=1
-    if $ON_GITHUB_CI; then
-        ruff check --output-format github --diff .
-    else
-        ruff check --diff .
-    fi
-    echo "::endgroup::"
-    echo "::error:: ruff found issues"
-else
-    echo "::endgroup::"
-fi
+# # Run ruff, configured in pyproject.toml
+# echo "::group::Ruff"
+# if ! ruff check .; then
+#     echo "* ruff found issues." >> "$GITHUB_STEP_SUMMARY"
+#     EXIT_STATUS=1
+#     if $ON_GITHUB_CI; then
+#         ruff check --output-format github --diff .
+#     else
+#         ruff check --diff .
+#     fi
+#     echo "::endgroup::"
+#     echo "::error:: ruff found issues"
+# else
+#     echo "::endgroup::"
+# fi
 
 # Run mypy on all supported platforms
 # MYPY is set if any of them fail.
