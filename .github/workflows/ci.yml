@@ -20,8 +20,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: ['3.9', '3.10', '3.11', '3.12', '3.13']
-        arch: ['x64']  # 'x86'  # Missing libxml2
+        # Missing libxml2 for 3.9 and 3.13
+        python: ['3.10', '3.11', '3.12']
+        arch: ['x64']  # 'x86'  # Missing libxml2 for x86
     continue-on-error: >-
       ${{
         (
