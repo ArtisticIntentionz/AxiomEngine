@@ -47,7 +47,7 @@ TRUSTED_DOMAINS = [
 ]
 
 
-def is_trusted_domain(url):
+def is_trusted_domain(url: str) -> bool:
     """A secure helper function to validate a URL's domain."""
     try:
         netloc = urlparse(url).netloc
@@ -62,7 +62,7 @@ def is_trusted_domain(url):
         return False
 
 
-def find_and_extract(topic, max_sources=3) -> list[dict[str, str]]:
+def find_and_extract(topic: str, max_sources: int = 3) -> list[dict[str, str]]:
     """
         returns {"source_url": url, "content": main_text}
     """

@@ -30,7 +30,7 @@ logger.propagate = False
 NEWS_API_KEY = os.environ.get("NEWS_API_KEY")
 
 
-def get_trending_topics(top_n=3):
+def get_trending_topics(top_n: int = 3) -> list[str]:
     """
     Fetches recent articles using the get_everything endpoint to enable date filtering,
     then identifies the most frequently mentioned entities as trending topics.

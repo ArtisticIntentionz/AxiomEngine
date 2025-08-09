@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools >= 64"]
+requires = ["setuptools >= 77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -25,6 +25,7 @@ classifiers = [
     "Programming Language :: Python :: 3 :: Only",
     "Topic :: Internet",
     "Operating System :: OS Independent",
+    "Typing :: Typed",
 ]
 keywords = [
     "ai", "p2p", "truth"
@@ -34,20 +35,19 @@ dependencies = [
     "Flask==3.0.3",
     "gunicorn==22.0.0",
     "requests==2.31.0",
-
     # --- Web Scraping & Data Extraction ---
     "googlesearch-python==1.2.4",
     "trafilatura==1.9.0",
     "beautifulsoup4==4.12.3",
-
     # --- API Interaction ---
     "newsapi-python==0.2.7",
     "google-search-results==2.4.2",
     'sqlalchemy',
-
     # --- AI & Natural Language Processing ---
-    "spacy==3.7.4",
+    "spacy==3.8.7",
+    "typing-extensions>=4.14.1",
 ]
+
 
 [tool.setuptools.dynamic]
 version = {attr = "axiom_server.node.__version__"}
@@ -55,6 +55,20 @@ version = {attr = "axiom_server.node.__version__"}
 [project.urls]
 "Source" = "https://github.com/ArtisticIntentionz/AxiomEngine"
 "Bug Tracker" = "https://github.com/ArtisticIntentionz/AxiomEngine/issues"
+
+[project.optional-dependencies]
+client = ["pyqt6>=6.9.1"]
+tests = [
+    "pytest>=5.0",
+    "pytest-cov>=6.0.0",
+    "coverage>=7.2.5",
+    "uv>=0.5.21",
+]
+tools = [
+    "mypy>=1.17.1",
+    "attrs>=25.3.0",
+    "types-requests>=2.32.4.20250611",
+]
 
 [project.scripts]
 axiom_server = "axiom_server.node:cli_run"
@@ -65,3 +79,70 @@ axiom_client = "axiom_client.main:cli_run"
 [tool.setuptools.package-data]
 axiom_server = ["py.typed", "*.html"]
 axiom_client = ["py.typed"]
+
+[tool.uv]
+package = true
+
+[tool.mypy]
+files = ["src/axiom_server/", "src/axiom_client/"]
+enable_error_code = [
+    "truthy-bool",
+    "mutable-override",
+    "exhaustive-match",
+]
+show_column_numbers = true
+show_error_codes = true
+show_traceback = true
+disallow_any_decorated = true
+disallow_any_unimported = true
+ignore_missing_imports = true
+local_partial_types = true
+no_implicit_optional = true
+strict = true
+warn_unreachable = true
+
+[tool.coverage.html]
+show_contexts = true
+skip_covered = false
+
+[tool.coverage.paths]
+source = ["src", "**/site-packages"]
+
+[tool.coverage.run]
+branch = true
+omit = []
+# The test suite spawns subprocesses to test some stuff, so make sure
+# this doesn't corrupt the coverage files
+parallel = true
+plugins = []
+relative_files = true
+source = ["axiom_server"]
+
+[tool.coverage.report]
+precision = 1
+skip_covered = true
+skip_empty = true
+show_missing = true
+exclude_also = [
+  '^\s*@pytest\.mark\.xfail',
+   "abc.abstractmethod",
+   "if TYPE_CHECKING.*:",
+   "if _t.TYPE_CHECKING:",
+   "if t.TYPE_CHECKING:",
+   "@overload",
+   'class .*\bProtocol\b.*\):',
+   "raise NotImplementedError",
+   '.*if "sphinx.ext.autodoc" in sys.modules:',
+   'TODO: test this line',
+   'if __name__ == "__main__":',
+]
+partial_branches = [
+    "pragma: no branch",
+    "if not TYPE_CHECKING:",
+    "if not _t.TYPE_CHECKING:",
+    "if not t.TYPE_CHECKING:",
+    "if .* or not TYPE_CHECKING:",
+    "if .* or not _t.TYPE_CHECKING:",
+    "if .* or not t.TYPE_CHECKING:",
+   'TODO: test this branch',
+]
