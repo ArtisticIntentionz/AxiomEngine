@@ -11,7 +11,7 @@ import logging
 import sys
 import hashlib
 import re
-from typing import TYPE_CHECKING, Generic
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 from spacy.tokens.doc import Doc
 from spacy.tokens.span import Span
@@ -32,6 +32,8 @@ from axiom_server.common import NLP_MODEL, SUBJECTIVITY_INDICATORS
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+
+T = TypeVar("T")
 
 # Community Change: Professional logging setup.
 logger = logging.getLogger("crucible")
