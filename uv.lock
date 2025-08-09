@@ -35,7 +35,6 @@ dependencies = [
     { name = "googlesearch-python" },
     { name = "gunicorn" },
     { name = "newsapi-python" },
-    { name = "pyqt6" },
     { name = "requests" },
     { name = "spacy" },
     { name = "sqlalchemy" },
@@ -43,6 +42,9 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+client = [
+    { name = "pyqt6" },
+]
 tests = [
     { name = "coverage" },
     { name = "pytest" },
@@ -66,7 +68,7 @@ requires-dist = [
     { name = "gunicorn", specifier = "==22.0.0" },
     { name = "mypy", marker = "extra == 'tools'", specifier = ">=1.17.1" },
     { name = "newsapi-python", specifier = "==0.2.7" },
-    { name = "pyqt6", specifier = ">=6.9.1" },
+    { name = "pyqt6", marker = "extra == 'client'", specifier = ">=6.9.1" },
     { name = "pytest", marker = "extra == 'tests'", specifier = ">=5.0" },
     { name = "pytest-cov", marker = "extra == 'tests'", specifier = ">=6.0.0" },
     { name = "requests", specifier = "==2.31.0" },
@@ -76,7 +78,7 @@ requires-dist = [
     { name = "types-requests", marker = "extra == 'tools'", specifier = ">=2.32.4.20250611" },
     { name = "uv", marker = "extra == 'tests'", specifier = ">=0.5.21" },
 ]
-provides-extras = ["tests", "tools"]
+provides-extras = ["client", "tests", "tools"]
 
 [[package]]
 name = "babel"
