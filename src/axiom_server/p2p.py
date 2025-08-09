@@ -4,12 +4,20 @@
 # See the LICENSE file for full details.
 # --- V2.1: HARDENED SYNC LOGIC ---
 
+from __future__ import annotations
+
 import logging
 import sys
+from typing import TYPE_CHECKING
+
 import requests
 import sqlite3
 
 from axiom_server.ledger import DB_NAME, Fact, FactModel, SessionMaker, Source
+
+if TYPE_CHECKING:
+    from axiom_server.node import AxiomNode
+
 
 logger = logging.getLogger("p2p")
 
@@ -25,7 +33,7 @@ logger.setLevel(logging.INFO)
 logger.propagate = False
 
 
-def sync_with_peer(node_instance, peer_url) -> tuple[str, list[Fact]]:
+def sync_with_peer(node_instance: AxiomNode, peer_url: str) -> tuple[str, list[Fact]]:
     """
     Synchronizes the local ledger with a peer's ledger.
     This version correctly handles database integrity errors during sync.
@@ -61,15 +69,15 @@ def sync_with_peer(node_instance, peer_url) -> tuple[str, list[Fact]]:
             )
 
             response.raise_for_status()
-            new_facts_data: list[dict] = response.json().get("facts", [])
-            new_fact_models: list[FactModel] = [ ]
 
-            for fact_data in new_facts_data:
-                new_fact_models.append(FactModel(**fact_data))
+            new_fact_models: list[FactModel] = [
+                FactModel(**fact_data)
+                for fact_data in response.json().get("facts", [])
+            ]
 
             # Step 5: Insert the new facts into the local ledger
             facts_added_count: int = 0
-            new_facts: list[Fact] = [ ]
+            new_facts: list[Fact] = []
 
             for model in new_fact_models:
                 fact = Fact.from_model(model)

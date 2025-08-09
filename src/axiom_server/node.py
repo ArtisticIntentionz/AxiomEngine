@@ -136,7 +136,7 @@ class AxiomNode:
         The main, continuous loop. This version has the corrected logic.
         """
         background_thread_logger.info("starting continuous cycle.")
-        
+
         with SessionMaker() as session:
             while True:
                 background_thread_logger.info("axiom engine cycle start")
@@ -226,7 +226,6 @@ def handle_local_query() -> Response:
 
 @app.route("/get_peers", methods=["GET"])
 def handle_get_peers() -> Response:
-    
     return jsonify({"peers": node_instance.peers})
 
 
@@ -248,7 +247,7 @@ def handle_get_fact_hashes() -> Response:
 def handle_get_facts_by_id() -> Response:
     assert request.json is not None
     requested_ids: set[int] = set(request.json.get("fact_ids", []))
-    
+
     with SessionMaker() as session:
         facts = list(session.query(Fact).filter(Fact.id.in_(requested_ids)))
         fact_models = [FactModel.from_fact(fact).model_dump() for fact in facts]
@@ -258,7 +257,7 @@ def handle_get_facts_by_id() -> Response:
 def handle_get_facts_by_hash() -> Response:
     assert request.json is not None
     requested_hashes: set[int] = set(request.json.get("fact_hashes", []))
-    
+
     with SessionMaker() as session:
         facts = list(session.query(Fact).filter(Fact.hash.in_(requested_hashes)))
         fact_models = [FactModel.from_fact(fact).model_dump() for fact in facts]
@@ -267,16 +266,18 @@ def handle_get_facts_by_hash() -> Response:
 @app.route("/anonymous_query", methods=["POST"])
 def handle_anonymous_query() -> Response | tuple[Response, int]:
     data = request.json or {}
-    
+
     search_term = data.get("term")
     circuit = data.get("circuit", [])
     sender_peer = data.get("sender_peer")
-    node_instance.add_or_update_peer(sender_peer)
+    if sender_peer:
+        node_instance.add_or_update_peer(str(sender_peer))
 
     with SessionMaker() as session:
         if not circuit:
             all_facts: dict[int, Fact] = {}
 
+            assert isinstance(search_term, str)
             local_results = search_ledger_for_api(
                 session, search_term, include_uncorroborated=True
             )
@@ -291,9 +292,9 @@ def handle_anonymous_query() -> Response | tuple[Response, int]:
                 for peer in node_instance.peers
             }
             for future in future_to_peer:
-                for fact in future.result():
-                    if fact["fact_id"] not in all_facts:
-                        all_facts[fact["fact_id"]] = fact
+                for fact_result in future.result():
+                    if fact_result["fact_id"] not in all_facts:
+                        all_facts[fact["fact_id"]] = fact_result
             return jsonify({"results": list(all_facts.values())})
         else:
             next_node_url = circuit.pop(0)
@@ -330,6 +331,8 @@ def handle_submit_proposal() -> Response | tuple[Response, int]:
         proposer_url in node_instance.peers
         and node_instance.peers[proposer_url]["reputation"] >= 0.75
     ):
+        assert isinstance(aip_id, int)
+        assert isinstance(aip_text, str)
         if aip_id not in node_instance.active_proposals:
             node_instance.active_proposals[aip_id] = Proposal({
                 "text": aip_text,
@@ -359,12 +362,12 @@ def handle_submit_vote() -> Response | tuple[Response, int]:
 
     assert voter_url is not None
     assert isinstance(vote_choice, str)
-    assert isinstance(voter_reputation, int | float)
 
     voter_data = node_instance.peers.get(voter_url)
     if not voter_data:
         return jsonify({"status": "error", "message": "Unknown peer."}), 403
     voter_reputation = voter_data.get("reputation", 0)
+    assert isinstance(voter_reputation, int | float)
     node_instance.active_proposals[aip_id]["votes"][voter_url] = Votes({
         "choice": vote_choice,
         "weight": voter_reputation,

@@ -36,4 +36,3 @@ def search_ledger_for_api(
         query = query.filter(Fact.disputed == False)
 
     return query.all()
-
