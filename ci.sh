@@ -64,6 +64,10 @@ if [[ "${RUNNER_OS:-}" == "Linux" ]]; then
     fi
     echo "::endgroup::"
 fi
+if [[ "${RUNNER_OS:-}" == "Windows" ]]; then
+    echo "::group::Installing dependencies for Windows"
+    choco install libxml2 -y
+fi
 
 if [ "$CHECK_FORMATTING" = "1" ]; then
     python -m uv sync --locked --extra tests --extra tools
