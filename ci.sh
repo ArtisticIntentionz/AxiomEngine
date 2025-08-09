@@ -82,7 +82,7 @@ else
         flags=""
         #"--skip-optional-imports"
     else
-        python -m uv sync --locked --extra tests --extra tools
+        python -m uv sync --locked --extra tests
         flags=""
     fi
 
