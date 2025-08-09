@@ -38,7 +38,7 @@ class ErrorResponse(TypedDict):
 ResponseData: TypeAlias = ErrorResponse | FactResponse
 
 
-class NetworkWorker(QThread):
+class NetworkWorker(QThread):  # type: ignore[misc,unused-ignore]
     """
     A separate thread to handle all network operations (discovery, querying)
     to prevent the GUI from freezing.
@@ -116,7 +116,7 @@ class NetworkWorker(QThread):
         return FactResponse({"results": result["results"]})
 
 
-class AxiomClientApp(QWidget):
+class AxiomClientApp(QWidget):  # type: ignore[misc,unused-ignore]
     """The main GUI window for the Axiom Client."""
     def __init__(self) -> None:
         super().__init__()
@@ -139,7 +139,8 @@ class AxiomClientApp(QWidget):
         self.query_input = QLineEdit()
         self.query_input.setPlaceholderText("Ask Axiom a question...")
         self.query_input.setFont(QFont('Arial', 14))
-        self.query_input.returnPressed.connect(self.start_search) # Allow pressing Enter
+        # Allow pressing Enter
+        self.query_input.returnPressed.connect(self.start_search)
         self.qv_box_layout.addWidget(self.query_input)
 
         # Search Button

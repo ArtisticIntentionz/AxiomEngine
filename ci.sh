@@ -49,6 +49,8 @@ python -m pip install uv==$UV_VERSION
 # Check if running on Linux and install spacy from binaries
 if [[ "${RUNNER_OS:-}" == "Linux" ]]; then
     echo "::group::Installing dependencies for Linux"
+    sudo apt-get update -q
+    sudo apt-get install -y -q libxml2-dev libxslt1-dev
     # Get the Ubuntu version
     UBUNTU_VERSION=$(lsb_release -rs)
     PYTHON_VERSION=$(python -c 'import sys; print("".join(map(str, sys.version_info[:2])))')
@@ -66,6 +68,10 @@ fi
 if [ "$CHECK_FORMATTING" = "1" ]; then
     python -m uv sync --locked --extra tests --extra tools
     echo "::endgroup::"
+    # Restore files to original state on Linux
+    if [[ "${RUNNER_OS:-}" == "Linux" ]]; then
+        git restore pyproject.toml uv.lock
+    fi
     source check.sh
 else
     # Actual tests
