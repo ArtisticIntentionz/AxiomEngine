@@ -85,13 +85,6 @@ class Fact(Base):
         String, default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat(), nullable=False
     )
     semantics: Mapped[str] = mapped_column(String, default="{}", nullable=False) # holds JSON string
-    """
-    {
-        "doc": str,
-        "subject": str,
-        "object": str,
-    }
-    """
 
     sources: Mapped[list[Source]] = relationship(
         "Source", secondary="fact_source_link", back_populates="facts"
