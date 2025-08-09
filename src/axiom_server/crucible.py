@@ -13,7 +13,8 @@ import hashlib
 import re
 from collections.abc import Callable
 
-from spacy.ml import Doc, Span
+from spacy.tokens.doc import Doc
+from spacy.tokens.span import Span
 from sqlalchemy.orm import Session
 
 from axiom_server.ledger import (
@@ -147,13 +148,13 @@ SENTENCE_CHECKS: Pipeline[Span] = Pipeline(
 
 
 def has_subject_and_object(fact: Fact) -> bool:
-    subject, object_ = _get_subject_and_object(Fact.get_doc(fact.get_semantics()))
+    subject, object_ = _get_subject_and_object(fact.get_semantics()["doc"])
     return subject is not None and object_ is not None
 
 
 def set_subject_and_object(fact: Fact) -> Fact:
     semantics = fact.get_semantics()
-    subject, object_ = _get_subject_and_object(Fact.get_doc(semantics))
+    subject, object_ = _get_subject_and_object(semantics["doc"])
     assert subject is not None
     assert object_ is not None
     semantics["subject"] = subject
@@ -202,6 +203,7 @@ def extract_facts_from_text(text_content: str) -> list[Fact]:
     doc = NLP_MODEL(sanitized_text)
 
     fact: Fact | None
+    sentence: Span | None
     for sentence in doc.sents:
         if (sentence := SENTENCE_CHECKS.run(sentence)) is not None:
             fact = Fact(content=sentence.text.strip())
@@ -291,7 +293,7 @@ class CrucibleFactAdder:
         """ check with all existing facts if it contradicts with any, changing database accordingly """
         new_semantics = fact.get_semantics()
         new_subject, new_object = new_semantics["subject"], new_semantics["object"]
-        new_doc = Fact.get_doc(new_semantics)
+        new_doc = new_semantics["doc"]
 
         for existing_fact in self.existing_facts:
             if existing_fact == fact:
@@ -302,7 +304,7 @@ class CrucibleFactAdder:
 
             existing_semantics = existing_fact.get_semantics()
             existing_subject, existing_object = existing_semantics["subject"], existing_semantics["object"]
-            existing_doc = Fact.get_doc(existing_semantics)
+            existing_doc = existing_semantics["doc"]
 
             if check_contradiction(
                 existing_fact, existing_semantics, existing_doc,
@@ -320,7 +322,7 @@ class CrucibleFactAdder:
     def _corroborate_against_existing_facts(self, fact: Fact) -> Fact:
         new_semantics = fact.get_semantics()
         new_subject, new_object = new_semantics["subject"], new_semantics["object"]
-        new_doc = Fact.get_doc(new_semantics)
+        new_doc = new_semantics["doc"]
 
         for existing_fact in self.existing_facts:
             if existing_fact == fact:
@@ -328,7 +330,7 @@ class CrucibleFactAdder:
 
             existing_semantics = existing_fact.get_semantics()
             existing_subject, existing_object = existing_semantics["subject"], existing_semantics["object"]
-            existing_doc = Fact.get_doc(existing_semantics)
+            existing_doc = existing_semantics["doc"]
 
             if check_corroboration(
                 existing_fact, existing_semantics, existing_doc,
@@ -343,7 +345,7 @@ class CrucibleFactAdder:
 
     def _detect_relationships(self, fact: Fact) -> Fact:
         new_semantics = fact.get_semantics()
-        new_doc = Fact.get_doc(new_semantics)
+        new_doc = new_semantics["doc"]
         new_entities = { ent.text.lower() for ent in new_doc.ents }
 
         for existing_fact in self.existing_facts:
@@ -351,7 +353,7 @@ class CrucibleFactAdder:
                 continue
 
             existing_semantics = existing_fact.get_semantics()
-            existing_doc = Fact.get_doc(existing_semantics)
+            existing_doc = existing_semantics["doc"]
             existing_entities = { ent.text.lower() for ent in existing_doc.ents }
 
             score = len(new_entities & existing_entities)
