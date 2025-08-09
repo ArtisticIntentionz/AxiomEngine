@@ -11,7 +11,7 @@ import logging
 import hashlib
 import datetime
 import json
-from typing import cast, TypedDict, TYPE_CHECKING, NotRequired
+from typing import cast
 
 from spacy.tokens.doc import Doc
 from sqlalchemy import Engine, ForeignKey, String, Integer, Boolean
@@ -22,8 +22,7 @@ from pydantic import BaseModel
 
 from axiom_server.common import NLP_MODEL
 
-if TYPE_CHECKING:
-    from typing_extensions import Self
+from typing_extensions import Self, NotRequired, TypedDict
 
 
 logger = logging.getLogger("ledger")

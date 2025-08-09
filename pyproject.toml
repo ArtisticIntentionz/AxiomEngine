@@ -45,6 +45,7 @@ dependencies = [
     'sqlalchemy',
     # --- AI & Natural Language Processing ---
     "spacy==3.8.7",
+    "typing-extensions>=4.14.1",
 ]
 
 
