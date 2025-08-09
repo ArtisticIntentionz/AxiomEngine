@@ -43,11 +43,13 @@ stdout_handler.setFormatter(
 
 logger.addHandler(stdout_handler)
 logger.setLevel(logging.INFO)
+logger.propagate = False
 
 background_thread_logger = logging.getLogger("axiom-node-background-thread")
 
 background_thread_logger.addHandler(stdout_handler)
 background_thread_logger.setLevel(logging.INFO)
+background_thread_logger.propagate = False
 
 # --- GLOBAL APP AND NODE INSTANCE ---
 app = Flask(__name__)
@@ -382,7 +384,7 @@ def build_instance() -> tuple[AxiomNode, int]:
 
 
 def host_server(port: int) -> None:
-    logger.info("starting in DEVELOPMENT mode...")
+    logger.info(f"starting in DEVELOPMENT mode on port {port}...")
     app.run(host="0.0.0.0", port=port, debug=False)
 
 
@@ -390,6 +392,7 @@ def cli_run(do_host: bool = True) -> None:
     """Server entrypoint."""
     # Setup instance
     global node_instance
+    # Default port
     port = 5000
     exists = True
     try:

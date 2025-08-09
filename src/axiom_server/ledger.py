@@ -37,18 +37,7 @@ stdout_handler.setFormatter(
 
 logger.addHandler(stdout_handler)
 logger.setLevel(logging.INFO)
-
-logger = logging.getLogger("ledger")
-
-stdout_handler = logging.StreamHandler(stream=sys.stdout)
-stdout_handler.setFormatter(
-    logging.Formatter(
-        "[%(name)s] %(asctime)s | %(levelname)s | %(filename)s:%(lineno)s >>> %(message)s"
-    )
-)
-
-logger.addHandler(stdout_handler)
-logger.setLevel(logging.INFO)
+logger.propagate = False
 
 DB_NAME = "axiom_ledger.db"
 ENGINE = create_engine(f"sqlite:///{DB_NAME}")

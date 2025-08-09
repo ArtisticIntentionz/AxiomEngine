@@ -23,6 +23,7 @@ stdout_handler.setFormatter(
 
 logger.addHandler(stdout_handler)
 logger.setLevel(logging.INFO)
+logger.propagate = False
 
 SERPAPI_API_KEY = os.environ.get("SERPAPI_API_KEY")
 SCRAPER_API_KEY = os.environ.get("SCRAPER_API_KEY")
@@ -65,10 +66,10 @@ def find_and_extract(topic: str, max_sources: int = 3) -> list[dict[str, str]]:
     """
         returns {"source_url": url, "content": main_text}
     """
-    logging.info(f"seeking sources for '{topic}' using SerpApi...")
+    logger.info(f"seeking sources for '{topic}' using SerpApi...")
 
     if not SERPAPI_API_KEY or not SCRAPER_API_KEY:
-        logging.error("API keys not set.")
+        logger.error("API keys not set.")
         return []
 
     search_query = f'"{topic}" news facts information'
@@ -88,13 +89,13 @@ def find_and_extract(topic: str, max_sources: int = 3) -> list[dict[str, str]]:
         trusted_urls = [url for url in all_urls if is_trusted_domain(url)]
 
         if not trusted_urls:
-            logging.info(f"no trusted sources found for '{topic}'.")
+            logger.info(f"no trusted sources found for '{topic}'.")
             return []
     except Exception as e:
-        logging.exception(f"SerpApi search failed. {e}")
+        logger.exception(f"SerpApi search failed. {e}")
         return []
 
-    logging.info(
+    logger.info(
         f"found {len(trusted_urls)} potential trusted sources. Fetching content via ScraperAPI..."
     )
     extracted_content = []
