@@ -45,8 +45,6 @@ dependencies = [
     'sqlalchemy',
     # --- AI & Natural Language Processing ---
     "spacy==3.8.7",
-    # Client side
-    "pyqt6>=6.9.1",
 ]
 
 
@@ -58,6 +56,7 @@ version = {attr = "axiom_server.node.__version__"}
 "Bug Tracker" = "https://github.com/ArtisticIntentionz/AxiomEngine/issues"
 
 [project.optional-dependencies]
+client = ["pyqt6>=6.9.1"]
 tests = [
     "pytest>=5.0",
     "pytest-cov>=6.0.0",

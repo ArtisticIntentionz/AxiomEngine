@@ -11,7 +11,7 @@ import logging
 import sys
 import hashlib
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Generic
 
 from spacy.tokens.doc import Doc
 from spacy.tokens.span import Span
@@ -58,21 +58,21 @@ class CrucibleError(BaseException):
 
 
 @dataclass
-class Check[T]:
-    run: Callable[[T,], bool]
+class Check(Generic[T]):
+    run: Callable[[T], bool]
     description: str
 
 
 @dataclass
-class Transformation[T]:
-    run: Callable[[T,], T | None]
+class Transformation(Generic[T]):
+    run: Callable[[T], T | None]
     description: str
 
 
 @dataclass
-class Pipeline[T]:
+class Pipeline(Generic[T]):
     name: str
-    steps: list[Check[T]|Transformation[T]]
+    steps: list[Check[T] | Transformation[T]]
 
     def run(self, value: T) -> T | None:
         logger.info(f"running pipeline {self.name} on '{value}'")
