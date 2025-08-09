@@ -34,6 +34,7 @@ stdout_handler.setFormatter(
 )
 logger.addHandler(stdout_handler)
 logger.setLevel(logging.INFO)
+logger.propagate = False
 
 # --- OUR UPGRADE: A more robust list of noise patterns to be removed. ---
 METADATA_NOISE_PATTERNS = [
