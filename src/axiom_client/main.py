@@ -38,7 +38,7 @@ class ErrorResponse(TypedDict):
 ResponseData: TypeAlias = ErrorResponse | FactResponse
 
 
-class NetworkWorker(QThread):  # type: ignore[misc,unused-ignore]
+class NetworkWorker(QThread):  # type: ignore[misc,unused-ignore,no-any-unimported]
     """
     A separate thread to handle all network operations (discovery, querying)
     to prevent the GUI from freezing.
@@ -116,7 +116,7 @@ class NetworkWorker(QThread):  # type: ignore[misc,unused-ignore]
         return FactResponse({"results": result["results"]})
 
 
-class AxiomClientApp(QWidget):  # type: ignore[misc,unused-ignore]
+class AxiomClientApp(QWidget):  # type: ignore[misc,unused-ignore,no-any-unimported]
     """The main GUI window for the Axiom Client."""
     def __init__(self) -> None:
         super().__init__()
