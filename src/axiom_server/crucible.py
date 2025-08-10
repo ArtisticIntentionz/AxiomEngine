@@ -80,7 +80,7 @@ class Pipeline(Generic[T]):
     steps: list[Check[T] | Transformation[T]]
 
     def run(self, value: T) -> T | None:
-        logger.info(f"running pipeline {self.name} on '{value}'")
+        logger.info(f"running pipeline '{self.name}' on '{value}'")
 
         current_value: T | None = value
 
@@ -185,14 +185,7 @@ def set_subject_and_object(fact: Fact) -> Fact:
 
 FACT_PREANALYSIS: Pipeline[Fact] = Pipeline(
     "Fact Preanalysis",
-    [
-        Check(
-            has_subject_and_object, "the fact must have a subject and object"
-        ),
-        Transformation(
-            set_subject_and_object, "precomputing the subject and object"
-        ),
-    ],
+    [ ],
 )
 
 
@@ -215,6 +208,24 @@ def _get_subject_and_object(doc: Doc) -> tuple[str | None, str | None]:
     return subject, d_object
 
 
+def semantics_check_and_set_subject_object(semantics: Semantics) -> Semantics|None:
+    subject, object_ = _get_subject_and_object(semantics["doc"])
+    if subject is None or object_ is None: return None
+    semantics["subject"] = subject
+    semantics["object"] = object_
+    return semantics
+
+SEMANTICS_CHECKS = Pipeline(
+    "semantics checks",
+    [
+        Transformation(
+            semantics_check_and_set_subject_object,
+            "check for presence of subject and object"
+        )
+    ]
+)
+
+
 def extract_facts_from_text(text_content: str) -> list[Fact]:
     """
     The main V2.2 Crucible pipeline. It now sanitizes text before analysis.
@@ -234,13 +245,19 @@ def extract_facts_from_text(text_content: str) -> list[Fact]:
 
     fact: Fact | None
     sentence: Span | None
+
     for sentence in doc.sents:
         if (sentence := SENTENCE_CHECKS.run(sentence)) is not None:
             fact = Fact(content=sentence.text.strip())
-            fact.set_semantics(Semantics({"doc": sentence.as_doc()}))
+            semantics = Semantics(
+                { "doc": sentence.as_doc(), "object": "", "subject": "" }
+            )
 
-            if (fact := FACT_PREANALYSIS.run(fact)) is not None:
-                facts.append(fact)
+            if (semantics := SEMANTICS_CHECKS.run(semantics)) is not None:
+                fact.set_semantics(semantics)
+
+                if (fact := FACT_PREANALYSIS.run(fact)) is not None:
+                    facts.append(fact)
 
     return facts
 

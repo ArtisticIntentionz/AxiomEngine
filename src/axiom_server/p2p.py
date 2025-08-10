@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 import requests
 import sqlite3
 
-from axiom_server.ledger import DB_NAME, Fact, FactModel, SessionMaker, Source
+from axiom_server.ledger import DB_NAME, Fact, SerializedFact, SessionMaker, Source
 
 if TYPE_CHECKING:
     from axiom_server.node import AxiomNode
@@ -78,8 +78,8 @@ def sync_with_peer(
 
             response.raise_for_status()
 
-            new_fact_models: list[FactModel] = [
-                FactModel(**fact_data)
+            new_fact_models: list[SerializedFact] = [
+                SerializedFact(**fact_data)
                 for fact_data in response.json().get("facts", [])
             ]
 

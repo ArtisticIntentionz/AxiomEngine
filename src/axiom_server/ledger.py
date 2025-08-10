@@ -65,8 +65,8 @@ class SerializedSemantics(TypedDict):
 
 class Semantics(TypedDict):
     doc: Doc
-    subject: NotRequired[str]
-    object: NotRequired[str]
+    subject: str
+    object: str
 
 
 def semantics_from_serialized(serialized: SerializedSemantics) -> Semantics:
@@ -112,7 +112,7 @@ class Fact(Base):
     )
 
     @classmethod
-    def from_model(cls, model: FactModel) -> Self:
+    def from_model(cls, model: SerializedFact) -> Self:
         return cls(
             content=model.content,
             score=model.score,
@@ -150,7 +150,7 @@ class Fact(Base):
         self.semantics = json.dumps(semantics)
 
 
-class FactModel(BaseModel):
+class SerializedFact(BaseModel):
     content: str
     score: int
     disputed: bool
