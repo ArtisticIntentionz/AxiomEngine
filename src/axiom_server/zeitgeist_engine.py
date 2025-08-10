@@ -1,9 +1,11 @@
-# Axiom - zeitgeist_engine.py
+"""Zeitgeist Engine - Get trending topics from the news."""
+
+from __future__ import annotations
+
 # Copyright (C) 2025 The Axiom Contributors
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.
 # --- V2.2: FINAL, CORRECTED VERSION USING get_everything() ---
-
 import logging
 import os
 import sys
@@ -14,7 +16,7 @@ from newsapi import NewsApiClient
 
 from axiom_server.common import NLP_MODEL
 
-logger = logging.getLogger("zeitgeist")
+logger = logging.getLogger(__name__)
 
 stdout_handler = logging.StreamHandler(stream=sys.stdout)
 stdout_handler.setFormatter(
@@ -31,9 +33,7 @@ NEWS_API_KEY = os.environ.get("NEWS_API_KEY")
 
 
 def get_trending_topics(top_n: int = 3) -> list[str]:
-    """Fetches recent articles using the get_everything endpoint to enable date filtering,
-    then identifies the most frequently mentioned entities as trending topics.
-    """
+    """Fetch recent news articles and return the most frequently mentioned entities."""
     if not NEWS_API_KEY:
         logger.error("NEWS_API_KEY environment variable not set.")
         return []

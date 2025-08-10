@@ -1,11 +1,11 @@
-# Axiom - node.py
+"""Node - Implementation of a single node of the Axiom fact network."""
+
+from __future__ import annotations
+
 # Copyright (C) 2025 The Axiom Contributors
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.
 # --- V2.1: FINAL, CORRECTED VERSION WITH REPUTATION FIX ---
-
-from __future__ import annotations
-
 import json
 import logging
 import math
@@ -64,7 +64,14 @@ background_thread_logger.setLevel(logging.INFO)
 background_thread_logger.propagate = False
 
 
+REP_PENALTY = 0.1
+REP_REWARD_UPTIME = 0.02
+REP_REWARD_NEW_DATA = 0.1
+
+
 class Peer(TypedDict):
+    """Peer information."""
+
     reputation: float
     first_seen: str
     last_seen: str
@@ -75,10 +82,11 @@ class AxiomNode:
 
     def __init__(
         self,
-        host: str = "0.0.0.0",
+        host: str = "127.0.0.1",
         port: int = 5000,
         bootstrap_peer: str | None = None,
     ) -> None:
+        """Initialize axiom node."""
         self.host = host
         self.port = port
         self.self_url = f"http://{self.host}:{port}"
@@ -99,6 +107,7 @@ class AxiomNode:
         initialize_database(ENGINE)
 
     def add_or_update_peer(self, peer_url: str) -> None:
+        """Add peer from url."""
         if (
             peer_url
             and peer_url not in self.peers
@@ -122,11 +131,9 @@ class AxiomNode:
         sync_status: str,
         new_facts_count: int,
     ) -> None:
+        """Update peer reputation."""
         if peer_url not in self.peers:
             return
-        REP_PENALTY = 0.1
-        REP_REWARD_UPTIME = 0.02
-        REP_REWARD_NEW_DATA = 0.1
         current_rep = self.peers[peer_url]["reputation"]
 
         if sync_status in ("CONNECTION_FAILED", "SYNC_ERROR"):
@@ -146,6 +153,7 @@ class AxiomNode:
         self.peers[peer_url]["reputation"] = max(0.0, min(1.0, new_rep))
 
     def _fetch_from_peer(self, peer_url: str, search_term: str) -> list[Fact]:
+        """Return facts about query from peer."""
         try:
             query_url = f"{peer_url}/local_query?term={search_term}&include_uncorroborated=true"
             response = requests.get(query_url, timeout=5)
@@ -155,7 +163,7 @@ class AxiomNode:
             return []
 
     def _background_loop(self) -> None:
-        """The main, continuous loop. This version has the corrected logic."""
+        """Handle task cycle."""
         background_thread_logger.info("starting continuous cycle.")
 
         with SessionMaker() as session:
@@ -239,6 +247,7 @@ class AxiomNode:
                 time.sleep(10800)  # Sleep for 3 hours
 
     def start_background_tasks(self) -> None:
+        """Create thread to run things in the background."""
         background_thread = threading.Thread(
             target=self._background_loop,
             daemon=True,
@@ -255,6 +264,7 @@ node_instance: AxiomNode
 # --- CONFIGURE API ROUTES ---
 @app.route("/local_query", methods=["GET"])
 def handle_local_query() -> Response:
+    """Handle local query request."""
     search_term = request.args.get("term", "")
     include_uncorroborated = (
         request.args.get("include_uncorroborated", "false").lower() == "true"
@@ -271,11 +281,13 @@ def handle_local_query() -> Response:
 
 @app.route("/get_peers", methods=["GET"])
 def handle_get_peers() -> Response:
+    """Handle get peers request."""
     return jsonify({"peers": node_instance.peers})
 
 
 @app.route("/get_fact_ids", methods=["GET"])
 def handle_get_fact_ids() -> Response:
+    """Handle get fact ids request."""
     with SessionMaker() as session:
         fact_ids: list[int] = [fact.id for fact in session.query(Fact).all()]
         return jsonify({"fact_ids": fact_ids})
@@ -283,6 +295,7 @@ def handle_get_fact_ids() -> Response:
 
 @app.route("/get_fact_hashes", methods=["GET"])
 def handle_get_fact_hashes() -> Response:
+    """Handle get fact hashes request."""
     with SessionMaker() as session:
         fact_ids: list[str] = [fact.hash for fact in session.query(Fact).all()]
         return jsonify({"fact_hashes": fact_ids})
@@ -290,6 +303,7 @@ def handle_get_fact_hashes() -> Response:
 
 @app.route("/get_facts_by_id", methods=["POST"])
 def handle_get_facts_by_id() -> Response:
+    """Handle get facts by id request."""
     assert request.json is not None
     requested_ids: set[int] = set(request.json.get("fact_ids", []))
 
@@ -303,6 +317,7 @@ def handle_get_facts_by_id() -> Response:
 
 @app.route("/get_facts_by_hash", methods=["POST"])
 def handle_get_facts_by_hash() -> Response:
+    """Handle get facts by hash request."""
     assert request.json is not None
     requested_hashes: set[int] = set(request.json.get("fact_hashes", []))
 
@@ -318,6 +333,7 @@ def handle_get_facts_by_hash() -> Response:
 
 @app.route("/anonymous_query", methods=["POST"])
 def handle_anonymous_query() -> Response | tuple[Response, int]:
+    """Handle anonymous query request."""
     data = request.json or {}
 
     search_term = data.get("term")
@@ -375,11 +391,13 @@ def handle_anonymous_query() -> Response | tuple[Response, int]:
 
 @app.route("/dao/proposals", methods=["GET"])
 def handle_get_proposals() -> Response:
+    """Handle proposals request."""
     return jsonify(node_instance.active_proposals)
 
 
 @app.route("/dao/submit_proposal", methods=["POST"])
 def handle_submit_proposal() -> Response | tuple[Response, int]:
+    """Handle submit proposal request."""
     data = request.json or {}
     proposer_url = data.get("proposer_url")
     aip_id = data.get("aip_id")
@@ -421,6 +439,7 @@ def handle_submit_proposal() -> Response | tuple[Response, int]:
 
 @app.route("/dao/submit_vote", methods=["POST"])
 def handle_submit_vote() -> Response | tuple[Response, int]:
+    """Handle submit vote request."""
     data = request.json or {}
     voter_url = data.get("voter_url")
     aip_id = data.get("aip_id")
@@ -452,6 +471,7 @@ def handle_submit_vote() -> Response | tuple[Response, int]:
 
 
 def build_instance() -> tuple[AxiomNode, int]:
+    """Return axiom server node and port to host on as tuple."""
     logger.info(
         f"initializing global instance for {'PRODUCTION' if 'gunicorn' in sys.argv[0] else 'DEVELOPMENT'}...",
     )
@@ -463,8 +483,9 @@ def build_instance() -> tuple[AxiomNode, int]:
 
 
 def host_server(port: int) -> None:
+    """Host axiom server on given port."""
     logger.info(f"starting in DEVELOPMENT mode on port {port}...")
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host="127.0.0.1", port=port, debug=False)
 
 
 def cli_run(do_host: bool = True) -> None:

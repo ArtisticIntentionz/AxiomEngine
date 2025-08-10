@@ -1,9 +1,11 @@
-# Axiom - universal_extractor.py
+"""Universal extractor - Web Scraper."""
+
+from __future__ import annotations
+
 # Copyright (C) 2025 The Axiom Contributors
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.
 # --- V2.5: UNIFIED VERSION WITH COMMUNITY REFACTOR ---
-
 import logging
 import os
 import sys
@@ -11,14 +13,11 @@ from urllib.parse import urlparse
 
 import requests
 import trafilatura
-from serpapi import (
-    GoogleSearch,
-)  # This requires 'google-search-results' to be installed
+from serpapi import GoogleSearch
 
-# --- Professional logging setup (Corrected) ---
-logger = logging.getLogger(
-    __name__,
-)  # Use __name__ for automatic, correct logger naming.
+# This requires 'google-search-results' to be installed
+
+logger = logging.getLogger(__name__)
 stdout_handler = logging.StreamHandler(stream=sys.stdout)
 stdout_handler.setFormatter(
     logging.Formatter(
@@ -53,7 +52,7 @@ TRUSTED_DOMAINS = [
 
 
 def is_trusted_domain(url: str) -> bool:
-    """A secure helper function to validate a URL's domain."""
+    """Validate a URL's domain name. Return if trusted."""
     try:
         netloc = urlparse(url).netloc
         if not netloc:
@@ -68,7 +67,7 @@ def is_trusted_domain(url: str) -> bool:
 
 
 def find_and_extract(topic: str, max_sources: int = 3) -> list[dict[str, str]]:
-    """Returns {"source_url": url, "content": main_text}."""
+    """Return {"source_url": url, "content": main_text}."""
     logger.info(f"seeking sources for '{topic}' using SerpApi...")
 
     if not SERPAPI_API_KEY or not SCRAPER_API_KEY:

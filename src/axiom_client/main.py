@@ -1,10 +1,10 @@
-# Axiom Client - Desktop Application main.py
-# Copyright (C) 2025 The Axiom Contributors
-# This program is licensed under the Peer Production License (PPL).
-# See the LICENSE file for full details.
+"""Axiom Client - Desktop Application."""
 
 from __future__ import annotations
 
+# Copyright (C) 2025 The Axiom Contributors
+# This program is licensed under the Peer Production License (PPL).
+# See the LICENSE file for full details.
 import random
 import sys
 from typing import TypeAlias, TypedDict, cast
@@ -31,16 +31,22 @@ CIRCUIT_LENGTH = 3
 
 
 class Fact(TypedDict):
+    """Fact."""
+
     trust_score: float
     fact_content: str
     source_url: str
 
 
 class FactResponse(TypedDict):
+    """Fact response."""
+
     results: list[Fact]
 
 
 class ErrorResponse(TypedDict):
+    """Error response."""
+
     error: str
 
 
@@ -48,22 +54,24 @@ ResponseData: TypeAlias = ErrorResponse | FactResponse
 
 
 class NetworkWorker(QThread):  # type: ignore[misc,unused-ignore,no-any-unimported]
-    """A separate thread to handle all network operations (discovery, querying)
-    to prevent the GUI from freezing.
+    """Separate thread to handle network operations.
+
+    Handles discovery and querying to prevent the GUI from freezing.
     """
 
-    finished = pyqtSignal(
-        ResponseData,
-    )  # Signal to send results back to the main GUI
-    progress = pyqtSignal(str)  # Signal to send status updates back to the GUI
+    # Signal to send results back to the main GUI
+    finished = pyqtSignal(ResponseData)
+    # Signal to send status updates back to the GUI
+    progress = pyqtSignal(str)
 
     def __init__(self, query_term: str) -> None:
+        """Initialize network worker."""
         super().__init__()
         self.query_term = query_term
         self.is_running = True
 
     def run(self) -> None:
-        """The main logic that runs in the background thread."""
+        """Highlevel main logic."""
         try:
             # 1. Discover the network
             self.progress.emit("Mapping the Axiom network...")
@@ -103,10 +111,12 @@ class NetworkWorker(QThread):  # type: ignore[misc,unused-ignore,no-any-unimport
             self.finished.emit({"error": f"An unexpected error occurred: {e}"})
 
     def stop(self) -> None:
+        """Stop running."""
         self.is_running = False
 
     # --- Private methods for networking logic (copied from CLI client) ---
     def _get_network_peers(self, bootstrap_nodes: list[str]) -> list[str]:
+        """Return list of network peers."""
         all_known_peers = set()
         for node_url in bootstrap_nodes:
             try:
@@ -124,6 +134,7 @@ class NetworkWorker(QThread):  # type: ignore[misc,unused-ignore,no-any-unimport
         peers: list[str],
         length: int,
     ) -> list[str]:
+        """Return list of network circuits."""
         if len(peers) < length:
             random.shuffle(peers)
             return peers
@@ -134,6 +145,7 @@ class NetworkWorker(QThread):  # type: ignore[misc,unused-ignore,no-any-unimport
         circuit: list[str],
         search_term: str,
     ) -> ResponseData:
+        """Return response from anonymous query for search term."""
         entry_node = circuit[0]
         relay_circuit = circuit[1:]
         response = requests.post(
@@ -156,13 +168,15 @@ class AxiomClientApp(QWidget):  # type: ignore[misc,unused-ignore,no-any-unimpor
     """The main GUI window for the Axiom Client."""
 
     def __init__(self) -> None:
+        """Initialize axiom client."""
         super().__init__()
         self.setWindowTitle("Axiom Client")
         self.setGeometry(100, 100, 700, 500)
         self.network_worker: NetworkWorker
-        self.initUI()
+        self.setup_ui()
 
-    def initUI(self) -> None:
+    def setup_ui(self) -> None:
+        """Initialize user interface."""
         # --- Layout and Widgets ---
         self.qv_box_layout = QVBoxLayout()
         self.setLayout(self.qv_box_layout)
@@ -198,7 +212,7 @@ class AxiomClientApp(QWidget):  # type: ignore[misc,unused-ignore,no-any-unimpor
         self.qv_box_layout.addWidget(self.results_output)
 
     def start_search(self) -> None:
-        """Called when the user clicks 'Search' or presses Enter."""
+        """Handle when the user clicks 'Search' or presses Enter."""
         query = self.query_input.text()
         if not query:
             return
@@ -213,11 +227,11 @@ class AxiomClientApp(QWidget):  # type: ignore[misc,unused-ignore,no-any-unimpor
         self.network_worker.start()
 
     def update_status(self, message: str) -> None:
-        """Updates the status label with messages from the worker thread."""
+        """Update the status label with messages from the worker thread."""
         self.status_label.setText(f"Status: {message}")
 
     def display_results(self, response_data: ResponseData) -> None:
-        """Called when the worker thread is finished. Displays the final results."""
+        """Handle when the worker thread is finished. Displays the final results."""
         self.status_label.setText("Status: Idle")
         self.search_button.setEnabled(True)
 

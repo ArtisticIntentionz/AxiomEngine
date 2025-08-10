@@ -1,16 +1,21 @@
-# Axiom - api_query.py
+"""API Query - Find facts from database."""
+
+from __future__ import annotations
+
 # Copyright (C) 2025 The Axiom Contributors
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.
 # --- UPGRADED TO HANDLE DISPUTED FACTS ---
-
-from collections.abc import Iterable
-
-from sqlalchemy.orm import Session
+from typing import TYPE_CHECKING, Final
 
 from axiom_server.ledger import Fact
 
-DB_NAME = "axiom_ledger.db"
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from sqlalchemy.orm import Session
+
+DB_NAME: Final = "axiom_ledger.db"
 
 
 def search_ledger_for_api(
@@ -19,7 +24,8 @@ def search_ledger_for_api(
     include_uncorroborated: bool = False,
     include_disputed: bool = False,
 ) -> Iterable[Fact]:
-    """Searches the ledger for facts containing the search term.
+    """Search the ledger for facts containing the search term.
+
     - By default, ONLY returns 'trusted' facts.
     - By default, ALWAYS excludes 'disputed' facts.
     """

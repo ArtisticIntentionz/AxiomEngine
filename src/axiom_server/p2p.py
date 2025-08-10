@@ -1,11 +1,11 @@
-# Axiom - p2p.py
+"""P2P - Peer to peer fact sharing."""
+
+from __future__ import annotations
+
 # Copyright (C) 2025 The Axiom Contributors
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.
 # --- V2.1: HARDENED SYNC LOGIC ---
-
-from __future__ import annotations
-
 import logging
 import sys
 from typing import TYPE_CHECKING
@@ -41,7 +41,8 @@ def sync_with_peer(
     node_instance: AxiomNode,
     peer_url: str,
 ) -> tuple[str, list[Fact]]:
-    """Synchronizes the local ledger with a peer's ledger.
+    """Synchronize the local ledger with a peer's ledger.
+
     This version correctly handles database integrity errors during sync.
     """
     logging.info(f"attempting to sync with peer: {peer_url}")
