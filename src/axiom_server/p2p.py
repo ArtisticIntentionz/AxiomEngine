@@ -33,7 +33,9 @@ logger.setLevel(logging.INFO)
 logger.propagate = False
 
 
-def sync_with_peer(node_instance: AxiomNode, peer_url: str) -> tuple[str, list[Fact]]:
+def sync_with_peer(
+    node_instance: AxiomNode, peer_url: str
+) -> tuple[str, list[Fact]]:
     """
     Synchronizes the local ledger with a peer's ledger.
     This version correctly handles database integrity errors during sync.
@@ -45,13 +47,19 @@ def sync_with_peer(node_instance: AxiomNode, peer_url: str) -> tuple[str, list[F
             # Step 1: Get the peer's list of all fact hashes
             response = requests.get(f"{peer_url}/get_fact_hashes", timeout=10)
             response.raise_for_status()
-            peer_fact_hashes: set[str] = set(response.json().get("fact_hashes", []))
+            peer_fact_hashes: set[str] = set(
+                response.json().get("fact_hashes", [])
+            )
 
             # Step 2: Get the local list of all fact hashes
-            local_fact_hashes: set[str] = set(fact.hash for fact in session.query(Fact).all())
+            local_fact_hashes: set[str] = set(
+                fact.hash for fact in session.query(Fact).all()
+            )
 
             # Step 3: Determine which facts are missing locally
-            missing_fact_hashes: list[str] = list(peer_fact_hashes - local_fact_hashes)
+            missing_fact_hashes: list[str] = list(
+                peer_fact_hashes - local_fact_hashes
+            )
 
             if not missing_fact_hashes:
                 logging.info(f"ledger is already up-to-date with {peer_url}.")
@@ -84,7 +92,11 @@ def sync_with_peer(node_instance: AxiomNode, peer_url: str) -> tuple[str, list[F
                 session.add(fact)
 
                 for domain in model.sources:
-                    if (source := session.query(Source).filter(Source.domain == domain).one_or_none()) is not None:
+                    if (
+                        source := session.query(Source)
+                        .filter(Source.domain == domain)
+                        .one_or_none()
+                    ) is not None:
                         fact.sources.append(source)
 
                     else:

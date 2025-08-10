@@ -26,7 +26,16 @@ from axiom_server import zeitgeist_engine
 from axiom_server import universal_extractor
 from axiom_server import crucible
 from axiom_server import synthesizer
-from axiom_server.ledger import ENGINE, Fact, FactModel, SessionMaker, Source, initialize_database, Proposal, Votes
+from axiom_server.ledger import (
+    ENGINE,
+    Fact,
+    FactModel,
+    SessionMaker,
+    Source,
+    initialize_database,
+    Proposal,
+    Votes,
+)
 from axiom_server.api_query import search_ledger_for_api
 from axiom_server.p2p import sync_with_peer
 
@@ -65,17 +74,24 @@ class AxiomNode:
     A class representing a single, complete Axiom node.
     """
 
-    def __init__(self, host: str = "0.0.0.0", port: int = 5000, bootstrap_peer: str | None = None) -> None:
+    def __init__(
+        self,
+        host: str = "0.0.0.0",
+        port: int = 5000,
+        bootstrap_peer: str | None = None,
+    ) -> None:
         self.host = host
         self.port = port
         self.self_url = f"http://{self.host}:{port}"
         self.peers: dict[str, Peer] = {}
         if bootstrap_peer:
-            self.peers[bootstrap_peer] = Peer({
-                "reputation": 0.5,
-                "first_seen": datetime.now(timezone.utc).isoformat(),
-                "last_seen": datetime.now(timezone.utc).isoformat(),
-            })
+            self.peers[bootstrap_peer] = Peer(
+                {
+                    "reputation": 0.5,
+                    "first_seen": datetime.now(timezone.utc).isoformat(),
+                    "last_seen": datetime.now(timezone.utc).isoformat(),
+                }
+            )
 
         # Now used only for special, high-priority topics.
         self.investigation_queue: list[str] = []
@@ -84,16 +100,26 @@ class AxiomNode:
         initialize_database(ENGINE)
 
     def add_or_update_peer(self, peer_url: str) -> None:
-        if peer_url and peer_url not in self.peers and peer_url != self.self_url:
-            self.peers[peer_url] = Peer({
-                "reputation": 0.1,
-                "first_seen": datetime.now(timezone.utc).isoformat(),
-                "last_seen": datetime.now(timezone.utc).isoformat(),
-            })
+        if (
+            peer_url
+            and peer_url not in self.peers
+            and peer_url != self.self_url
+        ):
+            self.peers[peer_url] = Peer(
+                {
+                    "reputation": 0.1,
+                    "first_seen": datetime.now(timezone.utc).isoformat(),
+                    "last_seen": datetime.now(timezone.utc).isoformat(),
+                }
+            )
         elif peer_url in self.peers:
-            self.peers[peer_url]["last_seen"] = datetime.now(timezone.utc).isoformat()
+            self.peers[peer_url]["last_seen"] = datetime.now(
+                timezone.utc
+            ).isoformat()
 
-    def _update_reputation(self, peer_url: str, sync_status: str, new_facts_count: int) -> None:
+    def _update_reputation(
+        self, peer_url: str, sync_status: str, new_facts_count: int
+    ) -> None:
         if peer_url not in self.peers:
             return
         REP_PENALTY = 0.1
@@ -119,9 +145,7 @@ class AxiomNode:
 
     def _fetch_from_peer(self, peer_url: str, search_term: str) -> list[Fact]:
         try:
-            query_url = (
-                f"{peer_url}/local_query?term={search_term}&include_uncorroborated=true"
-            )
+            query_url = f"{peer_url}/local_query?term={search_term}&include_uncorroborated=true"
             response = requests.get(query_url, timeout=5)
             response.raise_for_status()
             return cast("list[Fact]", response.json().get("results", []))
@@ -154,14 +178,20 @@ class AxiomNode:
 
                         for item in content_list:
                             domain = urlparse(item["source_url"]).netloc
-                            source = session.query(Source).filter(Source.domain == domain).one_or_none()
+                            source = (
+                                session.query(Source)
+                                .filter(Source.domain == domain)
+                                .one_or_none()
+                            )
 
                             if source is None:
                                 source = Source(domain=domain)
                                 session.add(source)
                                 session.commit()
 
-                            new_facts = crucible.extract_facts_from_text(item["content"])
+                            new_facts = crucible.extract_facts_from_text(
+                                item["content"]
+                            )
                             adder = crucible.CrucibleFactAdder(session)
 
                             for fact in new_facts:
@@ -176,14 +206,18 @@ class AxiomNode:
                 background_thread_logger.info("axiom engine cycle finish")
 
                 sorted_peers = sorted(
-                    self.peers.items(), key=lambda item: item[1]["reputation"], reverse=True
+                    self.peers.items(),
+                    key=lambda item: item[1]["reputation"],
+                    reverse=True,
                 )
                 for peer_url, peer_data in sorted_peers:
                     # --- THIS IS THE FIX ---
                     # The new p2p.sync_with_peer is smarter and will return the correct status.
                     # The reputation system will now correctly reward good peers.
                     sync_status, new_facts = sync_with_peer(self, peer_url)
-                    self._update_reputation(peer_url, sync_status, len(new_facts))
+                    self._update_reputation(
+                        peer_url, sync_status, len(new_facts)
+                    )
                     # We NO LONGER add synced facts to the investigation queue, which was the source of the bug.
 
                 background_thread_logger.info("Current Peer Reputations")
@@ -202,7 +236,9 @@ class AxiomNode:
                 time.sleep(10800)  # Sleep for 3 hours
 
     def start_background_tasks(self) -> None:
-        background_thread = threading.Thread(target=self._background_loop, daemon=True)
+        background_thread = threading.Thread(
+            target=self._background_loop, daemon=True
+        )
         background_thread.start()
 
 
@@ -235,14 +271,14 @@ def handle_get_peers() -> Response:
 @app.route("/get_fact_ids", methods=["GET"])
 def handle_get_fact_ids() -> Response:
     with SessionMaker() as session:
-        fact_ids: list[int] = [ fact.id for fact in session.query(Fact).all() ]
+        fact_ids: list[int] = [fact.id for fact in session.query(Fact).all()]
         return jsonify({"fact_ids": fact_ids})
 
 
 @app.route("/get_fact_hashes", methods=["GET"])
 def handle_get_fact_hashes() -> Response:
     with SessionMaker() as session:
-        fact_ids: list[str] = [ fact.hash for fact in session.query(Fact).all() ]
+        fact_ids: list[str] = [fact.hash for fact in session.query(Fact).all()]
         return jsonify({"fact_hashes": fact_ids})
 
 
@@ -253,8 +289,11 @@ def handle_get_facts_by_id() -> Response:
 
     with SessionMaker() as session:
         facts = list(session.query(Fact).filter(Fact.id.in_(requested_ids)))
-        fact_models = [FactModel.from_fact(fact).model_dump() for fact in facts]
+        fact_models = [
+            FactModel.from_fact(fact).model_dump() for fact in facts
+        ]
         return jsonify({"facts": json.dumps(fact_models)})
+
 
 @app.route("/get_facts_by_hash", methods=["POST"])
 def handle_get_facts_by_hash() -> Response:
@@ -262,9 +301,14 @@ def handle_get_facts_by_hash() -> Response:
     requested_hashes: set[int] = set(request.json.get("fact_hashes", []))
 
     with SessionMaker() as session:
-        facts = list(session.query(Fact).filter(Fact.hash.in_(requested_hashes)))
-        fact_models = [FactModel.from_fact(fact).model_dump() for fact in facts]
+        facts = list(
+            session.query(Fact).filter(Fact.hash.in_(requested_hashes))
+        )
+        fact_models = [
+            FactModel.from_fact(fact).model_dump() for fact in facts
+        ]
         return jsonify({"facts": json.dumps(fact_models)})
+
 
 @app.route("/anonymous_query", methods=["POST"])
 def handle_anonymous_query() -> Response | tuple[Response, int]:
@@ -315,7 +359,9 @@ def handle_anonymous_query() -> Response | tuple[Response, int]:
                 response.raise_for_status()
                 return jsonify(response.json())
             except requests.exceptions.RequestException:
-                return jsonify({"error": f"Relay node {next_node_url} is offline."}), 504
+                return jsonify(
+                    {"error": f"Relay node {next_node_url} is offline."}
+                ), 504
 
 
 @app.route("/dao/proposals", methods=["GET"])
@@ -330,7 +376,9 @@ def handle_submit_proposal() -> Response | tuple[Response, int]:
     aip_id = data.get("aip_id")
     aip_text = data.get("aip_text")
     if not all((proposer_url, aip_id, aip_text)):
-        return jsonify({"status": "error", "message": "Missing parameters."}), 400
+        return jsonify(
+            {"status": "error", "message": "Missing parameters."}
+        ), 400
     if (
         proposer_url in node_instance.peers
         and node_instance.peers[proposer_url]["reputation"] >= 0.75
@@ -338,19 +386,30 @@ def handle_submit_proposal() -> Response | tuple[Response, int]:
         assert isinstance(aip_id, int)
         assert isinstance(aip_text, str)
         if aip_id not in node_instance.active_proposals:
-            node_instance.active_proposals[aip_id] = Proposal({
-                "text": aip_text,
-                "proposer": proposer_url,
-                "votes": {},
-            })
-            return jsonify({"status": "success", "message": f"AIP {aip_id} submitted."})
+            node_instance.active_proposals[aip_id] = Proposal(
+                {
+                    "text": aip_text,
+                    "proposer": proposer_url,
+                    "votes": {},
+                }
+            )
+            return jsonify(
+                {"status": "success", "message": f"AIP {aip_id} submitted."}
+            )
         else:
             return (
-                jsonify({"status": "error", "message": "Proposal ID already exists."}),
+                jsonify(
+                    {
+                        "status": "error",
+                        "message": "Proposal ID already exists.",
+                    }
+                ),
                 409,
             )
     else:
-        return jsonify({"status": "error", "message": "Insufficient reputation."}), 403
+        return jsonify(
+            {"status": "error", "message": "Insufficient reputation."}
+        ), 403
 
 
 @app.route("/dao/submit_vote", methods=["POST"])
@@ -360,9 +419,13 @@ def handle_submit_vote() -> Response | tuple[Response, int]:
     aip_id = data.get("aip_id")
     vote_choice = data.get("choice")
     if not all((voter_url, aip_id, vote_choice)):
-        return jsonify({"status": "error", "message": "Missing parameters."}), 400
+        return jsonify(
+            {"status": "error", "message": "Missing parameters."}
+        ), 400
     if aip_id not in node_instance.active_proposals:
-        return jsonify({"status": "error", "message": "Proposal not found."}), 404
+        return jsonify(
+            {"status": "error", "message": "Proposal not found."}
+        ), 404
 
     assert voter_url is not None
     assert isinstance(vote_choice, str)
@@ -372,10 +435,12 @@ def handle_submit_vote() -> Response | tuple[Response, int]:
         return jsonify({"status": "error", "message": "Unknown peer."}), 403
     voter_reputation = voter_data.get("reputation", 0)
     assert isinstance(voter_reputation, int | float)
-    node_instance.active_proposals[aip_id]["votes"][voter_url] = Votes({
-        "choice": vote_choice,
-        "weight": voter_reputation,
-    })
+    node_instance.active_proposals[aip_id]["votes"][voter_url] = Votes(
+        {
+            "choice": vote_choice,
+            "weight": voter_reputation,
+        }
+    )
     return jsonify({"status": "success", "message": "Vote recorded."})
 
 
