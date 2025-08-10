@@ -59,7 +59,9 @@ def get_trending_topics(top_n: int = 3) -> list[str]:
 
         articles = all_articles_response.get("articles", [])
         if not articles:
-            logger.info("no articles found from NewsAPI for the last 24 hours.")
+            logger.info(
+                "no articles found from NewsAPI for the last 24 hours."
+            )
             return []
 
         all_entities = []
@@ -76,7 +78,9 @@ def get_trending_topics(top_n: int = 3) -> list[str]:
             return []
 
         topic_counts = Counter(all_entities)
-        most_common_topics = [topic for topic, count in topic_counts.most_common(top_n)]
+        most_common_topics = [
+            topic for topic, count in topic_counts.most_common(top_n)
+        ]
 
         logger.info(f"top topics discovered: {most_common_topics}")
         return most_common_topics
