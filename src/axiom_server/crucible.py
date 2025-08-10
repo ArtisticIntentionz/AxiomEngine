@@ -262,6 +262,7 @@ def extract_facts_from_text(text_content: str) -> list[Fact]:
 
     fact: Fact | None
     sentence: Span | None
+    semantics: Semantics | None
 
     for sentence in doc.sents:
         if (sentence := SENTENCE_CHECKS.run(sentence)) is not None:

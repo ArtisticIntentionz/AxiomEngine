@@ -85,7 +85,7 @@ def semantics_from_serialized(serialized: SerializedSemantics) -> Semantics:
     return Semantics(
         {
             "doc": Doc(NLP_MODEL.vocab).from_json(
-                serialized["doc"],  # type: ignore[arg-type]
+                serialized.doc,  # type: ignore[arg-type]
             ),
             "subject": serialized.subject,
             "object": serialized.object,
