@@ -1,4 +1,3 @@
-
 import pytest
 from sqlalchemy.orm import sessionmaker
 from axiom_server.ledger import (
@@ -187,7 +186,9 @@ def test_add_fact_corroboration_duplicate_source():
     # Score should not increment, source should not be duplicated
     assert updated_fact is not None
     assert updated_fact.score == 0
-    assert len([s for s in updated_fact.sources if s.domain == "dupe.com"]) == 1
+    assert (
+        len([s for s in updated_fact.sources if s.domain == "dupe.com"]) == 1
+    )
     session.close()
     Base.metadata.drop_all(engine)
 

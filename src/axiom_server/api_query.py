@@ -13,6 +13,7 @@ from axiom_server.ledger import Fact
 
 DB_NAME = "axiom_ledger.db"
 
+
 def search_ledger_for_api(
     session: Session,
     search_term: str,

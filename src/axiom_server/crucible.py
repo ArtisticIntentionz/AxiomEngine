@@ -49,9 +49,12 @@ logger.propagate = False
 
 # --- OUR UPGRADE: A more robust list of noise patterns to be removed. ---
 METADATA_NOISE_PATTERNS = (
-    re.compile(r'^\d+\s*'),
-    re.compile(r'^(By and\s*)?\d*[\d\s]*(min read|Heard on the Street)\s*', re.IGNORECASE),
-    re.compile(r'^Advertisement\s*', re.IGNORECASE)
+    re.compile(r"^\d+\s*"),
+    re.compile(
+        r"^(By and\s*)?\d*[\d\s]*(min read|Heard on the Street)\s*",
+        re.IGNORECASE,
+    ),
+    re.compile(r"^Advertisement\s*", re.IGNORECASE),
 )
 
 
@@ -84,7 +87,9 @@ class Pipeline(Generic[T]):
         for step in self.steps:
             if isinstance(step, Check):
                 if not step.run(value):
-                    logger.info(f"pipeline stopped after check: {step.description}")
+                    logger.info(
+                        f"pipeline stopped after check: {step.description}"
+                    )
                     return None
 
             if isinstance(step, Transformation):
@@ -101,7 +106,9 @@ class Pipeline(Generic[T]):
                     )
 
                 if current_value is None:
-                    logger.info(f"pipeline stopped after transformation '{step.description}'")
+                    logger.info(
+                        f"pipeline stopped after transformation '{step.description}'"
+                    )
                     break
 
         logger.info(f"pipeline is done and returning '{current_value}'")
@@ -139,12 +146,20 @@ TEXT_SANITIZATION: Pipeline[str] = Pipeline(
 SENTENCE_CHECKS: Pipeline[Span] = Pipeline(
     "sentence sanitization",
     [
-        Check(lambda sent: len(sent.text.split()) >= 8, "sentence minimal length"),
-        Check(lambda sent: len(sent.text.split()) <= 100, "sentence maximal length"),
-        Check(lambda sent: len(sent.ents) > 0, "sentence must contain entities"),
+        Check(
+            lambda sent: len(sent.text.split()) >= 8, "sentence minimal length"
+        ),
+        Check(
+            lambda sent: len(sent.text.split()) <= 100,
+            "sentence maximal length",
+        ),
+        Check(
+            lambda sent: len(sent.ents) > 0, "sentence must contain entities"
+        ),
         Check(
             lambda sent: any(
-                indicator in sent.text.lower() for indicator in SUBJECTIVITY_INDICATORS
+                indicator in sent.text.lower()
+                for indicator in SUBJECTIVITY_INDICATORS
             ),
             "sentence contains subjective wording",
         ),
@@ -171,8 +186,12 @@ def set_subject_and_object(fact: Fact) -> Fact:
 FACT_PREANALYSIS: Pipeline[Fact] = Pipeline(
     "Fact Preanalysis",
     [
-        Check(has_subject_and_object, "the fact must have a subject and object"),
-        Transformation(set_subject_and_object, "precomputing the subject and object")
+        Check(
+            has_subject_and_object, "the fact must have a subject and object"
+        ),
+        Transformation(
+            set_subject_and_object, "precomputing the subject and object"
+        ),
     ],
 )
 
@@ -186,7 +205,11 @@ def _get_subject_and_object(doc: Doc) -> tuple[str | None, str | None]:
         if "nsubj" in token.dep_:
             subject = token.lemma_.lower()
 
-        if "dobj" in token.dep_ or "pobj" in token.dep_ or "attr" in token.dep_:
+        if (
+            "dobj" in token.dep_
+            or "pobj" in token.dep_
+            or "attr" in token.dep_
+        ):
             d_object = token.lemma_.lower()
 
     return subject, d_object
@@ -202,8 +225,10 @@ def extract_facts_from_text(text_content: str) -> list[Fact]:
     sanitized_text = TEXT_SANITIZATION.run(text_content)
 
     if sanitized_text is None:
-        logger.info(f"text sanitizer rejected input content, returning no facts")
-        return [ ]
+        logger.info(
+            f"text sanitizer rejected input content, returning no facts"
+        )
+        return []
 
     doc = NLP_MODEL(sanitized_text)
 
@@ -212,11 +237,7 @@ def extract_facts_from_text(text_content: str) -> list[Fact]:
     for sentence in doc.sents:
         if (sentence := SENTENCE_CHECKS.run(sentence)) is not None:
             fact = Fact(content=sentence.text.strip())
-            fact.set_semantics(
-                Semantics({
-                    "doc": sentence.as_doc()
-                })
-            )
+            fact.set_semantics(Semantics({"doc": sentence.as_doc()}))
 
             if (fact := FACT_PREANALYSIS.run(fact)) is not None:
                 facts.append(fact)
@@ -239,7 +260,9 @@ def check_contradiction(
     if new_subject == existing_subject and new_object != existing_object:
         new_is_negated = any(tok.dep_ == "neg" for tok in new_doc)
         existing_is_negated = any(tok.dep_ == "neg" for tok in existing_doc)
-        return new_is_negated != existing_is_negated or (not new_is_negated and not existing_is_negated)
+        return new_is_negated != existing_is_negated or (
+            not new_is_negated and not existing_is_negated
+        )
 
     return False
 
@@ -254,7 +277,7 @@ def check_corroboration(
     new_semantics: Semantics,
     new_doc: Doc,
     new_subject: str,
-    new_object: str
+    new_object: str,
 ) -> bool:
     return bool(existing_fact.content[:50] == new_fact.content[:50])
 
@@ -267,7 +290,7 @@ class CrucibleFactAdder:
     # count of facts corroborated
     corroboration_count: int = 0
     addition_count: int = 0
-    existing_facts: list[Fact] = field(default_factory=lambda : [])
+    existing_facts: list[Fact] = field(default_factory=lambda: [])
 
     def add(self, fact: Fact) -> None:
         """fact is assumed to already exist in the database"""
@@ -277,10 +300,18 @@ class CrucibleFactAdder:
             "Crucible Fact Addition",
             [
                 Transformation(self._set_hash, "Computing"),
-                Transformation(self._contradiction_check, "Contradiction Check"),
-                Transformation(self._corroborate_against_existing_facts, "Corroboration against existing facts"),
-                Transformation(self._detect_relationships, "Relationship strength detection")
-            ]
+                Transformation(
+                    self._contradiction_check, "Contradiction Check"
+                ),
+                Transformation(
+                    self._corroborate_against_existing_facts,
+                    "Corroboration against existing facts",
+                ),
+                Transformation(
+                    self._detect_relationships,
+                    "Relationship strength detection",
+                ),
+            ],
         )
 
         self._load_all_facts()
@@ -295,9 +326,12 @@ class CrucibleFactAdder:
         return fact
 
     def _contradiction_check(self, fact: Fact) -> Fact:
-        """ check with all existing facts if it contradicts with any, changing database accordingly """
+        """check with all existing facts if it contradicts with any, changing database accordingly"""
         new_semantics = fact.get_semantics()
-        new_subject, new_object = new_semantics["subject"], new_semantics["object"]
+        new_subject, new_object = (
+            new_semantics["subject"],
+            new_semantics["object"],
+        )
         new_doc = new_semantics["doc"]
 
         for existing_fact in self.existing_facts:
@@ -308,25 +342,41 @@ class CrucibleFactAdder:
                 continue
 
             existing_semantics = existing_fact.get_semantics()
-            existing_subject, existing_object = existing_semantics["subject"], existing_semantics["object"]
+            existing_subject, existing_object = (
+                existing_semantics["subject"],
+                existing_semantics["object"],
+            )
             existing_doc = existing_semantics["doc"]
 
             if check_contradiction(
-                existing_fact, existing_semantics, existing_doc,
-                existing_subject, existing_object,
-                fact, new_semantics, new_doc,
-                new_subject, new_object
+                existing_fact,
+                existing_semantics,
+                existing_doc,
+                existing_subject,
+                existing_object,
+                fact,
+                new_semantics,
+                new_doc,
+                new_subject,
+                new_object,
             ):
-                mark_fact_objects_as_disputed(self.session, existing_fact, fact)
+                mark_fact_objects_as_disputed(
+                    self.session, existing_fact, fact
+                )
                 self.session.commit()
                 self.contradiction_count += 1
-                logger.info(f"Contradiction found between '{fact.id=}' and '{existing_fact.id=}'")
+                logger.info(
+                    f"Contradiction found between '{fact.id=}' and '{existing_fact.id=}'"
+                )
 
         return fact
 
     def _corroborate_against_existing_facts(self, fact: Fact) -> Fact:
         new_semantics = fact.get_semantics()
-        new_subject, new_object = new_semantics["subject"], new_semantics["object"]
+        new_subject, new_object = (
+            new_semantics["subject"],
+            new_semantics["object"],
+        )
         new_doc = new_semantics["doc"]
 
         for existing_fact in self.existing_facts:
@@ -334,14 +384,23 @@ class CrucibleFactAdder:
                 continue
 
             existing_semantics = existing_fact.get_semantics()
-            existing_subject, existing_object = existing_semantics["subject"], existing_semantics["object"]
+            existing_subject, existing_object = (
+                existing_semantics["subject"],
+                existing_semantics["object"],
+            )
             existing_doc = existing_semantics["doc"]
 
             if check_corroboration(
-                existing_fact, existing_semantics, existing_doc,
-                existing_subject, existing_object,
-                fact, new_semantics, new_doc,
-                new_subject, new_object
+                existing_fact,
+                existing_semantics,
+                existing_doc,
+                existing_subject,
+                existing_object,
+                fact,
+                new_semantics,
+                new_doc,
+                new_subject,
+                new_object,
             ):
                 for source in fact.sources:
                     add_fact_object_corroboration(existing_fact, source)
@@ -351,7 +410,7 @@ class CrucibleFactAdder:
     def _detect_relationships(self, fact: Fact) -> Fact:
         new_semantics = fact.get_semantics()
         new_doc = new_semantics["doc"]
-        new_entities = { ent.text.lower() for ent in new_doc.ents }
+        new_entities = {ent.text.lower() for ent in new_doc.ents}
 
         for existing_fact in self.existing_facts:
             if existing_fact == fact:
@@ -359,11 +418,13 @@ class CrucibleFactAdder:
 
             existing_semantics = existing_fact.get_semantics()
             existing_doc = existing_semantics["doc"]
-            existing_entities = { ent.text.lower() for ent in existing_doc.ents }
+            existing_entities = {ent.text.lower() for ent in existing_doc.ents}
 
             score = len(new_entities & existing_entities)
 
             if score > 0:
-                insert_relationship_object(self.session, fact, existing_fact, score)
+                insert_relationship_object(
+                    self.session, fact, existing_fact, score
+                )
 
         return fact
