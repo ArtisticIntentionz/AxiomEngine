@@ -29,7 +29,7 @@ from axiom_server import synthesizer
 from axiom_server.ledger import (
     ENGINE,
     Fact,
-    FactModel,
+    SerializedFact,
     SessionMaker,
     Source,
     initialize_database,
@@ -290,7 +290,7 @@ def handle_get_facts_by_id() -> Response:
     with SessionMaker() as session:
         facts = list(session.query(Fact).filter(Fact.id.in_(requested_ids)))
         fact_models = [
-            FactModel.from_fact(fact).model_dump() for fact in facts
+            SerializedFact.from_fact(fact).model_dump() for fact in facts
         ]
         return jsonify({"facts": json.dumps(fact_models)})
 
@@ -305,7 +305,7 @@ def handle_get_facts_by_hash() -> Response:
             session.query(Fact).filter(Fact.hash.in_(requested_hashes))
         )
         fact_models = [
-            FactModel.from_fact(fact).model_dump() for fact in facts
+            SerializedFact.from_fact(fact).model_dump() for fact in facts
         ]
         return jsonify({"facts": json.dumps(fact_models)})
 
