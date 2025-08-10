@@ -15,7 +15,13 @@ from typing import cast
 
 from spacy.tokens.doc import Doc
 from sqlalchemy import Engine, ForeignKey, String, Integer, Boolean
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, sessionmaker
+from sqlalchemy.orm import (
+    DeclarativeBase,
+    Mapped,
+    mapped_column,
+    relationship,
+    sessionmaker,
+)
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -64,13 +70,15 @@ class Semantics(TypedDict):
 
 
 def semantics_from_serialized(serialized: SerializedSemantics) -> Semantics:
-    return Semantics({
-        "doc": Doc(NLP_MODEL.vocab).from_json(
-            serialized["doc"],  # type: ignore[arg-type]
-        ),
-        "subject": serialized.get("subject", ""),
-        "object": serialized.get("object", ""),
-    })
+    return Semantics(
+        {
+            "doc": Doc(NLP_MODEL.vocab).from_json(
+                serialized["doc"],  # type: ignore[arg-type]
+            ),
+            "subject": serialized.get("subject", ""),
+            "object": serialized.get("object", ""),
+        }
+    )
 
 
 class Fact(Base):
@@ -79,12 +87,20 @@ class Fact(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     content: Mapped[str] = mapped_column(String, default="", nullable=False)
     score: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    disputed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    disputed: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )
     hash: Mapped[str] = mapped_column(String, default="", nullable=False)
     last_checked: Mapped[str] = mapped_column(
-        String, default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat(), nullable=False
+        String,
+        default=lambda: datetime.datetime.now(
+            datetime.timezone.utc
+        ).isoformat(),
+        nullable=False,
     )
-    semantics: Mapped[str] = mapped_column(String, default="{}", nullable=False) # holds JSON string
+    semantics: Mapped[str] = mapped_column(
+        String, default="{}", nullable=False
+    )  # holds JSON string
 
     sources: Mapped[list[Source]] = relationship(
         "Source", secondary="fact_source_link", back_populates="facts"
@@ -118,11 +134,13 @@ class Fact(Base):
 
     def get_serialized_semantics(self) -> SerializedSemantics:
         data = json.loads(self.semantics)
-        return SerializedSemantics({
-            "doc": data["doc"],
-            "subject": data.get("subject", ""),
-            "object": data.get("object", ""),
-        })
+        return SerializedSemantics(
+            {
+                "doc": data["doc"],
+                "subject": data.get("subject", ""),
+                "object": data.get("object", ""),
+            }
+        )
 
     def get_semantics(self) -> Semantics:
         serializable = self.get_serialized_semantics()
@@ -150,7 +168,7 @@ class FactModel(BaseModel):
             hash=fact.hash,
             last_checked=fact.last_checked,
             semantics=fact.get_serialized_semantics(),
-            sources=[ source.domain for source in fact.sources ],
+            sources=[source.domain for source in fact.sources],
         )
 
 
@@ -207,7 +225,9 @@ def get_all_facts_for_analysis(session: Session) -> list[Fact]:
     return session.query(Fact).all()
 
 
-def add_fact_corroboration(session: Session, fact_id: int, source_id: int) -> None:
+def add_fact_corroboration(
+    session: Session, fact_id: int, source_id: int
+) -> None:
     """Increments a fact's trust score and add the source to it. Both must already exist"""
 
     fact = session.get(Fact, fact_id)
@@ -225,14 +245,18 @@ def add_fact_corroboration(session: Session, fact_id: int, source_id: int) -> No
 
 
 def add_fact_object_corroboration(fact: Fact, source: Source) -> None:
-    """ Increments a fact's trust score and add the source to it. Does nothing if the source already exists. """
+    """Increments a fact's trust score and add the source to it. Does nothing if the source already exists."""
     if source not in fact.sources:
         fact.sources.append(source)
         fact.score += 1
-        logger.info(f"corroborated existing fact {fact.id} {fact.score=} with source {source.id}")
+        logger.info(
+            f"corroborated existing fact {fact.id} {fact.score=} with source {source.id}"
+        )
 
 
-def insert_uncorroborated_fact(session: Session, content: str, source_id: int) -> None:
+def insert_uncorroborated_fact(
+    session: Session, content: str, source_id: int
+) -> None:
     """Inserts a fact for the first time. The source must exist."""
 
     source = session.get(Source, source_id)
@@ -247,7 +271,9 @@ def insert_uncorroborated_fact(session: Session, content: str, source_id: int) -
     logger.info(f"inserted uncorroborated fact {fact.id=}")
 
 
-def insert_relationship(session: Session, fact_id_1: int, fact_id_2: int, score: int) -> None:
+def insert_relationship(
+    session: Session, fact_id_1: int, fact_id_2: int, score: int
+) -> None:
     """Inserts a relationship between two facts into the knowledge graph. Both facts must exist."""
 
     fact1 = session.get(Fact, fact_id_1)
@@ -264,7 +290,9 @@ def insert_relationship(session: Session, fact_id_1: int, fact_id_2: int, score:
     insert_relationship_object(session, fact1, fact2, score)
 
 
-def insert_relationship_object(session: Session, fact1: Fact, fact2: Fact, score: int) -> None:
+def insert_relationship_object(
+    session: Session, fact1: Fact, fact2: Fact, score: int
+) -> None:
     link = FactLink(
         score=score,
         fact1=fact1,
@@ -276,7 +304,9 @@ def insert_relationship_object(session: Session, fact1: Fact, fact2: Fact, score
     )
 
 
-def mark_facts_as_disputed(session: Session, original_fact_id: int, new_fact_id: int) -> None:
+def mark_facts_as_disputed(
+    session: Session, original_fact_id: int, new_fact_id: int
+) -> None:
     """
     Marks two facts as disputed and links them together.
     """
@@ -295,7 +325,9 @@ def mark_facts_as_disputed(session: Session, original_fact_id: int, new_fact_id:
     mark_fact_objects_as_disputed(session, original_fact, new_fact)
 
 
-def mark_fact_objects_as_disputed(session: Session, original_fact: Fact, new_fact: Fact) -> None:
+def mark_fact_objects_as_disputed(
+    session: Session, original_fact: Fact, new_fact: Fact
+) -> None:
     original_fact.disputed = True
     new_fact.disputed = True
     link = FactLink(
@@ -312,7 +344,6 @@ def mark_fact_objects_as_disputed(session: Session, original_fact: Fact, new_fac
 class Votes(TypedDict):
     choice: str
     weight: float
-
 
 
 class Proposal(TypedDict):

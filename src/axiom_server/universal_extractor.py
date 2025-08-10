@@ -8,12 +8,16 @@ import os
 import sys
 import logging
 import requests
-from serpapi import GoogleSearch # This requires 'google-search-results' to be installed
+from serpapi import (
+    GoogleSearch,
+)  # This requires 'google-search-results' to be installed
 import trafilatura
 from urllib.parse import urlparse
 
 # --- Professional logging setup (Corrected) ---
-logger = logging.getLogger(__name__) # Use __name__ for automatic, correct logger naming.
+logger = logging.getLogger(
+    __name__
+)  # Use __name__ for automatic, correct logger naming.
 stdout_handler = logging.StreamHandler(stream=sys.stdout)
 stdout_handler.setFormatter(
     logging.Formatter(
@@ -64,7 +68,7 @@ def is_trusted_domain(url: str) -> bool:
 
 def find_and_extract(topic: str, max_sources: int = 3) -> list[dict[str, str]]:
     """
-        returns {"source_url": url, "content": main_text}
+    returns {"source_url": url, "content": main_text}
     """
     logger.info(f"seeking sources for '{topic}' using SerpApi...")
 
@@ -102,9 +106,7 @@ def find_and_extract(topic: str, max_sources: int = 3) -> list[dict[str, str]]:
     for url in trusted_urls[:max_sources]:
         try:
             logger.info(f"fetching: {url}")
-            scraper_api_url = (
-                f"http://api.scraperapi.com?api_key={SCRAPER_API_KEY}&url={url}"
-            )
+            scraper_api_url = f"http://api.scraperapi.com?api_key={SCRAPER_API_KEY}&url={url}"
             response = requests.get(scraper_api_url, timeout=60)
             response.raise_for_status()
             downloaded_html = response.text
@@ -113,7 +115,9 @@ def find_and_extract(topic: str, max_sources: int = 3) -> list[dict[str, str]]:
                 main_text = trafilatura.extract(downloaded_html)
                 if main_text:
                     logger.info("extraction successful.")
-                    extracted_content.append({"source_url": url, "content": main_text})
+                    extracted_content.append(
+                        {"source_url": url, "content": main_text}
+                    )
         except requests.exceptions.RequestException as e:
             logger.exception(f"fetch failed for {url}. Error: {e}")
             continue
