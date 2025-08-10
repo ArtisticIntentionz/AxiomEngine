@@ -11,7 +11,7 @@ import hashlib
 import re
 from typing import Callable
 
-from spacy.ml import Doc, Span
+from spacy.tokens import Doc, Span
 from sqlalchemy.orm import Session
 from axiom_server.ledger import (
     Fact,
@@ -22,7 +22,7 @@ from axiom_server.ledger import (
     mark_facts_as_disputed,
     insert_uncorroborated_fact,
 )
-from axiom_server.common import NLP_MODEL, SUBJECTIVITY_INDICATORS
+from .common import NLP_MODEL, SUBJECTIVITY_INDICATORS
 
 # Community Change: Professional logging setup.
 logger = logging.getLogger("crucible")
@@ -99,37 +99,27 @@ TEXT_SANITIZATION: Pipeline[str] = Pipeline(
     [
         Transformation(lambda text: text.lower(), "Convert text to lowercase"),
         Transformation(
-            lambda text: re.sub(r"^\d+[\d\s]*min read\s*", "", text),
-            "Remove read times and comment counts (e.g., '42 2 min read ')",
-        ),
-        Transformation(
-            lambda text: (
-                text.lstrip("advertisement ")
-                if text.startswith("advertisement ")
-                else text
-            ),
-            "Remove 'Advertisement' from the start of a sentence (case-insensitive)",
-        ),
-        Transformation(
             lambda text: re.sub(r"(\d{4})([A-Z])", r"\1. \2", text),
-            "Fix run-on sentences common in topic pages",
+            "Fix run-on sentences",
         ),
         Transformation(
             lambda text: re.sub(r"\s+", " ", text).strip(),
-            "Standardize all whitespace to single spaces",
+            "Standardize whitespace",
         ),
     ],
 )
 
 
 SENTENCE_CHECKS: Pipeline[Span] = Pipeline(
-    "sentence sanitization",
+    "sentence check",
     [
         Check(lambda sent: len(sent.text.split()) >= 8, "sentence minimal length"),
         Check(lambda sent: len(sent.text.split()) <= 100, "sentence maximal length"),
         Check(lambda sent: len(sent.ents) > 0, "sentence must contain entities"),
+        # The logic is now inverted. The check will PASS if the sentence
+        # does NOT contain any subjective words.
         Check(
-            lambda sent: any(
+            lambda sent: not any(
                 indicator in sent.text.lower() for indicator in SUBJECTIVITY_INDICATORS
             ),
             "sentence contains subjective wording",
@@ -177,29 +167,31 @@ def _get_subject_and_object(doc: Doc) -> tuple[str | None, str | None]:
 
 
 def extract_facts_from_text(text_content: str) -> list[Fact]:
-    """
-    The main V2.2 Crucible pipeline. It now sanitizes text before analysis.
-    It outputs Facts that are not added to the database and not linked to any source.
-    It only has pre computed semantics, and went through the FACT_PREANALYSIS pipeline.
-    """
     facts: list[Fact] = []
     sanitized_text = TEXT_SANITIZATION.run(text_content)
-
-    if sanitized_text is None:
-        logger.info(f"text sanitizer rejected input content, returning no facts")
-        return [ ]
+    if sanitized_text is None: return []
 
     doc = NLP_MODEL(sanitized_text)
-
     for sentence in doc.sents:
-        if (sentence := SENTENCE_CHECKS.run(sentence)) is not None:
-            fact = Fact(content=sentence.text.strip())
-            semantics = { }
-            Fact.set_doc(semantics, sentence.as_doc())
+        # --- NEW METADATA FILTER INTEGRATION ---
+        # We apply our robust metadata filter to each sentence before the checks.
+        clean_sentence_text = sentence.text.strip()
+        for pattern in METADATA_NOISE_PATTERNS:
+            clean_sentence_text = pattern.sub('', clean_sentence_text).strip()
+        
+        # We must re-process the cleaned text with spaCy to get an accurate Span object
+        if not clean_sentence_text: continue
+        clean_sentence_span = NLP_MODEL(clean_sentence_text)[:]
+        
+        # Now, run the checks on the fully cleaned sentence
+        if (checked_sentence := SENTENCE_CHECKS.run(clean_sentence_span)) is not None:
+            fact = Fact(content=checked_sentence.text.strip())
+            semantics = {}
+            Fact.set_doc(semantics, checked_sentence.as_doc())
             fact.set_semantics(semantics)
 
-            if (fact := FACT_PREANALYSIS.run(fact)) is not None:
-                facts.append(fact)
+            if (preanalyzed_fact := FACT_PREANALYSIS.run(fact)) is not None:
+                facts.append(preanalyzed_fact)
 
     return facts
 

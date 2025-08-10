@@ -10,16 +10,21 @@ import logging
 import hashlib
 import datetime
 import json
+import time
 from typing import cast
 
-from spacy.ml import Doc
-from sqlalchemy import Engine, ForeignKey, String, Integer, Boolean
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, sessionmaker
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
+from spacy.tokens import Doc # Corrected import
+from sqlalchemy import (
+    create_engine, Engine, ForeignKey, String, Integer, 
+    Boolean, Text, Float
+)
+from sqlalchemy.orm import (
+    DeclarativeBase, Mapped, mapped_column, relationship, 
+    sessionmaker, Session
+)
 from pydantic import BaseModel
 
-from axiom_server.common import NLP_MODEL
+from .common import NLP_MODEL # Corrected import
 
 logger = logging.getLogger("ledger")
 
@@ -41,38 +46,60 @@ SessionMaker = sessionmaker(bind=ENGINE)
 
 class LedgerError(BaseException): ...
 
-
 class Base(DeclarativeBase): ...
+
+# --- V3.1 BLOCKCHAIN IMPLEMENTATION ---
+# It is now a native SQLAlchemy ORM class, just like Fact and Source.
+class Block(Base):
+    __tablename__ = "blockchain"
+    height: Mapped[int] = mapped_column(Integer, primary_key=True)
+    hash: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    previous_hash: Mapped[str] = mapped_column(String, nullable=False)
+    timestamp: Mapped[float] = mapped_column(Float, nullable=False)
+    nonce: Mapped[int] = mapped_column(Integer, nullable=False, default=0) # Corrected default
+    fact_hashes: Mapped[str] = mapped_column(Text, nullable=False)
+
+    def __init__(self, **kwargs):
+        # --- THE FIX ---
+        # We must call the parent constructor and set a default for nonce
+        super().__init__(**kwargs)
+        self.nonce = self.nonce or 0
+
+    def calculate_hash(self):
+        block_string = json.dumps({
+            "height": self.height, "previous_hash": self.previous_hash,
+            "fact_hashes": sorted(json.loads(self.fact_hashes)),
+            "timestamp": self.timestamp, "nonce": self.nonce
+        }, sort_keys=True).encode()
+        return hashlib.sha256(block_string).hexdigest()
+
+    def seal_block(self, difficulty: int):
+        self.hash = self.calculate_hash()
+        target = '0' * difficulty
+        while not self.hash.startswith(target):
+            self.nonce += 1
+            self.hash = self.calculate_hash()
+        logger.info(f"Block sealed! Hash: {self.hash}")
 
 
 class Fact(Base):
     __tablename__ = "fact"
-
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    content: Mapped[str] = mapped_column(String, default="", nullable=False)
-    score: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    disputed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    hash: Mapped[str] = mapped_column(String, default="", nullable=False)
-    last_checked: Mapped[str] = mapped_column(
-        String, default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat(), nullable=False
-    )
-    semantics: Mapped[str] = mapped_column(String, default="{}", nullable=False) # holds JSON string
-    """
-        {
-            "doc": str,
-            "subject": str,
-            "object": str,
-        }
-    """
+    content: Mapped[str] = mapped_column(String, nullable=False, default="")
+    status: Mapped[str] = mapped_column(String, nullable=False, default="ingested") # Corrected default
+    score: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    disputed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    hash: Mapped[str] = mapped_column(String, nullable=False, default="")
+    last_checked: Mapped[str] = mapped_column(String, nullable=False, default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
+    semantics: Mapped[str] = mapped_column(String, nullable=False, default="{}")
+    sources: Mapped[list[Source]] = relationship("Source", secondary="fact_source_link", back_populates="facts")
+    links: Mapped[list["FactLink"]] = relationship("FactLink", primaryjoin="or_(Fact.id == FactLink.fact1_id, Fact.id == FactLink.fact2_id)", viewonly=True)
 
-    sources: Mapped[list[Source]] = relationship(
-        "Source", secondary="fact_source_link", back_populates="facts"
-    )
-    links: Mapped[list["FactLink"]] = relationship(
-        "FactLink",
-        primaryjoin="or_(Fact.id == FactLink.fact1_id, Fact.id == FactLink.fact2_id)",
-        viewonly=True,
-    )
+    def __init__(self, **kwargs):
+        # --- THE FIX ---
+        # We must call the parent constructor and ensure status has a value
+        super().__init__(**kwargs)
+        self.status = self.status or "ingested"
 
     @staticmethod
     def from_model(model: FactModel) -> Fact:
@@ -173,11 +200,32 @@ class FactLink(Base):
 
 
 def initialize_database(engine: Engine):
-    """
-    Ensures the database file and ALL required tables ('facts', 'fact_relationships') exist.
-    """
+    """Ensures all tables, including the blockchain, exist."""
     Base.metadata.create_all(engine)
     logger.info("initialized database")
+
+# --- NEW BLOCKCHAIN HELPER FUNCTIONS ---
+def initialize_database(engine: Engine):
+    Base.metadata.create_all(engine)
+    logger.info("initialized database")
+
+def get_latest_block(session: Session) -> Block | None:
+    return session.query(Block).order_by(Block.height.desc()).first()
+
+def create_genesis_block(session: Session):
+    if get_latest_block(session): return
+    genesis = Block(
+        height=0,
+        previous_hash="0",
+        fact_hashes=json.dumps([]),
+        timestamp=time.time()
+    )
+    genesis.seal_block(difficulty=2)
+    session.add(genesis)
+    session.commit()
+    logger.info("Genesis Block created and sealed.")
+
+# --- All other ledger functions from DigammaF remain the same ---
 
 
 def get_all_facts_for_analysis(session: Session) -> list[Fact]:
