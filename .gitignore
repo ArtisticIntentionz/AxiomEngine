@@ -3,6 +3,10 @@
 # Each node operator will generate their own.
 axiom_ledger.db
 
+# Temp file during Mypy processing
+mypy_annotate.dat
+test-results.xml
+
 # MacOS files
 **/.DS_Store
 
