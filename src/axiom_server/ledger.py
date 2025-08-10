@@ -240,7 +240,7 @@ def add_fact_corroboration(
     fact_id: int,
     source_id: int,
 ) -> None:
-    """Increments a fact's trust score and add the source to it. Both must already exist"""
+    """Increments a fact's trust score and add the source to it. Both must already exist."""
     fact = session.get(Fact, fact_id)
     source = session.get(Source, source_id)
 

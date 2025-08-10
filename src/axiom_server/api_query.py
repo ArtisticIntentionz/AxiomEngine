@@ -32,6 +32,6 @@ def search_ledger_for_api(
         query = query.filter(Fact.score > 0)
 
     if not include_disputed:
-        query = query.filter(Fact.disputed == False)
+        query = query.filter(not Fact.disputed)
 
     return query.all()

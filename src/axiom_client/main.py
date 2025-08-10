@@ -256,7 +256,7 @@ class AxiomClientApp(QWidget):  # type: ignore[misc,unused-ignore,no-any-unimpor
 
 def cli_run() -> int:
     """Application entrypoint."""
-    app = QApplication(sys.argv)
+    QApplication(sys.argv)
     ex = AxiomClientApp()
     ex.show()
     sys.exit(cli_run())

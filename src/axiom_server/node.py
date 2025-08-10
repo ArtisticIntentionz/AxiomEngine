@@ -211,7 +211,7 @@ class AxiomNode:
                     key=lambda item: item[1]["reputation"],
                     reverse=True,
                 )
-                for peer_url, peer_data in sorted_peers:
+                for peer_url, _peer_data in sorted_peers:
                     # --- THIS IS THE FIX ---
                     # The new p2p.sync_with_peer is smarter and will return the correct status.
                     # The reputation system will now correctly reward good peers.
