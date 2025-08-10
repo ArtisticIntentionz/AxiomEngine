@@ -65,7 +65,9 @@ tests = [
     "uv>=0.5.21",
 ]
 tools = [
+    "ruff>=0.9.2",
     "mypy>=1.17.1",
+    "pre-commit>=4.2.0",
     "attrs>=25.3.0",
     "types-requests>=2.32.4.20250611",
 ]
@@ -100,6 +102,15 @@ local_partial_types = true
 no_implicit_optional = true
 strict = true
 warn_unreachable = true
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+
+[tool.ruff]
+line-length = 79
+fix = true
+
+include = ["*.py", "*.pyi", "**/pyproject.toml"]
 
 [tool.coverage.html]
 show_contexts = true
