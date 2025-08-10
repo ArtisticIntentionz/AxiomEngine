@@ -12,10 +12,6 @@ import sys
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Generic, TypeVar
 
-from spacy.tokens.doc import Doc
-from spacy.tokens.span import Span
-from sqlalchemy.orm import Session
-
 from axiom_server.common import NLP_MODEL, SUBJECTIVITY_INDICATORS
 from axiom_server.ledger import (
     Fact,
@@ -27,6 +23,10 @@ from axiom_server.ledger import (
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+    from spacy.tokens.doc import Doc
+    from spacy.tokens.span import Span
+    from sqlalchemy.orm import Session
 
 
 T = TypeVar("T")
@@ -81,12 +81,11 @@ class Pipeline(Generic[T]):
         current_value: T | None = value
 
         for step in self.steps:
-            if isinstance(step, Check):
-                if not step.run(value):
-                    logger.info(
-                        f"pipeline stopped after check: {step.description}",
-                    )
-                    return None
+            if isinstance(step, Check) and not step.run(value):
+                logger.info(
+                    f"pipeline stopped after check: {step.description}",
+                )
+                return None
 
             if isinstance(step, Transformation):
                 try:
@@ -311,7 +310,7 @@ class CrucibleFactAdder:
     existing_facts: list[Fact] = field(default_factory=list)
 
     def add(self, fact: Fact) -> None:
-        """Fact is assumed to already exist in the database"""
+        """Fact is assumed to already exist in the database."""
         assert fact.id is not None
 
         pipeline = Pipeline(
@@ -345,7 +344,7 @@ class CrucibleFactAdder:
         return fact
 
     def _contradiction_check(self, fact: Fact) -> Fact:
-        """Check with all existing facts if it contradicts with any, changing database accordingly"""
+        """Check with all existing facts if it contradicts with any, changing database accordingly."""
         new_semantics = fact.get_semantics()
         new_subject, new_object = (
             new_semantics["subject"],

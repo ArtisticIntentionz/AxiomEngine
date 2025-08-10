@@ -56,9 +56,9 @@ def sync_with_peer(
             )
 
             # Step 2: Get the local list of all fact hashes
-            local_fact_hashes: set[str] = set(
+            local_fact_hashes: set[str] = {
                 fact.hash for fact in session.query(Fact).all()
-            )
+            }
 
             # Step 3: Determine which facts are missing locally
             missing_fact_hashes: list[str] = list(

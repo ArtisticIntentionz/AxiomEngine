@@ -34,7 +34,8 @@ def test_insert_uncorroborated_fact_success():
     assert fact.score == 0
     assert len(fact.sources) == 1
     assert fact.sources[0].domain == "example.com"
-    assert fact.hash is not None and len(fact.hash) == 64
+    assert fact.hash is not None
+    assert len(fact.hash) == 64
     session.close()
     Base.metadata.drop_all(engine)
 
