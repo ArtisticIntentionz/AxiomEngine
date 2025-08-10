@@ -112,6 +112,57 @@ fix = true
 
 include = ["*.py", "*.pyi", "**/pyproject.toml"]
 
+[tool.ruff.lint]
+select = [
+    "A",     # flake8-builtins
+    "ASYNC", # flake8-async
+    "B",     # flake8-bugbear
+    "C4",    # flake8-comprehensions
+    "COM",   # flake8-commas
+    "D",     # pydocstyle
+    "E",     # Error
+    "EXE",   # flake8-executable
+    "F",     # pyflakes
+    "FA",    # flake8-future-annotations
+    "FLY",   # flynt
+    "FURB",  # refurb
+    "I",     # isort
+    "ICN",   # flake8-import-conventions
+    "N",     # pep8-naming
+    "PIE",   # flake8-pie
+    "PT",    # flake8-pytest-style
+    "PYI",   # flake8-pyi
+    "Q",     # flake8-quotes
+    "R",     # Refactor
+    "RET",   # flake8-return
+    "RUF",   # Ruff-specific rules
+    "S",     # flake8-bandit
+    "SIM",   # flake8-simplify
+    "SLOT",  # flake8-slots
+    "TCH",   # flake8-type-checking
+    "UP",    # pyupgrade
+    "W",     # Warning
+    "YTT",   # flake8-2020
+]
+extend-ignore = [
+    "D203",   # one-blank-line-before-class
+    "D204",   # one-blank-line-after-class
+    "D211",   # no-blank-line-before-class
+    "D213",   # multi-line-summary-second-line
+    "D417",   # undocumented-param "Missing argument descriptions"
+    "E501",   # line-too-long
+    "PYI041", # redundant-numeric-union
+    "S101",   # assert (use of assert for tests and type narrowing)
+    "SIM117", # multiple-with-statements
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = [
+    "D100",  # undocumented-public-module
+    "D103",  # undocumented-public-function
+    "D107",  # undocumented-public-init
+]
+
 [tool.coverage.html]
 show_contexts = true
 skip_covered = false
