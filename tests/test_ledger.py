@@ -1,213 +1,107 @@
+# Axiom - test_ledger.py
+# --- V3.1: FINAL, UNIFIED BLOCKCHAIN AND LIFECYCLE TEST SUITE ---
+
 import pytest
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
+import time
+import json
+
+# We now import the new, complete set of V3.1 ledger components to be tested.
 from axiom_server.ledger import (
-    Base,
-    Fact,
-    FactLink,
-    Source,
-    add_fact_corroboration,
-    insert_uncorroborated_fact,
+    Base, Fact, Block, Source,
     LedgerError,
-    mark_facts_as_disputed,
-    insert_relationship,
+    get_latest_block, create_genesis_block
 )
 from sqlalchemy import create_engine
 
+# Use an in-memory database for fast, isolated tests.
 engine = create_engine("sqlite:///:memory:")
 SessionLocal = sessionmaker(bind=engine)
 
-
-def test_insert_uncorroborated_fact_success():
+# --- Modern Test Fixture ---
+# This professional pattern provides a clean, isolated database for every single test.
+@pytest.fixture
+def db_session() -> Session:
+    """Provides a clean, isolated database session for each test function."""
     Base.metadata.create_all(engine)
     session = SessionLocal()
-    # Add a source first
+    try:
+        yield session
+    finally:
+        session.close()
+        Base.metadata.drop_all(engine)
+
+# --- V3.1 Blockchain Tests ---
+# These new tests verify the core security and integrity of our new architecture.
+
+def test_genesis_block_creation(db_session: Session):
+    """Tests that the very first block is created correctly."""
+    create_genesis_block(db_session)
+    genesis = get_latest_block(db_session)
+    assert genesis is not None, "Genesis block should be created"
+    assert genesis.height == 0, "Genesis block height should be 0"
+    assert genesis.previous_hash == "0", "Genesis block's previous_hash should be '0'"
+    assert genesis.hash.startswith("00"), "Genesis block should be sealed with default difficulty"
+
+def test_add_new_block_to_chain(db_session: Session):
+    """Tests that a new block is correctly chained to the previous one."""
+    create_genesis_block(db_session)
+    genesis = get_latest_block(db_session)
+    assert genesis is not None
+
+    fact_hashes = json.dumps(["hash1", "hash2"])
+    new_block = Block(
+        height=genesis.height + 1,
+        previous_hash=genesis.hash,
+        fact_hashes=fact_hashes,
+        timestamp=time.time()
+    )
+    new_block.seal_block(difficulty=3)
+    
+    db_session.add(new_block)
+    db_session.commit()
+    
+    latest = get_latest_block(db_session)
+    assert latest is not None, "New block should be added to the chain"
+    assert latest.height == 1, "New block height should be 1"
+    assert latest.previous_hash == genesis.hash, "New block should chain to genesis hash"
+    assert latest.hash.startswith("000"), "New block should be sealed with specified difficulty"
+
+# --- V3.1 Fact Lifecycle Tests ---
+# These new tests verify the core logic of our new, status-based fact model.
+
+def test_fact_ingestion_default_status(db_session: Session):
+    """Tests that a new fact is created with the correct default 'ingested' status."""
     source = Source(domain="example.com")
-    session.add(source)
-    session.commit()
-    # Insert fact
-    insert_uncorroborated_fact(session, "Test fact content", source.id)
-    session.commit()
-    # Check that the fact was added
-    fact = session.query(Fact).filter_by(content="Test fact content").first()
-    assert fact is not None
-    assert fact.score == 0
-    assert len(fact.sources) == 1
-    assert fact.sources[0].domain == "example.com"
-    assert fact.hash is not None and len(fact.hash) == 64
-    session.close()
-    Base.metadata.drop_all(engine)
+    db_session.add(source)
+    db_session.commit()
 
+    fact = Fact(content="Test fact", sources=[source])
+    db_session.add(fact)
+    db_session.commit()
+    
+    retrieved_fact = db_session.get(Fact, fact.id)
+    assert retrieved_fact is not None, "Fact should be retrievable from the database"
+    assert retrieved_fact.status == 'ingested', "A new fact's default status must be 'ingested'"
 
-def test_insert_uncorroborated_fact_source_not_found():
-    Base.metadata.create_all(engine)
-    session = SessionLocal()
-    # Try to insert a fact with a non-existent source
-    with pytest.raises(LedgerError):
-        insert_uncorroborated_fact(session, "Another fact", 999)
-    session.close()
-    Base.metadata.drop_all(engine)
+def test_update_fact_status(db_session: Session):
+    """Tests that a fact's status can be correctly updated through its lifecycle."""
+    source = Source(domain="example.com")
+    fact = Fact(content="Lifecycle test", sources=[source])
+    db_session.add(fact)
+    db_session.commit()
 
+    # Simulate the fact moving through the verification pipeline
+    fact.status = 'logically_consistent'
+    db_session.commit()
+    
+    retrieved_fact = db_session.get(Fact, fact.id)
+    assert retrieved_fact is not None
+    assert retrieved_fact.status == 'logically_consistent', "Status should update to 'logically_consistent'"
 
-def test_mark_facts_as_disputed_success():
-    Base.metadata.create_all(engine)
-    session = SessionLocal()
-    # Add a source
-    source = Source(domain="dispute.com")
-    session.add(source)
-    session.commit()
-    # Add two facts
-    fact1 = Fact(content="Fact 1", score=1, sources=[source])
-    fact2 = Fact(content="Fact 2", score=2, sources=[source])
-    session.add_all([fact1, fact2])
-    session.commit()
-    # Mark as disputed
-    mark_facts_as_disputed(session, fact1.id, fact2.id)
-    session.commit()
-    # Reload facts
-    f1 = session.get(Fact, fact1.id)
-    f2 = session.get(Fact, fact2.id)
-    assert f1 is not None
-    assert f2 is not None
-    assert f1.disputed is True
-    assert f2.disputed is True
-    # Check that a FactLink with score -1 exists
-    link = (
-        session.query(FactLink)
-        .filter_by(fact1_id=f1.id, fact2_id=f2.id, score=-1)
-        .first()
-    )
-    assert link is not None
-    session.close()
-    Base.metadata.drop_all(engine)
+    fact.status = 'empirically_verified'
+    db_session.commit()
 
-
-def test_mark_facts_as_disputed_fact_not_found():
-    Base.metadata.create_all(engine)
-    session = SessionLocal()
-    # Add a source and one fact
-    source = Source(domain="dispute.com")
-    session.add(source)
-    session.commit()
-    fact = Fact(content="Only fact", score=1, sources=[source])
-    session.add(fact)
-    session.commit()
-    # Try to dispute with a non-existent fact
-    with pytest.raises(LedgerError):
-        mark_facts_as_disputed(session, fact.id, 9999)
-    with pytest.raises(LedgerError):
-        mark_facts_as_disputed(session, 9999, fact.id)
-    session.close()
-    Base.metadata.drop_all(engine)
-
-
-def test_insert_relationship_success():
-    Base.metadata.create_all(engine)
-    session = SessionLocal()
-    # Add a source
-    source = Source(domain="rel.com")
-    session.add(source)
-    session.commit()
-    # Add two facts
-    fact1 = Fact(content="Rel Fact 1", score=1, sources=[source])
-    fact2 = Fact(content="Rel Fact 2", score=2, sources=[source])
-    session.add_all([fact1, fact2])
-    session.commit()
-    # Insert relationship
-    insert_relationship(session, fact1.id, fact2.id, 5)
-    session.commit()
-    # Check that a FactLink with correct score exists
-    link = (
-        session.query(FactLink)
-        .filter_by(fact1_id=fact1.id, fact2_id=fact2.id, score=5)
-        .first()
-    )
-    assert link is not None
-    session.close()
-    Base.metadata.drop_all(engine)
-
-
-def test_insert_relationship_fact_not_found():
-    Base.metadata.create_all(engine)
-    session = SessionLocal()
-    # Add a source and one fact
-    source = Source(domain="rel.com")
-    session.add(source)
-    session.commit()
-    fact = Fact(content="Only rel fact", score=1, sources=[source])
-    session.add(fact)
-    session.commit()
-    # Try to relate with a non-existent fact
-    with pytest.raises(LedgerError):
-        insert_relationship(session, fact.id, 9999, 1)
-    with pytest.raises(LedgerError):
-        insert_relationship(session, 9999, fact.id, 1)
-    session.close()
-    Base.metadata.drop_all(engine)
-
-
-def test_add_fact_corroboration_success():
-    Base.metadata.create_all(engine)
-    session = SessionLocal()
-    # Add two sources
-    source1 = Source(domain="corroborate1.com")
-    source2 = Source(domain="corroborate2.com")
-    session.add_all([source1, source2])
-    session.commit()
-    # Add a fact with one source
-    fact = Fact(content="Corroborate fact", score=1, sources=[source1])
-    session.add(fact)
-    session.commit()
-    # Corroborate with a new source
-    add_fact_corroboration(session, fact.id, source2.id)
-    session.commit()
-    updated_fact = session.get(Fact, fact.id)
-    assert updated_fact is not None
-    assert updated_fact.score == 2
-    assert any(s.domain == "corroborate2.com" for s in updated_fact.sources)
-    session.close()
-    Base.metadata.drop_all(engine)
-
-
-def test_add_fact_corroboration_duplicate_source():
-    Base.metadata.create_all(engine)
-    session = SessionLocal()
-    # Add a source
-    source = Source(domain="dupe.com")
-    session.add(source)
-    session.commit()
-    # Add a fact with that source
-    fact = Fact(content="Dupe fact", score=0, sources=[source])
-    session.add(fact)
-    session.commit()
-    # Corroborate with the same source again
-    add_fact_corroboration(session, fact.id, source.id)
-    session.commit()
-    updated_fact = session.get(Fact, fact.id)
-    # Score should not increment, source should not be duplicated
-    assert updated_fact is not None
-    assert updated_fact.score == 0
-    assert (
-        len([s for s in updated_fact.sources if s.domain == "dupe.com"]) == 1
-    )
-    session.close()
-    Base.metadata.drop_all(engine)
-
-
-def test_add_fact_corroboration_fact_or_source_not_found():
-    Base.metadata.create_all(engine)
-    session = SessionLocal()
-    # Add a source and a fact
-    source = Source(domain="missing.com")
-    session.add(source)
-    session.commit()
-    fact = Fact(content="Missing fact", score=0, sources=[source])
-    session.add(fact)
-    session.commit()
-    # Non-existent fact
-    with pytest.raises(LedgerError):
-        add_fact_corroboration(session, 9999, source.id)
-    # Non-existent source
-    with pytest.raises(LedgerError):
-        add_fact_corroboration(session, fact.id, 9999)
-    session.close()
-    Base.metadata.drop_all(engine)
+    retrieved_fact = db_session.get(Fact, fact.id)
+    assert retrieved_fact is not None
+    assert retrieved_fact.status == 'empirically_verified', "Status should update to 'empirically_verified'"
