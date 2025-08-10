@@ -46,6 +46,7 @@ dependencies = [
     # --- AI & Natural Language Processing ---
     "spacy==3.8.7",
     "typing-extensions>=4.14.1",
+    "cryptography>=45.0.6",
 ]
 
 
