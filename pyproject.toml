@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "axiom_server"
-dynamic = ["version"]
+version = "3.1.0"
 authors = [
   { name="Vic", email="victronevarez88@gmail.com" },
 ]
@@ -28,29 +28,22 @@ classifiers = [
     "Typing :: Typed",
 ]
 keywords = [
-    "ai", "p2p", "truth"
+    "ai", "p2p", "truth", "blockchain"
 ]
 dependencies = [
     # --- Core Web & Networking ---
     "Flask==3.0.3",
     "gunicorn==22.0.0",
     "requests==2.31.0",
-    # --- Web Scraping & Data Extraction ---
-    "googlesearch-python==1.2.4",
-    "trafilatura==1.9.0",
-    "beautifulsoup4==4.12.3",
-    # --- API Interaction ---
-    "newsapi-python==0.2.7",
-    "google-search-results==2.4.2",
-    'sqlalchemy',
+    
+    # --- Database & Blockchain ---
+    "sqlalchemy",
+
     # --- AI & Natural Language Processing ---
-    "spacy==3.8.7",
-    "typing-extensions>=4.14.1",
+    "spacy==3.7.4",
+    "pydantic",
+    "feedparser==6.0.11",
 ]
-
-
-[tool.setuptools.dynamic]
-version = {attr = "axiom_server.node.__version__"}
 
 [project.urls]
 "Source" = "https://github.com/ArtisticIntentionz/AxiomEngine"
@@ -109,7 +102,6 @@ combine-as-imports = true
 [tool.ruff]
 line-length = 79
 fix = true
-
 include = ["*.py", "*.pyi", "**/pyproject.toml"]
 
 [tool.coverage.html]
