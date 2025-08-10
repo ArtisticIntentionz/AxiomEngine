@@ -6,28 +6,24 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import logging
-import sys
-import hashlib
 import re
+import sys
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Generic, TypeVar
 
 from spacy.tokens.doc import Doc
 from spacy.tokens.span import Span
 from sqlalchemy.orm import Session
 
+from axiom_server.common import NLP_MODEL, SUBJECTIVITY_INDICATORS
 from axiom_server.ledger import (
     Fact,
+    Semantics,
     add_fact_object_corroboration,
-    get_all_facts_for_analysis,
     insert_relationship_object,
     mark_fact_objects_as_disputed,
-    mark_facts_as_disputed,
-    insert_uncorroborated_fact,
-    Semantics,
 )
-from axiom_server.common import NLP_MODEL, SUBJECTIVITY_INDICATORS
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -40,8 +36,8 @@ logger = logging.getLogger("crucible")
 stdout_handler = logging.StreamHandler(stream=sys.stdout)
 stdout_handler.setFormatter(
     logging.Formatter(
-        "[%(name)s] %(asctime)s | %(levelname)s | %(filename)s:%(lineno)s >>> %(message)s"
-    )
+        "[%(name)s] %(asctime)s | %(levelname)s | %(filename)s:%(lineno)s >>> %(message)s",
+    ),
 )
 logger.addHandler(stdout_handler)
 logger.setLevel(logging.INFO)
@@ -88,7 +84,7 @@ class Pipeline(Generic[T]):
             if isinstance(step, Check):
                 if not step.run(value):
                     logger.info(
-                        f"pipeline stopped after check: {step.description}"
+                        f"pipeline stopped after check: {step.description}",
                     )
                     return None
 
@@ -99,15 +95,15 @@ class Pipeline(Generic[T]):
 
                 except Exception as e:
                     logger.exception(
-                        f"transformation error '{step.description}' ({e})"
+                        f"transformation error '{step.description}' ({e})",
                     )
                     raise CrucibleError(
-                        f"transformation error '{step.description}' ({e})"
+                        f"transformation error '{step.description}' ({e})",
                     )
 
                 if current_value is None:
                     logger.info(
-                        f"pipeline stopped after transformation '{step.description}'"
+                        f"pipeline stopped after transformation '{step.description}'",
                     )
                     break
 
@@ -147,14 +143,16 @@ SENTENCE_CHECKS: Pipeline[Span] = Pipeline(
     "sentence sanitization",
     [
         Check(
-            lambda sent: len(sent.text.split()) >= 8, "sentence minimal length"
+            lambda sent: len(sent.text.split()) >= 8,
+            "sentence minimal length",
         ),
         Check(
             lambda sent: len(sent.text.split()) <= 100,
             "sentence maximal length",
         ),
         Check(
-            lambda sent: len(sent.ents) > 0, "sentence must contain entities"
+            lambda sent: len(sent.ents) > 0,
+            "sentence must contain entities",
         ),
         Check(
             lambda sent: any(
@@ -225,14 +223,13 @@ SEMANTICS_CHECKS = Pipeline(
         Transformation(
             semantics_check_and_set_subject_object,
             "check for presence of subject and object",
-        )
+        ),
     ],
 )
 
 
 def extract_facts_from_text(text_content: str) -> list[Fact]:
-    """
-    The main V2.2 Crucible pipeline. It now sanitizes text before analysis.
+    """The main V2.2 Crucible pipeline. It now sanitizes text before analysis.
     It outputs Facts that are not added to the database and not linked to any source.
     It only has pre computed semantics, and went through the FACT_PREANALYSIS pipeline.
     """
@@ -241,7 +238,7 @@ def extract_facts_from_text(text_content: str) -> list[Fact]:
 
     if sanitized_text is None:
         logger.info(
-            f"text sanitizer rejected input content, returning no facts"
+            "text sanitizer rejected input content, returning no facts",
         )
         return []
 
@@ -254,7 +251,7 @@ def extract_facts_from_text(text_content: str) -> list[Fact]:
         if (sentence := SENTENCE_CHECKS.run(sentence)) is not None:
             fact = Fact(content=sentence.text.strip())
             semantics = Semantics(
-                {"doc": sentence.as_doc(), "object": "", "subject": ""}
+                {"doc": sentence.as_doc(), "object": "", "subject": ""},
             )
 
             if (semantics := SEMANTICS_CHECKS.run(semantics)) is not None:
@@ -311,10 +308,10 @@ class CrucibleFactAdder:
     # count of facts corroborated
     corroboration_count: int = 0
     addition_count: int = 0
-    existing_facts: list[Fact] = field(default_factory=lambda: [])
+    existing_facts: list[Fact] = field(default_factory=list)
 
     def add(self, fact: Fact) -> None:
-        """fact is assumed to already exist in the database"""
+        """Fact is assumed to already exist in the database"""
         assert fact.id is not None
 
         pipeline = Pipeline(
@@ -322,7 +319,8 @@ class CrucibleFactAdder:
             [
                 Transformation(self._set_hash, "Computing"),
                 Transformation(
-                    self._contradiction_check, "Contradiction Check"
+                    self._contradiction_check,
+                    "Contradiction Check",
                 ),
                 Transformation(
                     self._corroborate_against_existing_facts,
@@ -347,7 +345,7 @@ class CrucibleFactAdder:
         return fact
 
     def _contradiction_check(self, fact: Fact) -> Fact:
-        """check with all existing facts if it contradicts with any, changing database accordingly"""
+        """Check with all existing facts if it contradicts with any, changing database accordingly"""
         new_semantics = fact.get_semantics()
         new_subject, new_object = (
             new_semantics["subject"],
@@ -382,12 +380,14 @@ class CrucibleFactAdder:
                 new_object,
             ):
                 mark_fact_objects_as_disputed(
-                    self.session, existing_fact, fact
+                    self.session,
+                    existing_fact,
+                    fact,
                 )
                 self.session.commit()
                 self.contradiction_count += 1
                 logger.info(
-                    f"Contradiction found between '{fact.id=}' and '{existing_fact.id=}'"
+                    f"Contradiction found between '{fact.id=}' and '{existing_fact.id=}'",
                 )
 
         return fact
@@ -445,7 +445,10 @@ class CrucibleFactAdder:
 
             if score > 0:
                 insert_relationship_object(
-                    self.session, fact, existing_fact, score
+                    self.session,
+                    fact,
+                    existing_fact,
+                    score,
                 )
 
         return fact

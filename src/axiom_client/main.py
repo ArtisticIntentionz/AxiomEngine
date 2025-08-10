@@ -5,23 +5,23 @@
 
 from __future__ import annotations
 
-import sys
 import random
-from typing import TypedDict, TypeAlias, cast
+import sys
+from typing import TypeAlias, TypedDict, cast
 
 import requests
+from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QApplication,
-    QWidget,
-    QVBoxLayout,
-    QLineEdit,
-    QTextEdit,
-    QPushButton,
     QLabel,
-    QProgressBar,
+    QLineEdit,
+    QPushButton,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt6.QtCore import QThread, pyqtSignal
-from PyQt6.QtGui import QFont, QIcon
+
 # QIcon can be used later to add a logo
 
 # --- CONFIGURATION (Same as CLI client) ---
@@ -48,13 +48,12 @@ ResponseData: TypeAlias = ErrorResponse | FactResponse
 
 
 class NetworkWorker(QThread):  # type: ignore[misc,unused-ignore,no-any-unimported]
-    """
-    A separate thread to handle all network operations (discovery, querying)
+    """A separate thread to handle all network operations (discovery, querying)
     to prevent the GUI from freezing.
     """
 
     finished = pyqtSignal(
-        ResponseData
+        ResponseData,
     )  # Signal to send results back to the main GUI
     progress = pyqtSignal(str)  # Signal to send status updates back to the GUI
 
@@ -71,11 +70,11 @@ class NetworkWorker(QThread):  # type: ignore[misc,unused-ignore,no-any-unimport
             peers = self._get_network_peers(BOOTSTRAP_NODES)
             if not peers:
                 self.finished.emit(
-                    {"error": "Could not connect to the Axiom network."}
+                    {"error": "Could not connect to the Axiom network."},
                 )
                 return
             self.progress.emit(
-                f"Network discovery complete. Found {len(peers)} nodes."
+                f"Network discovery complete. Found {len(peers)} nodes.",
             )
 
             # 2. Build the anonymous circuit
@@ -83,19 +82,20 @@ class NetworkWorker(QThread):  # type: ignore[misc,unused-ignore,no-any-unimport
             circuit = self._build_anonymous_circuit(peers, CIRCUIT_LENGTH)
             if not circuit:
                 self.finished.emit(
-                    {"error": "Could not build anonymous circuit."}
+                    {"error": "Could not build anonymous circuit."},
                 )
                 return
             self.progress.emit(
-                f"{len(circuit)}-hop private circuit established."
+                f"{len(circuit)}-hop private circuit established.",
             )
 
             # 3. Send the query
             self.progress.emit(
-                f"Sending query into the network via entry node: {circuit[0]}"
+                f"Sending query into the network via entry node: {circuit[0]}",
             )
             final_response = self._send_anonymous_query(
-                circuit, self.query_term
+                circuit,
+                self.query_term,
             )
             self.finished.emit(final_response)
 
@@ -120,7 +120,9 @@ class NetworkWorker(QThread):  # type: ignore[misc,unused-ignore,no-any-unimport
         return list(all_known_peers)
 
     def _build_anonymous_circuit(
-        self, peers: list[str], length: int
+        self,
+        peers: list[str],
+        length: int,
     ) -> list[str]:
         if len(peers) < length:
             random.shuffle(peers)
@@ -128,7 +130,9 @@ class NetworkWorker(QThread):  # type: ignore[misc,unused-ignore,no-any-unimport
         return random.sample(peers, length)
 
     def _send_anonymous_query(
-        self, circuit: list[str], search_term: str
+        self,
+        circuit: list[str],
+        search_term: str,
     ) -> ResponseData:
         entry_node = circuit[0]
         relay_circuit = circuit[1:]
@@ -220,7 +224,8 @@ class AxiomClientApp(QWidget):  # type: ignore[misc,unused-ignore,no-any-unimpor
         if not response_data or response_data.get("error"):
             response_data = cast("ErrorResponse", response_data)
             error_msg = response_data.get(
-                "error", "An unknown error occurred."
+                "error",
+                "An unknown error occurred.",
             )
             self.results_output.setHtml(f"<h2>Error</h2><p>{error_msg}</p>")
             return
@@ -235,7 +240,9 @@ class AxiomClientApp(QWidget):  # type: ignore[misc,unused-ignore,no-any-unimpor
             html += "<p>Your query did not match any facts that have been corroborated by the network yet.</p>"
         else:
             sorted_results = sorted(
-                results, key=lambda x: x.get("trust_score", 1), reverse=True
+                results,
+                key=lambda x: x.get("trust_score", 1),
+                reverse=True,
             )
             for i, fact in enumerate(sorted_results):
                 html += f"<h4>[Result {i + 1}] (Trust Score: {fact.get('trust_score', 'N/A')})</h4>"

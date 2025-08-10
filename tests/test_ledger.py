@@ -1,17 +1,18 @@
 import pytest
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
 from axiom_server.ledger import (
     Base,
     Fact,
     FactLink,
+    LedgerError,
     Source,
     add_fact_corroboration,
-    insert_uncorroborated_fact,
-    LedgerError,
-    mark_facts_as_disputed,
     insert_relationship,
+    insert_uncorroborated_fact,
+    mark_facts_as_disputed,
 )
-from sqlalchemy import create_engine
 
 engine = create_engine("sqlite:///:memory:")
 SessionLocal = sessionmaker(bind=engine)

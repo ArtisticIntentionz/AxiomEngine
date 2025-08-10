@@ -6,38 +6,41 @@
 
 from __future__ import annotations
 
-import sys
-import logging
-import hashlib
 import datetime
+import hashlib
 import json
-from typing import cast
+import logging
+import sys
 
+from pydantic import BaseModel
 from spacy.tokens.doc import Doc
-from sqlalchemy import Engine, ForeignKey, String, Integer, Boolean
+from sqlalchemy import (
+    Boolean,
+    Engine,
+    ForeignKey,
+    Integer,
+    String,
+    create_engine,
+)
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
+    Session,
     mapped_column,
     relationship,
     sessionmaker,
 )
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from typing_extensions import Self, TypedDict
 
 from axiom_server.common import NLP_MODEL
-
-from typing_extensions import Self, NotRequired, TypedDict
-
 
 logger = logging.getLogger("ledger")
 
 stdout_handler = logging.StreamHandler(stream=sys.stdout)
 stdout_handler.setFormatter(
     logging.Formatter(
-        "[%(name)s] %(asctime)s | %(levelname)s | %(filename)s:%(lineno)s >>> %(message)s"
-    )
+        "[%(name)s] %(asctime)s | %(levelname)s | %(filename)s:%(lineno)s >>> %(message)s",
+    ),
 )
 
 logger.addHandler(stdout_handler)
@@ -77,7 +80,7 @@ def semantics_from_serialized(serialized: SerializedSemantics) -> Semantics:
             ),
             "subject": serialized.subject,
             "object": serialized.object,
-        }
+        },
     )
 
 
@@ -88,24 +91,30 @@ class Fact(Base):
     content: Mapped[str] = mapped_column(String, default="", nullable=False)
     score: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     disputed: Mapped[bool] = mapped_column(
-        Boolean, default=False, nullable=False
+        Boolean,
+        default=False,
+        nullable=False,
     )
     hash: Mapped[str] = mapped_column(String, default="", nullable=False)
     last_checked: Mapped[str] = mapped_column(
         String,
         default=lambda: datetime.datetime.now(
-            datetime.timezone.utc
+            datetime.timezone.utc,
         ).isoformat(),
         nullable=False,
     )
     semantics: Mapped[str] = mapped_column(
-        String, default="{}", nullable=False
+        String,
+        default="{}",
+        nullable=False,
     )  # holds JSON string
 
     sources: Mapped[list[Source]] = relationship(
-        "Source", secondary="fact_source_link", back_populates="facts"
+        "Source",
+        secondary="fact_source_link",
+        back_populates="facts",
     )
-    links: Mapped[list["FactLink"]] = relationship(
+    links: Mapped[list[FactLink]] = relationship(
         "FactLink",
         primaryjoin="or_(Fact.id == FactLink.fact1_id, Fact.id == FactLink.fact2_id)",
         viewonly=True,
@@ -171,8 +180,10 @@ class Source(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     domain: Mapped[str] = mapped_column(String, nullable=False)
 
-    facts: Mapped[list["Fact"]] = relationship(
-        "Fact", secondary="fact_source_link", back_populates="sources"
+    facts: Mapped[list[Fact]] = relationship(
+        "Fact",
+        secondary="fact_source_link",
+        back_populates="sources",
     )
 
 
@@ -180,10 +191,14 @@ class FactSourceLink(Base):
     __tablename__ = "fact_source_link"
 
     fact_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("fact.id"), primary_key=True
+        Integer,
+        ForeignKey("fact.id"),
+        primary_key=True,
     )
     source_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("source.id"), primary_key=True
+        Integer,
+        ForeignKey("source.id"),
+        primary_key=True,
     )
 
 
@@ -195,20 +210,22 @@ class FactLink(Base):
     score: Mapped[int] = mapped_column(Integer, nullable=False)
 
     fact1_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("fact.id"), nullable=False
+        Integer,
+        ForeignKey("fact.id"),
+        nullable=False,
     )
-    fact1: Mapped["Fact"] = relationship("Fact", foreign_keys=[fact1_id])
+    fact1: Mapped[Fact] = relationship("Fact", foreign_keys=[fact1_id])
 
     fact2_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("fact.id"), nullable=False
+        Integer,
+        ForeignKey("fact.id"),
+        nullable=False,
     )
-    fact2: Mapped["Fact"] = relationship("Fact", foreign_keys=[fact2_id])
+    fact2: Mapped[Fact] = relationship("Fact", foreign_keys=[fact2_id])
 
 
 def initialize_database(engine: Engine) -> None:
-    """
-    Ensures the database file and ALL required tables ('facts', 'fact_relationships') exist.
-    """
+    """Ensures the database file and ALL required tables ('facts', 'fact_relationships') exist."""
     Base.metadata.create_all(engine)
     logger.info("initialized database")
 
@@ -219,10 +236,11 @@ def get_all_facts_for_analysis(session: Session) -> list[Fact]:
 
 
 def add_fact_corroboration(
-    session: Session, fact_id: int, source_id: int
+    session: Session,
+    fact_id: int,
+    source_id: int,
 ) -> None:
     """Increments a fact's trust score and add the source to it. Both must already exist"""
-
     fact = session.get(Fact, fact_id)
     source = session.get(Source, source_id)
 
@@ -243,15 +261,16 @@ def add_fact_object_corroboration(fact: Fact, source: Source) -> None:
         fact.sources.append(source)
         fact.score += 1
         logger.info(
-            f"corroborated existing fact {fact.id} {fact.score=} with source {source.id}"
+            f"corroborated existing fact {fact.id} {fact.score=} with source {source.id}",
         )
 
 
 def insert_uncorroborated_fact(
-    session: Session, content: str, source_id: int
+    session: Session,
+    content: str,
+    source_id: int,
 ) -> None:
     """Inserts a fact for the first time. The source must exist."""
-
     source = session.get(Source, source_id)
 
     if source is None:
@@ -265,10 +284,12 @@ def insert_uncorroborated_fact(
 
 
 def insert_relationship(
-    session: Session, fact_id_1: int, fact_id_2: int, score: int
+    session: Session,
+    fact_id_1: int,
+    fact_id_2: int,
+    score: int,
 ) -> None:
     """Inserts a relationship between two facts into the knowledge graph. Both facts must exist."""
-
     fact1 = session.get(Fact, fact_id_1)
     fact2 = session.get(Fact, fact_id_2)
 
@@ -284,7 +305,10 @@ def insert_relationship(
 
 
 def insert_relationship_object(
-    session: Session, fact1: Fact, fact2: Fact, score: int
+    session: Session,
+    fact1: Fact,
+    fact2: Fact,
+    score: int,
 ) -> None:
     link = FactLink(
         score=score,
@@ -293,17 +317,16 @@ def insert_relationship_object(
     )
     session.add(link)
     logger.info(
-        f"inserted relationship between {fact1.id=} and {fact2.id=} with {score=}"
+        f"inserted relationship between {fact1.id=} and {fact2.id=} with {score=}",
     )
 
 
 def mark_facts_as_disputed(
-    session: Session, original_fact_id: int, new_fact_id: int
+    session: Session,
+    original_fact_id: int,
+    new_fact_id: int,
 ) -> None:
-    """
-    Marks two facts as disputed and links them together.
-    """
-
+    """Marks two facts as disputed and links them together."""
     original_fact = session.get(Fact, original_fact_id)
     new_fact = session.get(Fact, new_fact_id)
 
@@ -319,7 +342,9 @@ def mark_facts_as_disputed(
 
 
 def mark_fact_objects_as_disputed(
-    session: Session, original_fact: Fact, new_fact: Fact
+    session: Session,
+    original_fact: Fact,
+    new_fact: Fact,
 ) -> None:
     original_fact.disputed = True
     new_fact.disputed = True
@@ -330,7 +355,7 @@ def mark_fact_objects_as_disputed(
     )
     session.add(link)
     logger.info(
-        f"marked facts as disputed: {original_fact.id=}, {new_fact.id=}"
+        f"marked facts as disputed: {original_fact.id=}, {new_fact.id=}",
     )
 
 
