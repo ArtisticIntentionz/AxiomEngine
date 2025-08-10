@@ -13,7 +13,13 @@ from typing import TYPE_CHECKING
 import requests
 import sqlite3
 
-from axiom_server.ledger import DB_NAME, Fact, SerializedFact, SessionMaker, Source
+from axiom_server.ledger import (
+    DB_NAME,
+    Fact,
+    SerializedFact,
+    SessionMaker,
+    Source,
+)
 
 if TYPE_CHECKING:
     from axiom_server.node import AxiomNode
