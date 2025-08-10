@@ -57,10 +57,10 @@ class Base(DeclarativeBase):
     __slots__ = ()
 
 
-class SerializedSemantics(TypedDict):
+class SerializedSemantics(BaseModel):
     doc: str
-    subject: NotRequired[str]
-    object: NotRequired[str]
+    subject: str
+    object: str
 
 
 class Semantics(TypedDict):
@@ -75,8 +75,8 @@ def semantics_from_serialized(serialized: SerializedSemantics) -> Semantics:
             "doc": Doc(NLP_MODEL.vocab).from_json(
                 serialized["doc"],  # type: ignore[arg-type]
             ),
-            "subject": serialized.get("subject", ""),
-            "object": serialized.get("object", ""),
+            "subject": serialized.subject,
+            "object": serialized.object,
         }
     )
 
@@ -133,14 +133,7 @@ class Fact(Base):
         self.hash = hashlib.sha256(self.content.encode("utf-8")).hexdigest()
 
     def get_serialized_semantics(self) -> SerializedSemantics:
-        data = json.loads(self.semantics)
-        return SerializedSemantics(
-            {
-                "doc": data["doc"],
-                "subject": data.get("subject", ""),
-                "object": data.get("object", ""),
-            }
-        )
+        return SerializedSemantics.model_validate_json(self.semantics)
 
     def get_semantics(self) -> Semantics:
         serializable = self.get_serialized_semantics()
