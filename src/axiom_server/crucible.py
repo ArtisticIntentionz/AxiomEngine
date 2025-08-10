@@ -185,7 +185,7 @@ def set_subject_and_object(fact: Fact) -> Fact:
 
 FACT_PREANALYSIS: Pipeline[Fact] = Pipeline(
     "Fact Preanalysis",
-    [ ],
+    [],
 )
 
 
@@ -208,21 +208,25 @@ def _get_subject_and_object(doc: Doc) -> tuple[str | None, str | None]:
     return subject, d_object
 
 
-def semantics_check_and_set_subject_object(semantics: Semantics) -> Semantics|None:
+def semantics_check_and_set_subject_object(
+    semantics: Semantics,
+) -> Semantics | None:
     subject, object_ = _get_subject_and_object(semantics["doc"])
-    if subject is None or object_ is None: return None
+    if subject is None or object_ is None:
+        return None
     semantics["subject"] = subject
     semantics["object"] = object_
     return semantics
+
 
 SEMANTICS_CHECKS = Pipeline(
     "semantics checks",
     [
         Transformation(
             semantics_check_and_set_subject_object,
-            "check for presence of subject and object"
+            "check for presence of subject and object",
         )
-    ]
+    ],
 )
 
 
@@ -250,7 +254,7 @@ def extract_facts_from_text(text_content: str) -> list[Fact]:
         if (sentence := SENTENCE_CHECKS.run(sentence)) is not None:
             fact = Fact(content=sentence.text.strip())
             semantics = Semantics(
-                { "doc": sentence.as_doc(), "object": "", "subject": "" }
+                {"doc": sentence.as_doc(), "object": "", "subject": ""}
             )
 
             if (semantics := SEMANTICS_CHECKS.run(semantics)) is not None:
