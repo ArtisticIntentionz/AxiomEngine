@@ -4,8 +4,7 @@
 # See the LICENSE file for full details.
 # --- UPGRADED TO HANDLE DISPUTED FACTS ---
 
-import sqlite3
-from typing import Iterable
+from collections.abc import Iterable
 
 from sqlalchemy.orm import Session
 
@@ -20,8 +19,7 @@ def search_ledger_for_api(
     include_uncorroborated: bool = False,
     include_disputed: bool = False,
 ) -> Iterable[Fact]:
-    """
-    Searches the ledger for facts containing the search term.
+    """Searches the ledger for facts containing the search term.
     - By default, ONLY returns 'trusted' facts.
     - By default, ALWAYS excludes 'disputed' facts.
     """

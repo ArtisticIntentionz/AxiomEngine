@@ -4,13 +4,13 @@
 # See the LICENSE file for full details.
 # --- V2.2: FINAL, CORRECTED VERSION USING get_everything() ---
 
+import logging
 import os
 import sys
-import logging
-from newsapi import NewsApiClient
 from collections import Counter
-import spacy
 from datetime import datetime, timedelta
+
+from newsapi import NewsApiClient
 
 from axiom_server.common import NLP_MODEL
 
@@ -19,8 +19,8 @@ logger = logging.getLogger("zeitgeist")
 stdout_handler = logging.StreamHandler(stream=sys.stdout)
 stdout_handler.setFormatter(
     logging.Formatter(
-        "[%(name)s] %(asctime)s | %(levelname)s | %(filename)s:%(lineno)s >>> %(message)s"
-    )
+        "[%(name)s] %(asctime)s | %(levelname)s | %(filename)s:%(lineno)s >>> %(message)s",
+    ),
 )
 
 logger.addHandler(stdout_handler)
@@ -31,8 +31,7 @@ NEWS_API_KEY = os.environ.get("NEWS_API_KEY")
 
 
 def get_trending_topics(top_n: int = 3) -> list[str]:
-    """
-    Fetches recent articles using the get_everything endpoint to enable date filtering,
+    """Fetches recent articles using the get_everything endpoint to enable date filtering,
     then identifies the most frequently mentioned entities as trending topics.
     """
     if not NEWS_API_KEY:
@@ -60,7 +59,7 @@ def get_trending_topics(top_n: int = 3) -> list[str]:
         articles = all_articles_response.get("articles", [])
         if not articles:
             logger.info(
-                "no articles found from NewsAPI for the last 24 hours."
+                "no articles found from NewsAPI for the last 24 hours.",
             )
             return []
 

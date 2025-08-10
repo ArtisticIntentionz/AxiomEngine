@@ -10,12 +10,12 @@ import logging
 import sys
 from typing import TYPE_CHECKING
 
+from axiom_server.common import NLP_MODEL
 from axiom_server.ledger import (
+    Fact,
     get_all_facts_for_analysis,
     insert_relationship,
-    Fact,
 )
-from axiom_server.common import NLP_MODEL
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -25,8 +25,8 @@ logger = logging.getLogger("synthesizer")
 stdout_handler = logging.StreamHandler(stream=sys.stdout)
 stdout_handler.setFormatter(
     logging.Formatter(
-        "[%(name)s] %(asctime)s | %(levelname)s | %(filename)s:%(lineno)s >>> %(message)s"
-    )
+        "[%(name)s] %(asctime)s | %(levelname)s | %(filename)s:%(lineno)s >>> %(message)s",
+    ),
 )
 logger.addHandler(stdout_handler)
 logger.setLevel(logging.INFO)
@@ -37,9 +37,7 @@ def link_related_facts(
     session: Session,
     new_facts_batch: list[Fact],
 ) -> None:
-    """
-    Compares a batch of new facts against the entire ledger to find and store relationships.
-    """
+    """Compares a batch of new facts against the entire ledger to find and store relationships."""
     logger.info("beginning Knowledge Graph linking...")
     if not new_facts_batch:
         logger.info("no new facts to link. Cycle complete.")
@@ -72,5 +70,5 @@ def link_related_facts(
                 links_found += 1
 
     logger.info(
-        f"linking complete. Found and stored {links_found} new relationships."
+        f"linking complete. Found and stored {links_found} new relationships.",
     )

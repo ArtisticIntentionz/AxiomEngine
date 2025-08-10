@@ -4,25 +4,26 @@
 # See the LICENSE file for full details.
 # --- V2.5: UNIFIED VERSION WITH COMMUNITY REFACTOR ---
 
+import logging
 import os
 import sys
-import logging
+from urllib.parse import urlparse
+
 import requests
+import trafilatura
 from serpapi import (
     GoogleSearch,
 )  # This requires 'google-search-results' to be installed
-import trafilatura
-from urllib.parse import urlparse
 
 # --- Professional logging setup (Corrected) ---
 logger = logging.getLogger(
-    __name__
+    __name__,
 )  # Use __name__ for automatic, correct logger naming.
 stdout_handler = logging.StreamHandler(stream=sys.stdout)
 stdout_handler.setFormatter(
     logging.Formatter(
-        "[%(name)s] %(asctime)s | %(levelname)s | %(filename)s:%(lineno)s >>> %(message)s"
-    )
+        "[%(name)s] %(asctime)s | %(levelname)s | %(filename)s:%(lineno)s >>> %(message)s",
+    ),
 )
 
 logger.addHandler(stdout_handler)
@@ -67,9 +68,7 @@ def is_trusted_domain(url: str) -> bool:
 
 
 def find_and_extract(topic: str, max_sources: int = 3) -> list[dict[str, str]]:
-    """
-    returns {"source_url": url, "content": main_text}
-    """
+    """Returns {"source_url": url, "content": main_text}"""
     logger.info(f"seeking sources for '{topic}' using SerpApi...")
 
     if not SERPAPI_API_KEY or not SCRAPER_API_KEY:
@@ -100,7 +99,7 @@ def find_and_extract(topic: str, max_sources: int = 3) -> list[dict[str, str]]:
         return []
 
     logger.info(
-        f"found {len(trusted_urls)} potential trusted sources. Fetching content via ScraperAPI..."
+        f"found {len(trusted_urls)} potential trusted sources. Fetching content via ScraperAPI...",
     )
     extracted_content = []
     for url in trusted_urls[:max_sources]:
@@ -116,7 +115,7 @@ def find_and_extract(topic: str, max_sources: int = 3) -> list[dict[str, str]]:
                 if main_text:
                     logger.info("extraction successful.")
                     extracted_content.append(
-                        {"source_url": url, "content": main_text}
+                        {"source_url": url, "content": main_text},
                     )
         except requests.exceptions.RequestException as e:
             logger.exception(f"fetch failed for {url}. Error: {e}")
