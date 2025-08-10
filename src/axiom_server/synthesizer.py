@@ -1,11 +1,11 @@
-# Axiom - synthesizer.py
+"""Synthesizer - Compare facts."""
+
+from __future__ import annotations
+
 # Copyright (C) 2025 The Axiom Contributors
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.
 # --- V2.5: UNIFIED VERSION WITH COMMUNITY REFACTOR ---
-
-from __future__ import annotations
-
 import logging
 import sys
 from typing import TYPE_CHECKING
@@ -37,7 +37,7 @@ def link_related_facts(
     session: Session,
     new_facts_batch: list[Fact],
 ) -> None:
-    """Compares a batch of new facts against the entire ledger to find and store relationships."""
+    """Compare a batch of new facts against the entire ledger to find and store relationships."""
     logger.info("beginning Knowledge Graph linking...")
     if not new_facts_batch:
         logger.info("no new facts to link. Cycle complete.")

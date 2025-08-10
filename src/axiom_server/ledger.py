@@ -1,11 +1,11 @@
-# Axiom - ledger.py
+"""Ledger - Fact Database Logic."""
+
+from __future__ import annotations
+
 # Copyright (C) 2025 The Axiom Contributors
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.
 # --- UNIFIED V2 VERSION WITH ALL REQUIRED FUNCTIONS ---
-
-from __future__ import annotations
-
 import datetime
 import hashlib
 import json
@@ -52,27 +52,36 @@ ENGINE = create_engine(f"sqlite:///{DB_NAME}")
 SessionMaker = sessionmaker(bind=ENGINE)
 
 
-class LedgerError(BaseException):
+class LedgerError(Exception):
+    """Ledger Error."""
+
     __slots__ = ()
 
 
 class Base(DeclarativeBase):
+    """DeclarativeBase subclass."""
+
     __slots__ = ()
 
 
 class SerializedSemantics(BaseModel):
+    """Serialized semantics."""
+
     doc: str
     subject: str
     object: str
 
 
 class Semantics(TypedDict):
+    """Semantics dictionary."""
+
     doc: Doc
     subject: str
     object: str
 
 
 def semantics_from_serialized(serialized: SerializedSemantics) -> Semantics:
+    """Return Semantics dictionary from serialized semantics."""
     return Semantics(
         {
             "doc": Doc(NLP_MODEL.vocab).from_json(
@@ -85,6 +94,8 @@ def semantics_from_serialized(serialized: SerializedSemantics) -> Semantics:
 
 
 class Fact(Base):
+    """Fact entry."""
+
     __tablename__ = "fact"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -122,6 +133,7 @@ class Fact(Base):
 
     @classmethod
     def from_model(cls, model: SerializedFact) -> Self:
+        """Return new Fact from serialized fact."""
         return cls(
             content=model.content,
             score=model.score,
@@ -133,26 +145,35 @@ class Fact(Base):
 
     @property
     def corroborated(self) -> bool:
+        """Return if score is positive."""
         return self.score > 0
 
     def has_source(self, domain: str) -> bool:
+        """Return if any source uses given domain."""
         return any(source.domain == domain for source in self.sources)
 
-    def set_hash(self) -> None:
+    def set_hash(self) -> str:
+        """Set self.hash."""
         self.hash = hashlib.sha256(self.content.encode("utf-8")).hexdigest()
+        return self.hash
 
     def get_serialized_semantics(self) -> SerializedSemantics:
+        """Return serialized semantics."""
         return SerializedSemantics.model_validate_json(self.semantics)
 
     def get_semantics(self) -> Semantics:
+        """Return Semantics dictionary."""
         serializable = self.get_serialized_semantics()
         return semantics_from_serialized(serializable)
 
     def set_semantics(self, semantics: Semantics) -> None:
+        """Set self.semantics."""
         self.semantics = json.dumps(semantics)
 
 
 class SerializedFact(BaseModel):
+    """Serialized Fact table entry."""
+
     content: str
     score: int
     disputed: bool
@@ -163,6 +184,7 @@ class SerializedFact(BaseModel):
 
     @classmethod
     def from_fact(cls, fact: Fact) -> Self:
+        """Return SerializedFact from Fact."""
         return cls(
             content=fact.content,
             score=fact.score,
@@ -175,6 +197,8 @@ class SerializedFact(BaseModel):
 
 
 class Source(Base):
+    """Source table entry."""
+
     __tablename__ = "source"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -188,6 +212,8 @@ class Source(Base):
 
 
 class FactSourceLink(Base):
+    """Fact Source Link table entry."""
+
     __tablename__ = "fact_source_link"
 
     fact_id: Mapped[int] = mapped_column(
@@ -203,6 +229,8 @@ class FactSourceLink(Base):
 
 
 class FactLink(Base):
+    """Fact Link table entry."""
+
     __tablename__ = "fact_link"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -225,13 +253,13 @@ class FactLink(Base):
 
 
 def initialize_database(engine: Engine) -> None:
-    """Ensures the database file and ALL required tables ('facts', 'fact_relationships') exist."""
+    """Ensure the database file and ALL required tables ('facts', 'fact_relationships') exist."""
     Base.metadata.create_all(engine)
     logger.info("initialized database")
 
 
 def get_all_facts_for_analysis(session: Session) -> list[Fact]:
-    """Retrieves all facts."""
+    """Return list of all facts."""
     return session.query(Fact).all()
 
 
@@ -240,7 +268,7 @@ def add_fact_corroboration(
     fact_id: int,
     source_id: int,
 ) -> None:
-    """Increments a fact's trust score and add the source to it. Both must already exist."""
+    """Increment a fact's trust score and add the source to it. Both must already exist."""
     fact = session.get(Fact, fact_id)
     source = session.get(Source, source_id)
 
@@ -256,7 +284,7 @@ def add_fact_corroboration(
 
 
 def add_fact_object_corroboration(fact: Fact, source: Source) -> None:
-    """Increments a fact's trust score and add the source to it. Does nothing if the source already exists."""
+    """Increment a fact's trust score and add the source to it. Does nothing if the source already exists."""
     if source not in fact.sources:
         fact.sources.append(source)
         fact.score += 1
@@ -270,7 +298,7 @@ def insert_uncorroborated_fact(
     content: str,
     source_id: int,
 ) -> None:
-    """Inserts a fact for the first time. The source must exist."""
+    """Insert a fact for the first time. The source must exist."""
     source = session.get(Source, source_id)
 
     if source is None:
@@ -289,7 +317,7 @@ def insert_relationship(
     fact_id_2: int,
     score: int,
 ) -> None:
-    """Inserts a relationship between two facts into the knowledge graph. Both facts must exist."""
+    """Insert a relationship between two facts into the knowledge graph. Both facts must exist."""
     fact1 = session.get(Fact, fact_id_1)
     fact2 = session.get(Fact, fact_id_2)
 
@@ -310,6 +338,7 @@ def insert_relationship_object(
     fact2: Fact,
     score: int,
 ) -> None:
+    """Insert fact relationship given Fact objects."""
     link = FactLink(
         score=score,
         fact1=fact1,
@@ -326,7 +355,7 @@ def mark_facts_as_disputed(
     original_fact_id: int,
     new_fact_id: int,
 ) -> None:
-    """Marks two facts as disputed and links them together."""
+    """Mark two facts as disputed and links them together."""
     original_fact = session.get(Fact, original_fact_id)
     new_fact = session.get(Fact, new_fact_id)
 
@@ -346,6 +375,7 @@ def mark_fact_objects_as_disputed(
     original_fact: Fact,
     new_fact: Fact,
 ) -> None:
+    """Mark two Fact objects as disputed and link them."""
     original_fact.disputed = True
     new_fact.disputed = True
     link = FactLink(
@@ -360,11 +390,15 @@ def mark_fact_objects_as_disputed(
 
 
 class Votes(TypedDict):
+    """Votes dictionary."""
+
     choice: str
     weight: float
 
 
 class Proposal(TypedDict):
+    """Proposal dictionary."""
+
     text: str
     proposer: str
     votes: dict[str, Votes]
