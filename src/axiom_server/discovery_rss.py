@@ -47,12 +47,13 @@ def get_content_from_prioritized_feed(
     max_items: int = 5,
 ) -> list[dict[str, str]]:
     """Select a prioritized RSS feed to explore for new content."""
-    if not RSS_FEEDS:
+    shuffled_feeds = list(RSS_FEEDS)
+    random.shuffle(shuffled_feeds)
+
+    if not shuffled_feeds:
         logger.warning("No RSS feeds configured.")
         return []
 
-    shuffled_feeds = list(RSS_FEEDS)
-    random.shuffle(shuffled_feeds)
     feed_url = shuffled_feeds[0]
 
     logger.info(
