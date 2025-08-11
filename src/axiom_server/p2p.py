@@ -23,7 +23,7 @@ from axiom_server.ledger import (
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
-    from .node import AxiomNode
+    from axiom_server.node import AxiomNode
 
 
 logger = logging.getLogger("p2p")

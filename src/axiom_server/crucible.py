@@ -1,19 +1,15 @@
 """Crucible - Semantic Analysis to extract Facts from text."""
 
+from __future__ import annotations
+
 # Copyright (C) 2025 The Axiom Contributors
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.
-from __future__ import annotations
-
 import logging
 import re
 import sys
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Generic, TypeVar
-
-from spacy.tokens.doc import Doc
-from spacy.tokens.span import Span
-from sqlalchemy.orm import Session
 
 from axiom_server.common import NLP_MODEL, SUBJECTIVITY_INDICATORS
 from axiom_server.ledger import (

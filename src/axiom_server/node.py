@@ -34,7 +34,7 @@ from axiom_server.ledger import (
     initialize_database,
 )
 
-__version__ = "0.1.0"
+__version__ = "3.1.0"
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("axiom-node")
