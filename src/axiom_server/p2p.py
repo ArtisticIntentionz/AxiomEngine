@@ -1,20 +1,18 @@
-# Axiom - p2p.py
+"""P2P - Peer to peer fact sharing."""
+
+from __future__ import annotations
+
 # Copyright (C) 2025 The Axiom Contributors
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.
 # --- V2.1: HARDENED SYNC LOGIC ---
-
-from __future__ import annotations
-
 import logging
 import sys
 from typing import TYPE_CHECKING
 
 import requests
-import sqlite3
 
 from axiom_server.ledger import (
-    DB_NAME,
     Fact,
     SerializedFact,
     SessionMaker,
@@ -30,8 +28,8 @@ logger = logging.getLogger("p2p")
 stdout_handler = logging.StreamHandler(stream=sys.stdout)
 stdout_handler.setFormatter(
     logging.Formatter(
-        "[%(name)s] %(asctime)s | %(levelname)s | %(filename)s:%(lineno)s >>> %(message)s"
-    )
+        "[%(name)s] %(asctime)s | %(levelname)s | %(filename)s:%(lineno)s >>> %(message)s",
+    ),
 )
 
 logger.addHandler(stdout_handler)
@@ -40,10 +38,11 @@ logger.propagate = False
 
 
 def sync_with_peer(
-    node_instance: AxiomNode, peer_url: str
+    node_instance: AxiomNode,
+    peer_url: str,
 ) -> tuple[str, list[Fact]]:
-    """
-    Synchronizes the local ledger with a peer's ledger.
+    """Synchronize the local ledger with a peer's ledger.
+
     This version correctly handles database integrity errors during sync.
     """
     logging.info(f"attempting to sync with peer: {peer_url}")
@@ -54,17 +53,17 @@ def sync_with_peer(
             response = requests.get(f"{peer_url}/get_fact_hashes", timeout=10)
             response.raise_for_status()
             peer_fact_hashes: set[str] = set(
-                response.json().get("fact_hashes", [])
+                response.json().get("fact_hashes", []),
             )
 
             # Step 2: Get the local list of all fact hashes
-            local_fact_hashes: set[str] = set(
+            local_fact_hashes: set[str] = {
                 fact.hash for fact in session.query(Fact).all()
-            )
+            }
 
             # Step 3: Determine which facts are missing locally
             missing_fact_hashes: list[str] = list(
-                peer_fact_hashes - local_fact_hashes
+                peer_fact_hashes - local_fact_hashes,
             )
 
             if not missing_fact_hashes:
@@ -73,7 +72,7 @@ def sync_with_peer(
 
             # Step 4: Request the full data for only the missing facts
             logging.info(
-                f"found {len(missing_fact_hashes)} new facts to download from {peer_url}."
+                f"found {len(missing_fact_hashes)} new facts to download from {peer_url}.",
             )
 
             response = requests.post(
@@ -115,16 +114,15 @@ def sync_with_peer(
             if facts_added_count > 0:
                 return "SUCCESS_NEW_FACTS", new_facts
 
-            else:
-                return "SUCCESS_UP_TO_DATE", []
+            return "SUCCESS_UP_TO_DATE", []
 
     except requests.exceptions.RequestException as e:
         logging.exception(
-            f"FAILED to connect or communicate with peer {peer_url}. Error: {e}"
+            f"FAILED to connect or communicate with peer {peer_url}. Error: {e}",
         )
         return "CONNECTION_FAILED", []
     except Exception as e:
         logging.exception(
-            f"an unexpected error occurred during sync with {peer_url}. Error: {e}"
+            f"an unexpected error occurred during sync with {peer_url}. Error: {e}",
         )
         return "SYNC_ERROR", []

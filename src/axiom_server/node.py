@@ -1,42 +1,43 @@
-# Axiom - node.py
+"""Node - Implementation of a single node of the Axiom fact network."""
+
+from __future__ import annotations
+
 # Copyright (C) 2025 The Axiom Contributors
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.
 # --- V2.1: FINAL, CORRECTED VERSION WITH REPUTATION FIX ---
-
-from __future__ import annotations
-
 import json
-import time
-import threading
-import sys
-from urllib.parse import urlparse
+import logging
 import math
 import os
-import logging
+import sys
+import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
-from typing import cast, TypedDict
+from typing import TypedDict, cast
+from urllib.parse import urlparse
 
 import requests
-from flask import Flask, jsonify, request, Response
+from flask import Flask, Response, jsonify, request
 
 # Import all our system components
-from axiom_server import zeitgeist_engine
-from axiom_server import universal_extractor
-from axiom_server import crucible
-from axiom_server import synthesizer
+from axiom_server import (
+    crucible,
+    universal_extractor,
+    zeitgeist_engine,
+)
+from axiom_server.api_query import search_ledger_for_api
 from axiom_server.ledger import (
     ENGINE,
     Fact,
+    Proposal,
     SerializedFact,
     SessionMaker,
     Source,
-    initialize_database,
-    Proposal,
     Votes,
+    initialize_database,
 )
-from axiom_server.api_query import search_ledger_for_api
 from axiom_server.p2p import sync_with_peer
 
 __version__ = "0.1.0"
@@ -48,8 +49,8 @@ logger = logging.getLogger("axiom-node")
 stdout_handler = logging.StreamHandler(stream=sys.stdout)
 stdout_handler.setFormatter(
     logging.Formatter(
-        "[%(name)s] %(asctime)s | %(levelname)s | %(filename)s:%(lineno)s >>> %(message)s"
-    )
+        "[%(name)s] %(asctime)s | %(levelname)s | %(filename)s:%(lineno)s >>> %(message)s",
+    ),
 )
 
 logger.addHandler(stdout_handler)
@@ -63,23 +64,29 @@ background_thread_logger.setLevel(logging.INFO)
 background_thread_logger.propagate = False
 
 
+REP_PENALTY = 0.1
+REP_REWARD_UPTIME = 0.02
+REP_REWARD_NEW_DATA = 0.1
+
+
 class Peer(TypedDict):
+    """Peer information."""
+
     reputation: float
     first_seen: str
     last_seen: str
 
 
 class AxiomNode:
-    """
-    A class representing a single, complete Axiom node.
-    """
+    """A class representing a single, complete Axiom node."""
 
     def __init__(
         self,
-        host: str = "0.0.0.0",
+        host: str = "127.0.0.1",
         port: int = 5000,
         bootstrap_peer: str | None = None,
     ) -> None:
+        """Initialize axiom node."""
         self.host = host
         self.port = port
         self.self_url = f"http://{self.host}:{port}"
@@ -90,7 +97,7 @@ class AxiomNode:
                     "reputation": 0.5,
                     "first_seen": datetime.now(timezone.utc).isoformat(),
                     "last_seen": datetime.now(timezone.utc).isoformat(),
-                }
+                },
             )
 
         # Now used only for special, high-priority topics.
@@ -100,6 +107,7 @@ class AxiomNode:
         initialize_database(ENGINE)
 
     def add_or_update_peer(self, peer_url: str) -> None:
+        """Add peer from url."""
         if (
             peer_url
             and peer_url not in self.peers
@@ -110,21 +118,22 @@ class AxiomNode:
                     "reputation": 0.1,
                     "first_seen": datetime.now(timezone.utc).isoformat(),
                     "last_seen": datetime.now(timezone.utc).isoformat(),
-                }
+                },
             )
         elif peer_url in self.peers:
             self.peers[peer_url]["last_seen"] = datetime.now(
-                timezone.utc
+                timezone.utc,
             ).isoformat()
 
     def _update_reputation(
-        self, peer_url: str, sync_status: str, new_facts_count: int
+        self,
+        peer_url: str,
+        sync_status: str,
+        new_facts_count: int,
     ) -> None:
+        """Update peer reputation."""
         if peer_url not in self.peers:
             return
-        REP_PENALTY = 0.1
-        REP_REWARD_UPTIME = 0.02
-        REP_REWARD_NEW_DATA = 0.1
         current_rep = self.peers[peer_url]["reputation"]
 
         if sync_status in ("CONNECTION_FAILED", "SYNC_ERROR"):
@@ -144,6 +153,7 @@ class AxiomNode:
         self.peers[peer_url]["reputation"] = max(0.0, min(1.0, new_rep))
 
     def _fetch_from_peer(self, peer_url: str, search_term: str) -> list[Fact]:
+        """Return facts about query from peer."""
         try:
             query_url = f"{peer_url}/local_query?term={search_term}&include_uncorroborated=true"
             response = requests.get(query_url, timeout=5)
@@ -153,9 +163,7 @@ class AxiomNode:
             return []
 
     def _background_loop(self) -> None:
-        """
-        The main, continuous loop. This version has the corrected logic.
-        """
+        """Handle task cycle."""
         background_thread_logger.info("starting continuous cycle.")
 
         with SessionMaker() as session:
@@ -173,7 +181,8 @@ class AxiomNode:
 
                     if topic_to_investigate:
                         content_list = universal_extractor.find_and_extract(
-                            topic_to_investigate, max_sources=1
+                            topic_to_investigate,
+                            max_sources=1,
                         )
 
                         for item in content_list:
@@ -190,7 +199,7 @@ class AxiomNode:
                                 session.commit()
 
                             new_facts = crucible.extract_facts_from_text(
-                                item["content"]
+                                item["content"],
                             )
                             adder = crucible.CrucibleFactAdder(session)
 
@@ -210,13 +219,15 @@ class AxiomNode:
                     key=lambda item: item[1]["reputation"],
                     reverse=True,
                 )
-                for peer_url, peer_data in sorted_peers:
+                for peer_url, _peer_data in sorted_peers:
                     # --- THIS IS THE FIX ---
                     # The new p2p.sync_with_peer is smarter and will return the correct status.
                     # The reputation system will now correctly reward good peers.
                     sync_status, new_facts = sync_with_peer(self, peer_url)
                     self._update_reputation(
-                        peer_url, sync_status, len(new_facts)
+                        peer_url,
+                        sync_status,
+                        len(new_facts),
                     )
                     # We NO LONGER add synced facts to the investigation queue, which was the source of the bug.
 
@@ -230,14 +241,16 @@ class AxiomNode:
                         reverse=True,
                     ):
                         background_thread_logger.info(
-                            f"  - {peer}: {data['reputation']:.4f}"
+                            f"  - {peer}: {data['reputation']:.4f}",
                         )
 
                 time.sleep(10800)  # Sleep for 3 hours
 
     def start_background_tasks(self) -> None:
+        """Create thread to run things in the background."""
         background_thread = threading.Thread(
-            target=self._background_loop, daemon=True
+            target=self._background_loop,
+            daemon=True,
         )
         background_thread.start()
 
@@ -251,6 +264,7 @@ node_instance: AxiomNode
 # --- CONFIGURE API ROUTES ---
 @app.route("/local_query", methods=["GET"])
 def handle_local_query() -> Response:
+    """Handle local query request."""
     search_term = request.args.get("term", "")
     include_uncorroborated = (
         request.args.get("include_uncorroborated", "false").lower() == "true"
@@ -258,18 +272,22 @@ def handle_local_query() -> Response:
 
     with SessionMaker() as session:
         results = search_ledger_for_api(
-            session, search_term, include_uncorroborated=include_uncorroborated
+            session,
+            search_term,
+            include_uncorroborated=include_uncorroborated,
         )
         return jsonify({"results": results})
 
 
 @app.route("/get_peers", methods=["GET"])
 def handle_get_peers() -> Response:
+    """Handle get peers request."""
     return jsonify({"peers": node_instance.peers})
 
 
 @app.route("/get_fact_ids", methods=["GET"])
 def handle_get_fact_ids() -> Response:
+    """Handle get fact ids request."""
     with SessionMaker() as session:
         fact_ids: list[int] = [fact.id for fact in session.query(Fact).all()]
         return jsonify({"fact_ids": fact_ids})
@@ -277,6 +295,7 @@ def handle_get_fact_ids() -> Response:
 
 @app.route("/get_fact_hashes", methods=["GET"])
 def handle_get_fact_hashes() -> Response:
+    """Handle get fact hashes request."""
     with SessionMaker() as session:
         fact_ids: list[str] = [fact.hash for fact in session.query(Fact).all()]
         return jsonify({"fact_hashes": fact_ids})
@@ -284,6 +303,7 @@ def handle_get_fact_hashes() -> Response:
 
 @app.route("/get_facts_by_id", methods=["POST"])
 def handle_get_facts_by_id() -> Response:
+    """Handle get facts by id request."""
     assert request.json is not None
     requested_ids: set[int] = set(request.json.get("fact_ids", []))
 
@@ -297,12 +317,13 @@ def handle_get_facts_by_id() -> Response:
 
 @app.route("/get_facts_by_hash", methods=["POST"])
 def handle_get_facts_by_hash() -> Response:
+    """Handle get facts by hash request."""
     assert request.json is not None
     requested_hashes: set[int] = set(request.json.get("fact_hashes", []))
 
     with SessionMaker() as session:
         facts = list(
-            session.query(Fact).filter(Fact.hash.in_(requested_hashes))
+            session.query(Fact).filter(Fact.hash.in_(requested_hashes)),
         )
         fact_models = [
             SerializedFact.from_fact(fact).model_dump() for fact in facts
@@ -312,6 +333,7 @@ def handle_get_facts_by_hash() -> Response:
 
 @app.route("/anonymous_query", methods=["POST"])
 def handle_anonymous_query() -> Response | tuple[Response, int]:
+    """Handle anonymous query request."""
     data = request.json or {}
 
     search_term = data.get("term")
@@ -326,7 +348,9 @@ def handle_anonymous_query() -> Response | tuple[Response, int]:
 
             assert isinstance(search_term, str)
             local_results = search_ledger_for_api(
-                session, search_term, include_uncorroborated=True
+                session,
+                search_term,
+                include_uncorroborated=True,
             )
 
             for fact in local_results:
@@ -334,7 +358,9 @@ def handle_anonymous_query() -> Response | tuple[Response, int]:
 
             future_to_peer = {
                 node_instance.thread_pool.submit(
-                    node_instance._fetch_from_peer, peer, search_term
+                    node_instance._fetch_from_peer,
+                    peer,
+                    search_term,
                 ): peer
                 for peer in node_instance.peers
             }
@@ -344,40 +370,41 @@ def handle_anonymous_query() -> Response | tuple[Response, int]:
                     if fact_id not in all_facts:
                         all_facts[fact_id] = fact_result
             return jsonify({"results": list(all_facts.values())})
-        else:
-            next_node_url = circuit.pop(0)
-            try:
-                response = requests.post(
-                    f"{next_node_url}/anonymous_query",
-                    json={
-                        "term": search_term,
-                        "circuit": circuit,
-                        "sender_peer": node_instance.self_url,
-                    },
-                    timeout=10,
-                )
-                response.raise_for_status()
-                return jsonify(response.json())
-            except requests.exceptions.RequestException:
-                return jsonify(
-                    {"error": f"Relay node {next_node_url} is offline."}
-                ), 504
+        next_node_url = circuit.pop(0)
+        try:
+            response = requests.post(
+                f"{next_node_url}/anonymous_query",
+                json={
+                    "term": search_term,
+                    "circuit": circuit,
+                    "sender_peer": node_instance.self_url,
+                },
+                timeout=10,
+            )
+            response.raise_for_status()
+            return jsonify(response.json())
+        except requests.exceptions.RequestException:
+            return jsonify(
+                {"error": f"Relay node {next_node_url} is offline."},
+            ), 504
 
 
 @app.route("/dao/proposals", methods=["GET"])
 def handle_get_proposals() -> Response:
+    """Handle proposals request."""
     return jsonify(node_instance.active_proposals)
 
 
 @app.route("/dao/submit_proposal", methods=["POST"])
 def handle_submit_proposal() -> Response | tuple[Response, int]:
+    """Handle submit proposal request."""
     data = request.json or {}
     proposer_url = data.get("proposer_url")
     aip_id = data.get("aip_id")
     aip_text = data.get("aip_text")
     if not all((proposer_url, aip_id, aip_text)):
         return jsonify(
-            {"status": "error", "message": "Missing parameters."}
+            {"status": "error", "message": "Missing parameters."},
         ), 400
     if (
         proposer_url in node_instance.peers
@@ -391,40 +418,39 @@ def handle_submit_proposal() -> Response | tuple[Response, int]:
                     "text": aip_text,
                     "proposer": proposer_url,
                     "votes": {},
-                }
+                },
             )
             return jsonify(
-                {"status": "success", "message": f"AIP {aip_id} submitted."}
+                {"status": "success", "message": f"AIP {aip_id} submitted."},
             )
-        else:
-            return (
-                jsonify(
-                    {
-                        "status": "error",
-                        "message": "Proposal ID already exists.",
-                    }
-                ),
-                409,
-            )
-    else:
-        return jsonify(
-            {"status": "error", "message": "Insufficient reputation."}
-        ), 403
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "Proposal ID already exists.",
+                },
+            ),
+            409,
+        )
+    return jsonify(
+        {"status": "error", "message": "Insufficient reputation."},
+    ), 403
 
 
 @app.route("/dao/submit_vote", methods=["POST"])
 def handle_submit_vote() -> Response | tuple[Response, int]:
+    """Handle submit vote request."""
     data = request.json or {}
     voter_url = data.get("voter_url")
     aip_id = data.get("aip_id")
     vote_choice = data.get("choice")
     if not all((voter_url, aip_id, vote_choice)):
         return jsonify(
-            {"status": "error", "message": "Missing parameters."}
+            {"status": "error", "message": "Missing parameters."},
         ), 400
     if aip_id not in node_instance.active_proposals:
         return jsonify(
-            {"status": "error", "message": "Proposal not found."}
+            {"status": "error", "message": "Proposal not found."},
         ), 404
 
     assert voter_url is not None
@@ -439,14 +465,15 @@ def handle_submit_vote() -> Response | tuple[Response, int]:
         {
             "choice": vote_choice,
             "weight": voter_reputation,
-        }
+        },
     )
     return jsonify({"status": "success", "message": "Vote recorded."})
 
 
 def build_instance() -> tuple[AxiomNode, int]:
+    """Return axiom server node and port to host on as tuple."""
     logger.info(
-        f"initializing global instance for {'PRODUCTION' if 'gunicorn' in sys.argv[0] else 'DEVELOPMENT'}..."
+        f"initializing global instance for {'PRODUCTION' if 'gunicorn' in sys.argv[0] else 'DEVELOPMENT'}...",
     )
     port = int(os.environ.get("PORT", 5000))
     bootstrap = os.environ.get("BOOTSTRAP_PEER")
@@ -456,8 +483,9 @@ def build_instance() -> tuple[AxiomNode, int]:
 
 
 def host_server(port: int) -> None:
+    """Host axiom server on given port."""
     logger.info(f"starting in DEVELOPMENT mode on port {port}...")
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host="127.0.0.1", port=port, debug=False)
 
 
 def cli_run(do_host: bool = True) -> None:
