@@ -18,7 +18,14 @@ from urllib.parse import urlparse
 
 from flask import Flask, Response, jsonify, request
 
-from axiom_server import crucible, discovery_rss, p2p, zeitgeist_engine
+from axiom_server import (
+    crucible,
+    discovery_rss,
+    merkle,
+    p2p,
+    verification_engine,
+    zeitgeist_engine,
+)
 from axiom_server.api_query import search_ledger_for_api
 from axiom_server.ledger import (
     ENGINE,
@@ -272,6 +279,7 @@ def handle_get_blocks() -> Response:
                 "timestamp": b.timestamp,
                 "nonce": b.nonce,
                 "fact_hashes": json.loads(b.fact_hashes),
+                "merkle_root": b.merkle_root,
             }
             for b in blocks
         ]
@@ -343,6 +351,78 @@ def handle_get_facts_by_hash() -> Response:
             SerializedFact.from_fact(fact).model_dump() for fact in facts
         ]
         return jsonify({"facts": fact_models})
+
+
+@app.route("/get_merkle_proof", methods=["GET"])
+def handle_get_merkle_proof() -> Response | tuple[Response, int]:
+    """Provide a Merkle proof for a fact's inclusion in a block.
+
+    This endpoint is the secure bridge between a Sealer and a Listener.
+    It allows a Listener to verify a fact without trusting the Sealer or
+    downloading the full block.
+
+    Query Parameters:
+        fact_hash (str): The hash of the fact to prove.
+        block_height (int): The height of the block containing the fact.
+
+    Returns:
+        A JSON response with the Merkle proof, or an error.
+
+    """
+    fact_hash = request.args.get("fact_hash")
+    block_height_str = request.args.get("block_height")
+
+    if not fact_hash or not block_height_str:
+        return jsonify(
+            {"error": "fact_hash and block_height are required parameters"},
+        ), 400
+
+    try:
+        block_height = int(block_height_str)
+    except ValueError:
+        return jsonify({"error": "block_height must be an integer"}), 400
+
+    with SessionMaker() as session:
+        # 1. Find the specified block.
+        block = (
+            session.query(Block)
+            .filter(Block.height == block_height)
+            .one_or_none()
+        )
+        if not block:
+            return jsonify(
+                {"error": f"Block at height {block_height} not found"},
+            ), 404
+
+        # 2. Get the list of fact hashes from the block.
+        fact_hashes_in_block = json.loads(block.fact_hashes)
+        if fact_hash not in fact_hashes_in_block:
+            return jsonify(
+                {"error": "Fact hash not found in the specified block"},
+            ), 404
+
+        # 3. Re-build the Merkle tree for this specific block.
+        # This is computationally cheap and ensures we don't have to store trees.
+        merkle_tree = merkle.MerkleTree(fact_hashes_in_block)
+
+        # 4. Find the index of our target fact and generate the proof.
+        try:
+            fact_index = fact_hashes_in_block.index(fact_hash)
+            proof = merkle_tree.get_proof(fact_index)
+        except (ValueError, IndexError) as e:
+            # This is a safeguard, but the check above should prevent it.
+            logger.error(f"Error generating Merkle proof: {e}")
+            return jsonify({"error": "Failed to generate Merkle proof"}), 500
+
+        # 5. Return the proof and the trusted Merkle root to the Listener.
+        return jsonify(
+            {
+                "fact_hash": fact_hash,
+                "block_height": block_height,
+                "merkle_root": block.merkle_root,
+                "proof": proof,
+            },
+        )
 
 
 @app.route("/anonymous_query", methods=["POST"])
@@ -420,6 +500,50 @@ def handle_submit_vote() -> Response | tuple[Response, int]:
         {"choice": vote_choice, "weight": voter_reputation},
     )
     return jsonify({"status": "success", "message": "Vote recorded."})
+
+
+@app.route("/verify_fact", methods=["POST"])
+def handle_verify_fact() -> Response | tuple[Response, int]:
+    """Run the experimental V3.2 Verification Engine on a fact.
+
+    This is the entry point for our advanced "deep dive" analysis. It takes
+    a fact_id and returns a full intelligence report on its corroboration
+    and citation status.
+
+    Returns:
+        A JSON response containing the verification report, or an error.
+
+    """
+    fact_id = (request.json or {}).get("fact_id")
+    if not fact_id:
+        return jsonify({"error": "fact_id is required"}), 400
+
+    with SessionMaker() as session:
+        fact_to_verify = session.get(Fact, fact_id)
+        if not fact_to_verify:
+            return jsonify({"error": "Fact not found"}), 404
+
+        # Run our new, powerful verification functions.
+        corroborating_claims = verification_engine.find_corroborating_claims(
+            fact_to_verify,
+            session,
+        )
+        citations_report = verification_engine.verify_citations(fact_to_verify)
+
+        # Compile the final intelligence report.
+        verification_report = {
+            "target_fact_id": fact_to_verify.id,
+            "target_content": fact_to_verify.content,
+            "corroboration_analysis": {
+                "status": f"Found {len(corroborating_claims)} corroborating claims from other sources.",
+                "corroborations": corroborating_claims,
+            },
+            "citation_analysis": {
+                "status": f"Found {len(citations_report)} citations within the fact content.",
+                "citations": citations_report,
+            },
+        }
+        return jsonify(verification_report)
 
 
 def build_instance() -> tuple[AxiomNode, int]:
