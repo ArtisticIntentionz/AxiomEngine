@@ -1,12 +1,21 @@
-# Axiom - api_query.py
+"""API Query - Find facts from database."""
+
+from __future__ import annotations
+
 # Copyright (C) 2025 The Axiom Contributors
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, Final
 
-from typing import Iterable
 from sqlalchemy.orm import Session
 
 from axiom_server.ledger import Fact
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from sqlalchemy.orm import Session
 
 STATUS_HIERARCHY = [
     "ingested",
@@ -15,6 +24,8 @@ STATUS_HIERARCHY = [
     "empirically_verified",
 ]
 
+DB_NAME: Final = "axiom_ledger.db"
+
 
 def search_ledger_for_api(
     session: Session,
@@ -22,8 +33,7 @@ def search_ledger_for_api(
     min_status: str = "corroborated",
     include_disputed: bool = False,
 ) -> Iterable[Fact]:
-    """
-    Searches the ledger for facts based on their verification lifecycle status.
+    """Search the ledger for facts containing the search term.
 
     Args:
         session: The active SQLAlchemy session.
@@ -31,6 +41,7 @@ def search_ledger_for_api(
         min_status: The minimum verification status a fact must have to be included.
                     Defaults to 'corroborated' for safety.
         include_disputed: Whether to include facts that are marked as disputed.
+
     """
     query = session.query(Fact).filter(Fact.content.ilike(f"%{search_term}%"))
 

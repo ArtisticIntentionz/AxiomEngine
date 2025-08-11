@@ -1,15 +1,19 @@
-# Axiom - discovery_rss.py
+"""Discovery RSS - Find news from RSS."""
+
+from __future__ import annotations
+
 # Copyright (C) 2025 The Axiom Contributors
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.
+import logging
+import random
+from typing import Final
 
 import feedparser
-import random
-import logging
 
 logger = logging.getLogger(__name__)
 
-RSS_FEEDS = [
+RSS_FEEDS: Final = (
     "http://rss.cnn.com/rss/cnn_topstories.rss",
     "https://feeds.bbci.co.uk/news/rss.xml",
     "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml",
@@ -36,16 +40,13 @@ RSS_FEEDS = [
     "https://feeds.arstechnica.com/arstechnica/index/",
     "https://www.theverge.com/rss/index.xml",
     "https://feeds.npr.org/1001/rss.xml",
-]
+)
 
 
 def get_content_from_prioritized_feed(
     max_items: int = 5,
 ) -> list[dict[str, str]]:
-    """
-    Implements the "Factorial Permutation Shuffle" to select a single,
-    prioritized RSS feed to explore for new content.
-    """
+    """Select a prioritized RSS feed to explore for new content."""
     if not RSS_FEEDS:
         logger.warning("No RSS feeds configured.")
         return []
@@ -55,7 +56,7 @@ def get_content_from_prioritized_feed(
     feed_url = shuffled_feeds[0]
 
     logger.info(
-        f"Prioritized RSS feed for this cycle (post-shuffle): {feed_url}"
+        f"Prioritized RSS feed for this cycle (post-shuffle): {feed_url}",
     )
 
     try:
@@ -70,29 +71,26 @@ def get_content_from_prioritized_feed(
             content = entry.get("summary", entry.get("description", ""))
             if source_url and content:
                 content_list.append(
-                    {"source_url": source_url, "content": content}
+                    {"source_url": source_url, "content": content},
                 )
 
         logger.info(
-            f"Successfully extracted {len(content_list)} items from the feed."
+            f"Successfully extracted {len(content_list)} items from the feed.",
         )
         return content_list
 
-    except Exception as e:
+    except Exception as exc:
         logger.exception(
-            f"An unexpected error occurred while processing RSS feed {feed_url}: {e}"
+            f"An unexpected error occurred while processing RSS feed {feed_url}: {exc}",
         )
         return []
 
 
 def get_all_headlines_from_feeds() -> list[str]:
-    """
-    Fetches all headlines from ALL configured RSS feeds. This is the new,
-    decentralized engine for the Zeitgeist module.
-    """
+    """Fetch all headlines from ALL configured RSS feeds."""
     all_headlines = []
     logger.info(
-        f"Fetching headlines from all {len(RSS_FEEDS)} RSS feeds for Zeitgeist analysis..."
+        f"Fetching headlines from all {len(RSS_FEEDS)} RSS feeds for Zeitgeist analysis...",
     )
     for feed_url in RSS_FEEDS:
         try:
@@ -100,7 +98,8 @@ def get_all_headlines_from_feeds() -> list[str]:
             if not feed.bozo:
                 for entry in feed.entries:
                     all_headlines.append(entry.get("title", ""))
-        except Exception:
+        except Exception as exc:
+            logger.exception(exc)
             continue
     logger.info(f"Fetched a total of {len(all_headlines)} headlines.")
     return all_headlines
