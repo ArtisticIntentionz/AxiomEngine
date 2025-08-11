@@ -93,6 +93,10 @@ else
         python -m uv sync --locked --extra tests
         flags=""
     fi
+    # Restore files to original state on Linux
+    if [[ "${RUNNER_OS:-}" == "Linux" ]]; then
+        git restore pyproject.toml uv.lock
+    fi
 
     echo "::endgroup::"
 
@@ -106,9 +110,6 @@ else
 
     python -m spacy download en_core_web_sm
 
-    INSTALLDIR=$(python -c "import os, $PROJECT; print(os.path.dirname($PROJECT.__file__))")
-    cp ../pyproject.toml "$INSTALLDIR"
-
     echo "::endgroup::"
     echo "::group:: Run Tests"
     if coverage run --rcfile=../pyproject.toml -m pytest -ra --junitxml=../test-results.xml ../tests --verbose --durations=10 $flags; then
@@ -116,10 +117,6 @@ else
     else
         PASSED=false
     fi
-    PREV_DIR="$PWD"
-    cd "$INSTALLDIR"
-    rm pyproject.toml
-    cd "$PREV_DIR"
     echo "::endgroup::"
     echo "::group::Coverage"
 
