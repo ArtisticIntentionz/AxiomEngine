@@ -7,8 +7,14 @@ echo "::group::Environment"
 uname -a
 env | sort
 PROJECT='axiom_server'
+ON_GITHUB_CI=true
 echo "::endgroup::"
 
+# If not running on Github's CI, discard the summaries
+if [ -z "${GITHUB_STEP_SUMMARY+x}" ]; then
+    GITHUB_STEP_SUMMARY=/dev/null
+    ON_GITHUB_CI=false
+fi
 
 ################################################################
 # We have a Python environment!
@@ -49,8 +55,10 @@ python -m pip install uv==$UV_VERSION
 # Check if running on Linux and install spacy from binaries
 if [[ "${RUNNER_OS:-}" == "Linux" ]]; then
     echo "::group::Installing dependencies for Linux"
-    sudo apt-get update -q
-    sudo apt-get install -y -q libxml2-dev libxslt1-dev
+    if $ON_GITHUB_CI; then
+        sudo apt-get update -q
+        sudo apt-get install -y -q libxml2-dev libxslt1-dev
+    fi
     # Get the Ubuntu version
     UBUNTU_VERSION=$(lsb_release -rs)
     PYTHON_VERSION=$(python -c 'import sys; print("".join(map(str, sys.version_info[:2])))')
@@ -85,6 +93,10 @@ else
         python -m uv sync --locked --extra tests
         flags=""
     fi
+    # Restore files to original state on Linux
+    if [[ "${RUNNER_OS:-}" == "Linux" ]]; then
+        git restore pyproject.toml uv.lock
+    fi
 
     echo "::endgroup::"
 
@@ -98,9 +110,6 @@ else
 
     python -m spacy download en_core_web_sm
 
-    INSTALLDIR=$(python -c "import os, $PROJECT; print(os.path.dirname($PROJECT.__file__))")
-    cp ../pyproject.toml "$INSTALLDIR"
-
     echo "::endgroup::"
     echo "::group:: Run Tests"
     if coverage run --rcfile=../pyproject.toml -m pytest -ra --junitxml=../test-results.xml ../tests --verbose --durations=10 $flags; then
@@ -108,10 +117,6 @@ else
     else
         PASSED=false
     fi
-    PREV_DIR="$PWD"
-    cd "$INSTALLDIR"
-    rm pyproject.toml
-    cd "$PREV_DIR"
     echo "::endgroup::"
     echo "::group::Coverage"
 
