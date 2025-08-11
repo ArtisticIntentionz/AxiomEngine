@@ -18,10 +18,9 @@ from PyQt6.QtWidgets import (
     QTextEdit,
     QPushButton,
     QLabel,
-    QProgressBar,
 )
 from PyQt6.QtCore import QThread, pyqtSignal
-from PyQt6.QtGui import QFont, QIcon
+from PyQt6.QtGui import QFont
 # QIcon can be used later to add a logo
 
 # --- CONFIGURATION (Same as CLI client) ---
@@ -249,7 +248,7 @@ class AxiomClientApp(QWidget):  # type: ignore[misc,unused-ignore,no-any-unimpor
 
 def cli_run() -> int:
     """Application entrypoint."""
-    app = QApplication(sys.argv)
+    _ = QApplication(sys.argv)
     ex = AxiomClientApp()
     ex.show()
     sys.exit(cli_run())
