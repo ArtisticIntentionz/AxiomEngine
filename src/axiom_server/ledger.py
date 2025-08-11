@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
+# Copyright (C) 2025 The Axiom Contributors
+# This program is licensed under the Peer Production License (PPL).
+# See the LICENSE file for full details.
 import datetime
 import enum
 import hashlib
 import json
 import logging
-
-# Copyright (C) 2025 The Axiom Contributors
-# This program is licensed under the Peer Production License (PPL).
-# See the LICENSE file for full details.
 import sys
 import time
 from typing import Any
