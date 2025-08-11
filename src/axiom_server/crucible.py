@@ -1,36 +1,32 @@
-# Axiom - crucible.py
+"""Crucible - Semantic Analysis to extract Facts from text."""
+
+from __future__ import annotations
+
 # Copyright (C) 2025 The Axiom Contributors
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.
 # --- V2.5: UNIFIED VERSION WITH COMMUNITY REFACTOR AND ROBUST SANITIZATION ---
-
-from __future__ import annotations
-
-from dataclasses import dataclass, field
 import logging
-import sys
-import hashlib
 import re
+import sys
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Generic, TypeVar
 
-from spacy.tokens.doc import Doc
-from spacy.tokens.span import Span
-from sqlalchemy.orm import Session
-
+from axiom_server.common import NLP_MODEL, SUBJECTIVITY_INDICATORS
 from axiom_server.ledger import (
     Fact,
+    Semantics,
     add_fact_object_corroboration,
-    get_all_facts_for_analysis,
     insert_relationship_object,
     mark_fact_objects_as_disputed,
-    mark_facts_as_disputed,
-    insert_uncorroborated_fact,
-    Semantics,
 )
-from axiom_server.common import NLP_MODEL, SUBJECTIVITY_INDICATORS
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+    from spacy.tokens.doc import Doc
+    from spacy.tokens.span import Span
+    from sqlalchemy.orm import Session
 
 
 T = TypeVar("T")
@@ -40,8 +36,8 @@ logger = logging.getLogger("crucible")
 stdout_handler = logging.StreamHandler(stream=sys.stdout)
 stdout_handler.setFormatter(
     logging.Formatter(
-        "[%(name)s] %(asctime)s | %(levelname)s | %(filename)s:%(lineno)s >>> %(message)s"
-    )
+        "[%(name)s] %(asctime)s | %(levelname)s | %(filename)s:%(lineno)s >>> %(message)s",
+    ),
 )
 logger.addHandler(stdout_handler)
 logger.setLevel(logging.INFO)
@@ -58,61 +54,78 @@ METADATA_NOISE_PATTERNS = (
 )
 
 
-class CrucibleError(BaseException):
+class CrucibleError(Exception):
+    """Crucible Error Exception."""
+
     __slots__ = ()
 
 
 @dataclass
 class Check(Generic[T]):
+    """Check dataclass."""
+
     run: Callable[[T], bool]
     description: str
 
 
 @dataclass
 class Transformation(Generic[T]):
+    """Transformation dataclass."""
+
     run: Callable[[T], T | None]
     description: str
 
 
 @dataclass
 class Pipeline(Generic[T]):
+    """Pipeline dataclass."""
+
     name: str
     steps: list[Check[T] | Transformation[T]]
 
     def run(self, value: T) -> T | None:
+        """Run pipeline."""
         logger.info(f"running pipeline '{self.name}' on '{value}'")
 
         current_value: T | None = value
 
         for step in self.steps:
-            if isinstance(step, Check):
-                if not step.run(value):
-                    logger.info(
-                        f"pipeline stopped after check: {step.description}"
-                    )
-                    return None
+            if isinstance(step, Check) and not step.run(value):
+                logger.info(
+                    f"pipeline stopped after check: {step.description}",
+                )
+                return None
 
             if isinstance(step, Transformation):
                 try:
                     assert current_value is not None
                     current_value = step.run(current_value)
 
-                except Exception as e:
-                    logger.exception(
-                        f"transformation error '{step.description}' ({e})"
+                except Exception as exc:
+                    error_string = (
+                        f"transformation error '{step.description}' ({exc})",
                     )
-                    raise CrucibleError(
-                        f"transformation error '{step.description}' ({e})"
-                    )
+                    logger.exception(error_string)
+                    raise CrucibleError(error_string) from exc
 
                 if current_value is None:
                     logger.info(
-                        f"pipeline stopped after transformation '{step.description}'"
+                        f"pipeline stopped after transformation '{step.description}'",
                     )
                     break
 
         logger.info(f"pipeline is done and returning '{current_value}'")
         return current_value
+
+
+def remove_prefix(text: str, prefix: str) -> str:
+    """Remove prefix from text.
+
+    Support older python versions that don't have `.removeprefix`
+    """
+    if text.startswith(prefix):
+        return text[len(prefix) :]
+    return text
 
 
 TEXT_SANITIZATION: Pipeline[str] = Pipeline(
@@ -124,11 +137,7 @@ TEXT_SANITIZATION: Pipeline[str] = Pipeline(
             "Remove read times and comment counts (e.g., '42 2 min read ')",
         ),
         Transformation(
-            lambda text: (
-                text.lstrip("advertisement ")
-                if text.startswith("advertisement ")
-                else text
-            ),
+            lambda text: remove_prefix(text, "advertisement "),
             "Remove 'Advertisement' from the start of a sentence (case-insensitive)",
         ),
         Transformation(
@@ -147,14 +156,16 @@ SENTENCE_CHECKS: Pipeline[Span] = Pipeline(
     "sentence sanitization",
     [
         Check(
-            lambda sent: len(sent.text.split()) >= 8, "sentence minimal length"
+            lambda sent: len(sent.text.split()) >= 8,
+            "sentence minimal length",
         ),
         Check(
             lambda sent: len(sent.text.split()) <= 100,
             "sentence maximal length",
         ),
         Check(
-            lambda sent: len(sent.ents) > 0, "sentence must contain entities"
+            lambda sent: len(sent.ents) > 0,
+            "sentence must contain entities",
         ),
         Check(
             lambda sent: any(
@@ -168,18 +179,18 @@ SENTENCE_CHECKS: Pipeline[Span] = Pipeline(
 
 
 def has_subject_and_object(fact: Fact) -> bool:
+    """Return if Fact's semantics have a subject and object."""
     subject, object_ = _get_subject_and_object(fact.get_semantics()["doc"])
     return subject is not None and object_ is not None
 
 
 def set_subject_and_object(fact: Fact) -> Fact:
-    semantics = fact.get_semantics()
-    subject, object_ = _get_subject_and_object(semantics["doc"])
-    assert subject is not None
-    assert object_ is not None
-    semantics["subject"] = subject
-    semantics["object"] = object_
-    fact.set_semantics(semantics)
+    """Set a Fact's semantic subject and object fields."""
+    new_semantics = semantics_check_and_set_subject_object(
+        fact.get_semantics(),
+    )
+    assert new_semantics is not None
+    fact.set_semantics(new_semantics)
     return fact
 
 
@@ -190,7 +201,7 @@ FACT_PREANALYSIS: Pipeline[Fact] = Pipeline(
 
 
 def _get_subject_and_object(doc: Doc) -> tuple[str | None, str | None]:
-    """A helper function to extract the main subject and object from a spaCy doc."""
+    """Extract the main subject and object from a spaCy doc."""
     subject: str | None = None
     d_object: str | None = None
 
@@ -211,6 +222,7 @@ def _get_subject_and_object(doc: Doc) -> tuple[str | None, str | None]:
 def semantics_check_and_set_subject_object(
     semantics: Semantics,
 ) -> Semantics | None:
+    """Set a Semantics' subject and object fields from spaCy."""
     subject, object_ = _get_subject_and_object(semantics["doc"])
     if subject is None or object_ is None:
         return None
@@ -225,14 +237,15 @@ SEMANTICS_CHECKS = Pipeline(
         Transformation(
             semantics_check_and_set_subject_object,
             "check for presence of subject and object",
-        )
+        ),
     ],
 )
 
 
 def extract_facts_from_text(text_content: str) -> list[Fact]:
-    """
-    The main V2.2 Crucible pipeline. It now sanitizes text before analysis.
+    """Return list of Facts from text content using semantic analysis.
+
+    Sanitizes text before analysis.
     It outputs Facts that are not added to the database and not linked to any source.
     It only has pre computed semantics, and went through the FACT_PREANALYSIS pipeline.
     """
@@ -241,7 +254,7 @@ def extract_facts_from_text(text_content: str) -> list[Fact]:
 
     if sanitized_text is None:
         logger.info(
-            f"text sanitizer rejected input content, returning no facts"
+            "text sanitizer rejected input content, returning no facts",
         )
         return []
 
@@ -249,12 +262,13 @@ def extract_facts_from_text(text_content: str) -> list[Fact]:
 
     fact: Fact | None
     sentence: Span | None
+    semantics: Semantics | None
 
     for sentence in doc.sents:
         if (sentence := SENTENCE_CHECKS.run(sentence)) is not None:
             fact = Fact(content=sentence.text.strip())
             semantics = Semantics(
-                {"doc": sentence.as_doc(), "object": "", "subject": ""}
+                {"doc": sentence.as_doc(), "object": "", "subject": ""},
             )
 
             if (semantics := SEMANTICS_CHECKS.run(semantics)) is not None:
@@ -278,6 +292,7 @@ def check_contradiction(
     new_subject: str,
     new_object: str,
 ) -> bool:
+    """Check for contradiction between Facts."""
     if new_subject == existing_subject and new_object != existing_object:
         new_is_negated = any(tok.dep_ == "neg" for tok in new_doc)
         existing_is_negated = any(tok.dep_ == "neg" for tok in existing_doc)
@@ -300,21 +315,24 @@ def check_corroboration(
     new_subject: str,
     new_object: str,
 ) -> bool:
+    """Check for corroboration between Facts."""
     return bool(existing_fact.content[:50] == new_fact.content[:50])
 
 
 @dataclass
 class CrucibleFactAdder:
+    """Crucible fact adder."""
+
     session: Session
     # count of facts contradicted
     contradiction_count: int = 0
     # count of facts corroborated
     corroboration_count: int = 0
     addition_count: int = 0
-    existing_facts: list[Fact] = field(default_factory=lambda: [])
+    existing_facts: list[Fact] = field(default_factory=list)
 
     def add(self, fact: Fact) -> None:
-        """fact is assumed to already exist in the database"""
+        """Fact is assumed to already exist in the database."""
         assert fact.id is not None
 
         pipeline = Pipeline(
@@ -322,7 +340,8 @@ class CrucibleFactAdder:
             [
                 Transformation(self._set_hash, "Computing"),
                 Transformation(
-                    self._contradiction_check, "Contradiction Check"
+                    self._contradiction_check,
+                    "Contradiction Check",
                 ),
                 Transformation(
                     self._corroborate_against_existing_facts,
@@ -340,14 +359,17 @@ class CrucibleFactAdder:
         self.session.commit()
 
     def _load_all_facts(self) -> None:
+        """Set self.existing_facts from querying for facts."""
         self.existing_facts = self.session.query(Fact).all()
 
-    def _set_hash(self, fact: Fact) -> Fact:
+    @staticmethod
+    def _set_hash(fact: Fact) -> Fact:
+        """Set Fact object's `hash` attribute."""
         fact.set_hash()
         return fact
 
     def _contradiction_check(self, fact: Fact) -> Fact:
-        """check with all existing facts if it contradicts with any, changing database accordingly"""
+        """Check with all existing facts if fact contradicts with any others, changing database accordingly."""
         new_semantics = fact.get_semantics()
         new_subject, new_object = (
             new_semantics["subject"],
@@ -382,17 +404,20 @@ class CrucibleFactAdder:
                 new_object,
             ):
                 mark_fact_objects_as_disputed(
-                    self.session, existing_fact, fact
+                    self.session,
+                    existing_fact,
+                    fact,
                 )
                 self.session.commit()
                 self.contradiction_count += 1
                 logger.info(
-                    f"Contradiction found between '{fact.id=}' and '{existing_fact.id=}'"
+                    f"Contradiction found between '{fact.id=}' and '{existing_fact.id=}'",
                 )
 
         return fact
 
     def _corroborate_against_existing_facts(self, fact: Fact) -> Fact:
+        """Check with all existing facts if fact corroborates with any others, changing database accordingly."""
         new_semantics = fact.get_semantics()
         new_subject, new_object = (
             new_semantics["subject"],
@@ -429,6 +454,7 @@ class CrucibleFactAdder:
         return fact
 
     def _detect_relationships(self, fact: Fact) -> Fact:
+        """Detect relationships between Fact and others, returning mutataed fact."""
         new_semantics = fact.get_semantics()
         new_doc = new_semantics["doc"]
         new_entities = {ent.text.lower() for ent in new_doc.ents}
@@ -445,7 +471,10 @@ class CrucibleFactAdder:
 
             if score > 0:
                 insert_relationship_object(
-                    self.session, fact, existing_fact, score
+                    self.session,
+                    fact,
+                    existing_fact,
+                    score,
                 )
 
         return fact
