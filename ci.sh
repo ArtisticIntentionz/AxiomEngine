@@ -7,8 +7,14 @@ echo "::group::Environment"
 uname -a
 env | sort
 PROJECT='axiom_server'
+ON_GITHUB_CI=true
 echo "::endgroup::"
 
+# If not running on Github's CI, discard the summaries
+if [ -z "${GITHUB_STEP_SUMMARY+x}" ]; then
+    GITHUB_STEP_SUMMARY=/dev/null
+    ON_GITHUB_CI=false
+fi
 
 ################################################################
 # We have a Python environment!
@@ -49,8 +55,10 @@ python -m pip install uv==$UV_VERSION
 # Check if running on Linux and install spacy from binaries
 if [[ "${RUNNER_OS:-}" == "Linux" ]]; then
     echo "::group::Installing dependencies for Linux"
-    sudo apt-get update -q
-    sudo apt-get install -y -q libxml2-dev libxslt1-dev
+    if $ON_GITHUB_CI; then
+        sudo apt-get update -q
+        sudo apt-get install -y -q libxml2-dev libxslt1-dev
+    fi
     # Get the Ubuntu version
     UBUNTU_VERSION=$(lsb_release -rs)
     PYTHON_VERSION=$(python -c 'import sys; print("".join(map(str, sys.version_info[:2])))')

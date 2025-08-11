@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "axiom_server"
-version = "3.1.0"
+dynamic = ["version"]
 authors = [
   { name="Vic", email="victronevarez88@gmail.com" },
 ]
@@ -35,15 +35,16 @@ dependencies = [
     "Flask==3.0.3",
     "gunicorn==22.0.0",
     "requests==2.31.0",
-
     # --- Database & Blockchain ---
     "sqlalchemy",
-
     # --- AI & Natural Language Processing ---
-    "spacy==3.7.4",
+    "spacy==3.8.7",
     "pydantic",
     "feedparser==6.0.11",
 ]
+
+[tool.setuptools.dynamic]
+version = {attr = "axiom_server.node.__version__"}
 
 [project.urls]
 "Source" = "https://github.com/ArtisticIntentionz/AxiomEngine"
@@ -102,6 +103,7 @@ combine-as-imports = true
 [tool.ruff]
 line-length = 79
 fix = true
+
 include = ["*.py", "*.pyi", "**/pyproject.toml"]
 
 [tool.ruff.lint]
