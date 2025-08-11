@@ -29,7 +29,10 @@ logger.setLevel(logging.INFO)
 logger.propagate = False
 
 
-def link_related_facts(session: Session, new_facts_batch: list[Fact]) -> None:
+def link_related_facts(
+    session: Session,
+    new_facts_batch: list[Fact],
+) -> None:
     """Compare a batch of new facts against the entire ledger to find and store relationships.
 
     Now a native citizen of the ORM, accepting a session object and

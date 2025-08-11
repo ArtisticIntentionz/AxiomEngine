@@ -45,8 +45,9 @@ def sync_with_peer(
 ) -> tuple[str, int]:
     """Synchronize the local ledger with a peer's ledger.
 
-    The V3.1 P2P sync protocol. It synchronizes and validates the entire blockchain,
-    then fetches any missing facts contained within the new blocks.
+    Synchronizes and validates the entire blockchain, then fetches any
+    missing facts contained within the new blocks.
+
     Returns a status string and the number of new blocks received.
     """
     logger.info(f"Attempting to sync blockchain with peer: {peer_url}")
