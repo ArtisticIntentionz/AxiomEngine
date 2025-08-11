@@ -11,6 +11,7 @@ import json
 import logging
 import sys
 import time
+import enum
 from typing import Any
 
 from pydantic import BaseModel
@@ -19,6 +20,7 @@ from sqlalchemy import (
     Boolean,
     create_engine,
     Engine,
+    Enum,
     Float,
     ForeignKey,
     Integer,
@@ -60,6 +62,15 @@ class LedgerError(BaseException):
 
 class Base(DeclarativeBase):
     __slots__ = ()
+
+
+class FactStatus(str, enum.Enum):
+    """Defines the sophisticated verification lifecycle for a Fact."""
+
+    INGESTED = "ingested"
+    LOGICALLY_CONSISTENT = "logically_consistent"
+    CORROBORATED = "corroborated"
+    EMPIRICALLY_VERIFIED = "empirically_verified"
 
 
 class Block(Base):
@@ -124,9 +135,10 @@ class Fact(Base):
     __tablename__ = "fact"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     content: Mapped[str] = mapped_column(String, default="", nullable=False)
-    status: Mapped[str] = mapped_column(
-        String, default="ingested", nullable=False
+    status: Mapped[FactStatus] = mapped_column(
+        Enum(FactStatus), default=FactStatus.INGESTED, nullable=False
     )
+
     score: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     disputed: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False
@@ -150,10 +162,6 @@ class Fact(Base):
         primaryjoin="or_(Fact.id == FactLink.fact1_id, Fact.id == FactLink.fact2_id)",
         viewonly=True,
     )
-
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-        self.status = self.status or "ingested"
 
     @classmethod
     def from_model(cls, model: SerializedFact) -> Self:
