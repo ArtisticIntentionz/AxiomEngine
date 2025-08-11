@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+# Axiom - common.py
+# Copyright (C) 2025 The Axiom Contributors
+# This program is licensed under the Peer Production License (PPL).
+# See the LICENSE file for full details.
 from typing import Final
 
 import spacy
 
 NLP_MODEL: Final = spacy.load("en_core_web_sm")
+
 SUBJECTIVITY_INDICATORS: Final = {
     "believe",
     "think",
@@ -55,17 +59,3 @@ SUBJECTIVITY_INDICATORS: Final = {
     "unwelcome",
     "flatly",
 }
-
-
-@dataclass
-class TrustedURL:
-    """Trusted URL."""
-
-    value: str
-
-
-@dataclass
-class UntrustedURL:
-    """Untrusted URL."""
-
-    value: str

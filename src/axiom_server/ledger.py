@@ -5,21 +5,26 @@ from __future__ import annotations
 # Copyright (C) 2025 The Axiom Contributors
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.
-# --- UNIFIED V2 VERSION WITH ALL REQUIRED FUNCTIONS ---
 import datetime
+import enum
 import hashlib
 import json
 import logging
 import sys
+import time
+from typing import Any
 
 from pydantic import BaseModel
 from spacy.tokens.doc import Doc
 from sqlalchemy import (
     Boolean,
     Engine,
+    Enum,
+    Float,
     ForeignKey,
     Integer,
     String,
+    Text,
     create_engine,
 )
 from sqlalchemy.orm import (
@@ -42,7 +47,6 @@ stdout_handler.setFormatter(
         "[%(name)s] %(asctime)s | %(levelname)s | %(filename)s:%(lineno)s >>> %(message)s",
     ),
 )
-
 logger.addHandler(stdout_handler)
 logger.setLevel(logging.INFO)
 logger.propagate = False
@@ -62,6 +66,55 @@ class Base(DeclarativeBase):
     """DeclarativeBase subclass."""
 
     __slots__ = ()
+
+
+class FactStatus(str, enum.Enum):
+    """Defines the sophisticated verification lifecycle for a Fact."""
+
+    INGESTED = "ingested"
+    LOGICALLY_CONSISTENT = "logically_consistent"
+    CORROBORATED = "corroborated"
+    EMPIRICALLY_VERIFIED = "empirically_verified"
+
+
+class Block(Base):
+    """Block table."""
+
+    __tablename__ = "blockchain"
+    height: Mapped[int] = mapped_column(Integer, primary_key=True)
+    hash: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    previous_hash: Mapped[str] = mapped_column(String, nullable=False)
+    timestamp: Mapped[float] = mapped_column(Float, nullable=False)
+    nonce: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    fact_hashes: Mapped[str] = mapped_column(Text, nullable=False)
+
+    def __init__(self, **kwargs: Any) -> None:
+        """Initialize Block."""
+        super().__init__(**kwargs)
+        self.nonce = self.nonce or 0
+
+    def calculate_hash(self) -> str:
+        """Return hash from this block."""
+        block_string = json.dumps(
+            {
+                "height": self.height,
+                "previous_hash": self.previous_hash,
+                "fact_hashes": sorted(json.loads(self.fact_hashes)),
+                "timestamp": self.timestamp,
+                "nonce": self.nonce,
+            },
+            sort_keys=True,
+        ).encode()
+        return hashlib.sha256(block_string).hexdigest()
+
+    def seal_block(self, difficulty: int) -> None:
+        """Mine block with difficulty number of leading zeros."""
+        self.hash = self.calculate_hash()
+        target = "0" * difficulty
+        while not self.hash.startswith(target):
+            self.nonce += 1
+            self.hash = self.calculate_hash()
+        logger.info(f"Block sealed! Hash: {self.hash}")
 
 
 class SerializedSemantics(BaseModel):
@@ -84,9 +137,7 @@ def semantics_from_serialized(serialized: SerializedSemantics) -> Semantics:
     """Return Semantics dictionary from serialized semantics."""
     return Semantics(
         {
-            "doc": Doc(NLP_MODEL.vocab).from_json(
-                serialized.doc,  # type: ignore[arg-type]
-            ),
+            "doc": Doc(NLP_MODEL.vocab).from_json(json.loads(serialized.doc)),
             "subject": serialized.subject,
             "object": serialized.object,
         },
@@ -97,9 +148,14 @@ class Fact(Base):
     """Fact entry."""
 
     __tablename__ = "fact"
-
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     content: Mapped[str] = mapped_column(String, default="", nullable=False)
+    status: Mapped[FactStatus] = mapped_column(
+        Enum(FactStatus),
+        default=FactStatus.INGESTED,
+        nullable=False,
+    )
+
     score: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     disputed: Mapped[bool] = mapped_column(
         Boolean,
@@ -118,7 +174,7 @@ class Fact(Base):
         String,
         default="{}",
         nullable=False,
-    )  # holds JSON string
+    )
 
     sources: Mapped[list[Source]] = relationship(
         "Source",
@@ -140,7 +196,7 @@ class Fact(Base):
             disputed=model.disputed,
             hash=model.hash,
             last_checked=model.last_checked,
-            semantics=json.dumps(model.semantics),
+            semantics=model.semantics.model_dump_json(),
         )
 
     @property
@@ -167,8 +223,14 @@ class Fact(Base):
         return semantics_from_serialized(serializable)
 
     def set_semantics(self, semantics: Semantics) -> None:
-        """Set self.semantics."""
-        self.semantics = json.dumps(semantics)
+        """Serialize semantics for database storage."""
+        self.semantics = json.dumps(
+            {
+                "doc": json.dumps(semantics["doc"].to_json()),
+                "subject": semantics["subject"],
+                "object": semantics["object"],
+            },
+        )
 
 
 class SerializedFact(BaseModel):
@@ -200,10 +262,8 @@ class Source(Base):
     """Source table entry."""
 
     __tablename__ = "source"
-
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     domain: Mapped[str] = mapped_column(String, nullable=False)
-
     facts: Mapped[list[Fact]] = relationship(
         "Fact",
         secondary="fact_source_link",
@@ -215,7 +275,6 @@ class FactSourceLink(Base):
     """Fact Source Link table entry."""
 
     __tablename__ = "fact_source_link"
-
     fact_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("fact.id"),
@@ -232,18 +291,14 @@ class FactLink(Base):
     """Fact Link table entry."""
 
     __tablename__ = "fact_link"
-
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    # >0 strong bond, -1 contradicting
     score: Mapped[int] = mapped_column(Integer, nullable=False)
-
     fact1_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("fact.id"),
         nullable=False,
     )
     fact1: Mapped[Fact] = relationship("Fact", foreign_keys=[fact1_id])
-
     fact2_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("fact.id"),
@@ -256,6 +311,27 @@ def initialize_database(engine: Engine) -> None:
     """Ensure the database file and ALL required tables ('facts', 'fact_relationships') exist."""
     Base.metadata.create_all(engine)
     logger.info("initialized database")
+
+
+def get_latest_block(session: Session) -> Block | None:
+    """Return latest block from session if it exists."""
+    return session.query(Block).order_by(Block.height.desc()).first()
+
+
+def create_genesis_block(session: Session) -> None:
+    """Create initial block."""
+    if get_latest_block(session):
+        return
+    genesis = Block(
+        height=0,
+        previous_hash="0",
+        fact_hashes=json.dumps([]),
+        timestamp=time.time(),
+    )
+    genesis.seal_block(difficulty=2)
+    session.add(genesis)
+    session.commit()
+    logger.info("Genesis Block created and sealed.")
 
 
 def get_all_facts_for_analysis(session: Session) -> list[Fact]:
@@ -271,15 +347,10 @@ def add_fact_corroboration(
     """Increment a fact's trust score and add the source to it. Both must already exist."""
     fact = session.get(Fact, fact_id)
     source = session.get(Source, source_id)
-
     if fact is None:
-        logger.error(f"fact not found: {fact_id=}")
         raise LedgerError(f"fact not found: {fact_id=}")
-
     if source is None:
-        logger.error(f"source not found: {source_id=}")
         raise LedgerError(f"source not found: {source_id=}")
-
     add_fact_object_corroboration(fact, source)
 
 
@@ -300,11 +371,8 @@ def insert_uncorroborated_fact(
 ) -> None:
     """Insert a fact for the first time. The source must exist."""
     source = session.get(Source, source_id)
-
     if source is None:
-        logger.error(f"source not found: {source_id=}")
         raise LedgerError(f"source not found: {source_id=}")
-
     fact = Fact(content=content, score=0, sources=[source])
     fact.set_hash()
     session.add(fact)
@@ -320,15 +388,10 @@ def insert_relationship(
     """Insert a relationship between two facts into the knowledge graph. Both facts must exist."""
     fact1 = session.get(Fact, fact_id_1)
     fact2 = session.get(Fact, fact_id_2)
-
     if fact1 is None:
-        logger.error(f"fact not found: {fact_id_1=}")
         raise LedgerError(f"fact(s) not found: {fact_id_1=}")
-
     if fact2 is None:
-        logger.error(f"fact not found: {fact_id_2=}")
         raise LedgerError(f"fact(s) not found: {fact_id_2=}")
-
     insert_relationship_object(session, fact1, fact2, score)
 
 
@@ -339,11 +402,7 @@ def insert_relationship_object(
     score: int,
 ) -> None:
     """Insert fact relationship given Fact objects."""
-    link = FactLink(
-        score=score,
-        fact1=fact1,
-        fact2=fact2,
-    )
+    link = FactLink(score=score, fact1=fact1, fact2=fact2)
     session.add(link)
     logger.info(
         f"inserted relationship between {fact1.id=} and {fact2.id=} with {score=}",
@@ -358,15 +417,10 @@ def mark_facts_as_disputed(
     """Mark two facts as disputed and links them together."""
     original_fact = session.get(Fact, original_fact_id)
     new_fact = session.get(Fact, new_fact_id)
-
     if original_fact is None:
-        logger.error(f"fact not found: {original_fact_id=}")
         raise LedgerError(f"fact not found: {original_fact_id=}")
-
     if new_fact is None:
-        logger.error(f"fact not found: {new_fact_id=}")
         raise LedgerError(f"fact not found: {new_fact_id=}")
-
     mark_fact_objects_as_disputed(session, original_fact, new_fact)
 
 
@@ -378,11 +432,7 @@ def mark_fact_objects_as_disputed(
     """Mark two Fact objects as disputed and link them."""
     original_fact.disputed = True
     new_fact.disputed = True
-    link = FactLink(
-        score=-1,
-        fact1=original_fact,
-        fact2=new_fact,
-    )
+    link = FactLink(score=-1, fact1=original_fact, fact2=new_fact)
     session.add(link)
     logger.info(
         f"marked facts as disputed: {original_fact.id=}, {new_fact.id=}",
