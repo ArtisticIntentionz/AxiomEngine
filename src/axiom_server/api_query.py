@@ -7,8 +7,6 @@ from __future__ import annotations
 # See the LICENSE file for full details.
 from typing import TYPE_CHECKING, Final
 
-from sqlalchemy.orm import Session
-
 from axiom_server.ledger import Fact
 
 if TYPE_CHECKING:
@@ -16,12 +14,12 @@ if TYPE_CHECKING:
 
     from sqlalchemy.orm import Session
 
-STATUS_HIERARCHY = [
+STATUS_HIERARCHY: Final = (
     "ingested",
     "logically_consistent",
     "corroborated",
     "empirically_verified",
-]
+)
 
 DB_NAME: Final = "axiom_ledger.db"
 

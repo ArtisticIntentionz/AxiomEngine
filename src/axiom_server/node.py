@@ -429,10 +429,15 @@ def build_instance() -> tuple[AxiomNode, int]:
     )
     port = int(os.environ.get("PORT", 5000))
     bootstrap = os.environ.get("BOOTSTRAP_PEER")
+    node = AxiomNode(port=port, bootstrap_peer=bootstrap)
+    node.start_background_tasks()
+    return node, port
+
+
+def set_global_instance(node: AxiomNode) -> None:
+    """Set global axiom node instance."""
     global node_instance
-    node_instance = AxiomNode(port=port, bootstrap_peer=bootstrap)
-    node_instance.start_background_tasks()
-    return node_instance, port
+    node_instance = node
 
 
 def host_server(port: int) -> None:
@@ -444,14 +449,10 @@ def host_server(port: int) -> None:
 def cli_run(do_host: bool = True) -> None:
     """Command line interface entrypoint."""
     port = 5000
-    try:
-        node_instance_exists = (
-            "node_instance" in globals() and node_instance is not None
-        )
-    except NameError:
-        node_instance_exists = False
+    node_instance_exists = "node_instance" in globals()
     if not node_instance_exists:
-        _, port = build_instance()
+        node_instance, port = build_instance()
+        set_global_instance(node_instance)
     if do_host:
         host_server(port)
 
