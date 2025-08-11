@@ -1,20 +1,36 @@
-# Axiom - zeitgeist_engine.py
+"""Zeitgeist Engine - Get trending topics from the news."""
+
+from __future__ import annotations
+
 # Copyright (C) 2025 The Axiom Contributors
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.
-
 import logging
+import sys
 from collections import Counter
+
 from axiom_server import discovery_rss
 from axiom_server.common import NLP_MODEL
 
-logger = logging.getLogger("zeitgeist")
+logger = logging.getLogger(__name__)
+
+
+stdout_handler = logging.StreamHandler(stream=sys.stdout)
+stdout_handler.setFormatter(
+    logging.Formatter(
+        "[%(name)s] %(asctime)s | %(levelname)s | %(filename)s:%(lineno)s >>> %(message)s",
+    ),
+)
+logger.addHandler(stdout_handler)
+logger.setLevel(logging.INFO)
+logger.propagate = False
 
 
 def get_trending_topics(top_n: int = 1) -> list[str]:
-    """
-    The new V3.1 Zeitgeist engine. It discovers trending topics by analyzing
-    the headlines from all configured RSS feeds. 100% free and decentralized.
+    """Fetch recent news articles and return the most frequently mentioned entities.
+
+    Discovers trending topics by analyzing the headlines from all
+    configured RSS feeds. 100% free and decentralized.
     """
     logger.info("Discovering trending topics via V3 RSS analysis...")
     all_headlines = discovery_rss.get_all_headlines_from_feeds()

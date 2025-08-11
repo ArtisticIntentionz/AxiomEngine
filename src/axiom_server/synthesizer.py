@@ -1,13 +1,18 @@
-# Axiom - synthesizer.py
+"""Synthesizer - Compare facts."""
+
+from __future__ import annotations
+
 # Copyright (C) 2025 The Axiom Contributors
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.
-
-from __future__ import annotations
 import logging
 import sys
 from typing import TYPE_CHECKING
-from .ledger import Fact, insert_relationship_object
+
+from axiom_server.ledger import (
+    Fact,
+    insert_relationship_object,
+)
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -16,8 +21,8 @@ logger = logging.getLogger("synthesizer")
 stdout_handler = logging.StreamHandler(stream=sys.stdout)
 stdout_handler.setFormatter(
     logging.Formatter(
-        "[%(name)s] %(asctime)s | %(levelname)s | %(filename)s:%(lineno)s >>> %(message)s"
-    )
+        "[%(name)s] %(asctime)s | %(levelname)s | %(filename)s:%(lineno)s >>> %(message)s",
+    ),
 )
 logger.addHandler(stdout_handler)
 logger.setLevel(logging.INFO)
@@ -25,10 +30,11 @@ logger.propagate = False
 
 
 def link_related_facts(session: Session, new_facts_batch: list[Fact]) -> None:
-    """
-    The new V3.1 Synthesizer. It is now a native citizen of the ORM,
-    accepting a session object and operating on Fact objects directly.
-    It leverages pre-computed semantics for massive performance gains.
+    """Compare a batch of new facts against the entire ledger to find and store relationships.
+
+    Now a native citizen of the ORM, accepting a session object and
+    operating on Fact objects directly. Leverages pre-computed
+    semantics for massive performance gains.
     """
     logger.info("beginning Knowledge Graph linking...")
     if not new_facts_batch:
@@ -56,11 +62,14 @@ def link_related_facts(session: Session, new_facts_batch: list[Fact]) -> None:
             if shared_entities:
                 relationship_score = len(shared_entities)
                 insert_relationship_object(
-                    session, new_fact, existing_fact, relationship_score
+                    session,
+                    new_fact,
+                    existing_fact,
+                    relationship_score,
                 )
                 links_found += 1
 
     session.commit()
     logger.info(
-        f"linking complete. Found and stored {links_found} new relationships."
+        f"linking complete. Found and stored {links_found} new relationships.",
     )

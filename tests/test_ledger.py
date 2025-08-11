@@ -1,21 +1,20 @@
 # Axiom - test_ledger.py
 
-import pytest
-from sqlalchemy.orm import sessionmaker, Session
-import time
 import json
+import time
 
-# We now import the new, complete set of V3.1 ledger components to be tested.
+import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+
 from axiom_server.ledger import (
     Base,
-    Fact,
     Block,
+    Fact,
     Source,
-    LedgerError,
-    get_latest_block,
     create_genesis_block,
+    get_latest_block,
 )
-from sqlalchemy import create_engine
 
 # Use an in-memory database for fast, isolated tests.
 engine = create_engine("sqlite:///:memory:")
@@ -24,7 +23,7 @@ SessionLocal = sessionmaker(bind=engine)
 
 @pytest.fixture
 def db_session() -> Session:
-    """Provides a clean, isolated database session for each test function."""
+    """Return a clean, isolated database session."""
     Base.metadata.create_all(engine)
     session = SessionLocal()
     try:
