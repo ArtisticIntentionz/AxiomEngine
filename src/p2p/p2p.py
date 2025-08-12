@@ -21,7 +21,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.exceptions import InvalidSignature
 
-from p2p.constants import BOOTSTRAP_SERVER_IP_ADDR, BOOTSTRAP_SERVER_PORT, ENCODING, KEY_SIZE, NODE_BACKLOG, NODE_CHECK_TIME, NODE_CHUNK_SIZE, NODE_CONNECTION_TIMEOUT, SEPARATOR
+from p2p.constants import BOOTSTRAP_SERVER_IP_ADDR, BOOTSTRAP_SERVER_PORT, ENCODING, KEY_SIZE, NODE_BACKLOG, NODE_CERT_FILE, NODE_CHECK_TIME, NODE_CHUNK_SIZE, NODE_CONNECTION_TIMEOUT, NODE_KEY_FILE, SEPARATOR
 
 logger = logging.getLogger(__name__)
 
@@ -255,7 +255,7 @@ class Node:
     @staticmethod
     def start(ip_address: str, port: int = 0) -> Node:
         context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-        context.load_cert_chain(certfile="node.crt", keyfile="node.key")
+        context.load_cert_chain(certfile=NODE_CERT_FILE, keyfile=NODE_KEY_FILE)
         server_socket = Socket(socket_lib.AF_INET, socket_lib.SOCK_STREAM)
         server_socket.bind((ip_address, port))
         server_socket.listen(NODE_BACKLOG)
