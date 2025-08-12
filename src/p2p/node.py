@@ -6,10 +6,10 @@ import ssl
 import logging
 import sys
 import socket as socket_lib
-import struct
 import select
 from enum import Enum
 from dataclasses import dataclass
+import time
 from typing import Any, Callable, Iterable, Literal, Self, Union
 from socket import socket as Socket
 
@@ -21,7 +21,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.exceptions import InvalidSignature
 
-from p2p.constants import BOOTSTRAP_SERVER_IP_ADDR, BOOTSTRAP_SERVER_PORT, ENCODING, KEY_SIZE, NODE_BACKLOG, NODE_CERT_FILE, NODE_CHECK_TIME, NODE_CHUNK_SIZE, NODE_CONNECTION_TIMEOUT, NODE_KEY_FILE, SEPARATOR
+from p2p.constants import BOOTSTRAP_SERVER_IP_ADDR, BOOTSTRAP_SERVER_PORT, ENCODING, KEY_SIZE, NODE_BACKLOG, NODE_CERT_FILE, NODE_CHECK_TIME, NODE_CHUNK_SIZE, NODE_CONNECTION_TIMEOUT, NODE_KEY_FILE, SEPARATOR, SIGNATURE_SIZE
 
 logger = logging.getLogger(__name__)
 
@@ -51,8 +51,8 @@ class RawMessage(BaseModel):
     @staticmethod
     def from_bytes(data: bytes) -> RawMessage:
         return RawMessage(
-            signature=data[:KEY_SIZE],
-            data=data[KEY_SIZE:]
+            signature=data[:SIGNATURE_SIZE],
+            data=data[SIGNATURE_SIZE:]
         )
     
     def check_signature(self, public_key: rsa.RSAPublicKey) -> bool:
@@ -140,7 +140,8 @@ class SerializedPeer(BaseModel):
             public_key=None,
         )
 
-class Peer(BaseModel):
+@dataclass
+class Peer:
     ip_address: str
     port: int|None
     public_key: rsa.RSAPublicKey|None
@@ -255,13 +256,24 @@ class Node:
     @staticmethod
     def start(ip_address: str, port: int = 0) -> Node:
         context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+
+        if not NODE_CERT_FILE.exists():
+            message = f"cannot load cert file {NODE_CERT_FILE}"
+            logger.error(message)
+            raise P2PRuntimeError(message)
+        
+        if not NODE_KEY_FILE.exists():
+            message = f"cannot load key file {NODE_KEY_FILE}"
+            logger.error(message)
+            raise P2PRuntimeError(message)
+
         context.load_cert_chain(certfile=NODE_CERT_FILE, keyfile=NODE_KEY_FILE)
         server_socket = Socket(socket_lib.AF_INET, socket_lib.SOCK_STREAM)
         server_socket.bind((ip_address, port))
         server_socket.listen(NODE_BACKLOG)
         secure_server_socket = context.wrap_socket(server_socket, server_side=True)
         private_key, public_key = generate_key_pair()
-        computed_ip_address, computed_port = server_socket.getsockname()
+        computed_ip_address, computed_port = secure_server_socket.getsockname()
         assert isinstance(computed_ip_address, str)
         assert isinstance(computed_port, int)
         logger.info(f"started node on {computed_ip_address}:{computed_port}")
@@ -289,8 +301,12 @@ class Node:
         )
 
         if self.server_socket in readable:
-            socket, addr = self.server_socket.accept()
-            self._handle_new_connection(socket, addr)
+            try:
+                socket, addr = self.server_socket.accept()
+                self._handle_new_connection(socket, addr)
+
+            except Exception as e:
+                logger.exception(f"error while accepting incoming connection: {e}")
 
         for link in self.peer_links:
             if link.socket in readable:
@@ -360,7 +376,13 @@ class Node:
         try:
             secure_socket.connect((ip_address, port))
 
-        except (socket_lib.error, socket_lib.herror, socket_lib.gaierror, socket_lib.timeout) as e:
+        except (
+            socket_lib.error, socket_lib.herror, socket_lib.gaierror,
+            socket_lib.timeout, TimeoutError, InterruptedError,
+            Exception
+        ) as e:
+            # just in case you want to go back to specific error catching,
+            # don't delete the explicit error types
             logger.exception(f"error while trying to connect to {ip_address}:{port} ({e})")
             return None
         
@@ -417,16 +439,20 @@ class Node:
         return False
 
     def _handle_peers_request(self, link: PeerLink):
+        peers = [link.peer for link in self.peer_links if link.peer.can_be_shared()]
+        logger.info(f"{link.fmt_addr()} requested we share peers with them, sharing {len(peers)} peers")
+
         self._send_message(
             link,
-            Message.peers_sharing(
-                [link.peer for link in self.peer_links if link.peer.can_be_shared()]
-            )
+            Message.peers_sharing(peers)
         )
 
     def _handle_peers_sharing(self, link: PeerLink, content: PeersSharing):
+        logger.info(f"{link.fmt_addr()} shared {len(content.peers)} peers")
+
         for serialized_peer in content.peers:
             shared_peer = serialized_peer.to_peer()
+            if shared_peer.ip_address == self.ip_address and shared_peer.port == self.port: continue
             assert shared_peer.port is not None
             if self.search_link_by_peer(lambda peer: peer.ip_address==shared_peer.ip_address and peer.port==shared_peer.port): continue
             self._create_link(shared_peer.ip_address, shared_peer.port)
@@ -519,3 +545,15 @@ class Node:
             link.buffer, rest = link.buffer.split(SEPARATOR, 1)
             self._handle_buffer_readable(link)
             link.buffer = rest
+
+if __name__ == "__main__":
+    try:
+        with NodeContextManager(Node.start("localhost", port=int(sys.argv[1]))) as node:
+            if "bootstrap" in sys.argv: node.bootstrap()
+
+            while True:
+                time.sleep(0.1)
+                node.update()
+
+    except KeyboardInterrupt:
+        logger.info("user interrupted the node. goodbye! ^-^")
