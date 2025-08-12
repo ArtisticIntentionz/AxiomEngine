@@ -17,6 +17,6 @@ NODE_KEY_FILE = SSL_FOLDER/"node.key"
 # openssl req -new -x509 -days 365 -nodes -out ssl/node.crt -keyout ssl/node.key
 # or (windows)
 # openssl req -new -x509 -days 365 -nodes -out ssl\node.crt -keyout ssl\node.key
-BOOTSTRAP_SERVER_IP = "172.16.0.250"
+BOOTSTRAP_SERVER_IP_ADDR = "172.16.0.250"
 BOOTSTRAP_SERVER_PORT = 42_180
 SEPARATOR = b"\0\0\0AXIOM-P2P-STOP\0\0\0"
