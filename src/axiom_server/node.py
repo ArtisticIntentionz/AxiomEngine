@@ -26,11 +26,13 @@ from axiom_server import (
     verification_engine,
     zeitgeist_engine,
 )
-from axiom_server.api_query import search_ledger_for_api
+from axiom_server.api_query import semantic_search_ledger
+from axiom_server.crucible import _extract_dates
 from axiom_server.ledger import (
     ENGINE,
     Block,
     Fact,
+    FactLink,
     Proposal,
     SerializedFact,
     SessionMaker,
@@ -252,6 +254,36 @@ app = Flask(__name__)
 node_instance: AxiomNode
 
 
+@app.route("/get_timeline/<topic>", methods=["GET"])
+def handle_get_timeline(topic: str) -> Response:
+    """Assembles a verifiable timeline of facts related to a topic."""
+    with SessionMaker() as session:
+        # 1. Find all facts that are semantically similar to the topic.
+        initial_facts = semantic_search_ledger(
+            session,
+            topic,
+            min_status="ingested",
+            top_n=50,
+        )
+        if not initial_facts:
+            return jsonify(
+                {"timeline": [], "message": "No facts found for this topic."},
+            )
+
+        # We need a way to get dates from facts to sort them
+        def get_date_from_fact(fact: Fact) -> datetime:
+            dates = _extract_dates(fact.content)
+            return min(dates) if dates else datetime.min
+
+        sorted_facts = sorted(initial_facts, key=get_date_from_fact)
+
+        timeline_data = [
+            SerializedFact.from_fact(f).model_dump() for f in sorted_facts
+        ]
+
+        return jsonify({"timeline": timeline_data})
+
+
 @app.route("/get_chain_height", methods=["GET"])
 def handle_get_chain_height() -> Response:
     """Handle get chain height request."""
@@ -288,10 +320,13 @@ def handle_get_blocks() -> Response:
 
 @app.route("/local_query", methods=["GET"])
 def handle_local_query() -> Response:
-    """Handle local query request."""
-    search_term = request.args.get("term")
+    """Handle local query request using semantic vector search."""
+    search_term = request.args.get("term") or ""
+
     with SessionMaker() as session:
-        results = search_ledger_for_api(session, search_term or "")
+        # Use our new, intelligent search engine!
+        results = semantic_search_ledger(session, search_term)
+
         fact_models = [
             SerializedFact.from_fact(fact).model_dump() for fact in results
         ]
@@ -396,6 +431,7 @@ def handle_get_merkle_proof() -> Response | tuple[Response, int]:
 
         # 2. Get the list of fact hashes from the block.
         fact_hashes_in_block = json.loads(block.fact_hashes)
+        fact_hashes_in_block.sort()
         if fact_hash not in fact_hashes_in_block:
             return jsonify(
                 {"error": "Fact hash not found in the specified block"},
@@ -544,6 +580,49 @@ def handle_verify_fact() -> Response | tuple[Response, int]:
             },
         }
         return jsonify(verification_report)
+
+
+@app.route("/get_fact_context/<fact_hash>", methods=["GET"])
+def handle_get_fact_context(fact_hash: str) -> Response | tuple[Response, int]:
+    """Retrieve a fact and all of its known relationships."""
+    with SessionMaker() as session:
+        target_fact = (
+            session.query(Fact).filter(Fact.hash == fact_hash).one_or_none()
+        )
+        if not target_fact:
+            return jsonify({"error": "Fact not found"}), 404
+
+        # Find all links where this fact is either fact1 or fact2
+        links = (
+            session.query(FactLink)
+            .filter(
+                (FactLink.fact1_id == target_fact.id)
+                | (FactLink.fact2_id == target_fact.id),
+            )
+            .all()
+        )
+
+        related_facts_data = []
+        for link in links:
+            # Determine which fact in the link is the "other" one
+            other_fact = (
+                link.fact2 if link.fact1_id == target_fact.id else link.fact1
+            )
+            related_facts_data.append(
+                {
+                    "relationship": link.relationship_type.value,
+                    "fact": SerializedFact.from_fact(other_fact).model_dump(),
+                },
+            )
+
+        return jsonify(
+            {
+                "target_fact": SerializedFact.from_fact(
+                    target_fact,
+                ).model_dump(),
+                "related_facts": related_facts_data,
+            },
+        )
 
 
 def build_instance() -> tuple[AxiomNode, int]:

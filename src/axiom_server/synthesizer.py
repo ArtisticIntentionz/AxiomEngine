@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 
 from axiom_server.ledger import (
     Fact,
+    RelationshipType,
     insert_relationship_object,
 )
 
@@ -69,6 +70,7 @@ def link_related_facts(
                     new_fact,
                     existing_fact,
                     relationship_score,
+                    RelationshipType.CORRELATION,
                 )
                 links_found += 1
 

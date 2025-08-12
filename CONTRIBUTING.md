@@ -12,11 +12,11 @@ This project and everyone participating in it is governed by the [Axiom Code of 
 
 There are many ways to add value to Axiom, and not all of them involve writing code.
 
-*   **Running a Node:** The easiest and one of the most valuable ways to contribute is by running a stable Axiom Node to help strengthen and grow the network's knowledge base.
+*   **Running a Node:** The easiest and one of the most valuable ways to contribute is by running a stable Axiom Sealer Node to help strengthen and grow the network's knowledge base.
 *   **Reporting Bugs:** Find a bug or a security vulnerability? Please open a detailed "Issue" on our GitHub repository.
 *   **Suggesting Enhancements:** Have an idea for a new feature? Open an "Issue" to start a discussion with the community.
 *   **Improving Documentation:** If you find parts of our documentation unclear, you can submit a pull request to improve it.
-*   **Writing Code:** Ready to build? You can pick up an existing "Issue" to work on or propose a new feature of your own. The community hangs out on **[Your Discord Invite Link]** - it's the best place to chat about what you want to work on.
+*   **Writing Code:** Ready to build? You can pick up an existing "Issue" to work on or propose a new feature of your own.
 
 ---
 
@@ -32,82 +32,76 @@ Here is the standard workflow for submitting a code change to Axiom.
     cd AxiomEngine
     ```
 
-2.  **Install All Dependencies (Two-Step Process):**
-    Setting up the Axiom Engine is a simple two-step process.
-
-    **First, install the project and its dependencies:**
-    This command reads the `pyproject.toml` file and installs all the necessary packages.
+2.  **Install `uv` (Recommended):** This project uses `uv`, a high-performance Python package manager. It is the recommended way to manage your environment.
     ```bash
-    pip3 install -e .
+    # Run this once to install uv globally on your system
+    pip install uv
     ```
 
-    **Second, download the specific AI model:**
-    This command uses spaCy's built-in downloader to fetch the English language model that The Crucible needs to function.
+3.  **Create the Environment & Install Dependencies:** This single, powerful command creates a local virtual environment (`.venv`) and installs all project dependencies, tools, and the AI models in one step.
     ```bash
-    python3 -m spacy download en_core_web_sm
-    ````
-    *(There is no longer a separate step to download the spaCy model; this command handles everything.)*
+    uv sync --all-extras
+    ```
 
-3.  **Set Up Your API Keys:**
-    The Axiom Engine requires **two** API keys to function, which must be set as environment variables.
-    *   **NewsAPI Key:** For discovering trending topics. Get a free key at [newsapi.org](https://newsapi.org/).
-    *   **SerpApi Key:** For reliably searching and scraping web content without being rate-limited. Get a free key at [serpapi.com](https://serpapi.com/).
-
-4.  **Run Your Node:**
-    You have two options for running a node: local development or connecting to the live network.
-
-    **Option A: For Local Development & Testing:**
-    If you just want to run a node on its own to test your code changes, you can start it without a bootstrap peer.
+4.  **Activate the Environment:** Before running any project commands, you must activate the virtual environment.
     ```bash
-    # This starts a new, isolated node on port 5000.
-    export NEWS_API_KEY="YOUR_API_KEY"
-    export SERPAPI_API_KEY="YOUR_API_KEY"
-    export PORT="5000"
+    source .venv/bin/activate
+    ```
+
+5.  **Run a Quality Check:** Before making any changes, run the project's built-in quality suite to ensure your setup is perfect.
+    ```bash
+    ./check.sh
+    ```
+    *You should see a "river of green" indicating all checks have passed.*
+
+### Step 2: Run Your First Node
+
+The V4 architecture consists of two types of nodes. For development, you will typically run a "Sealer" node.
+
+1.  **Clean Slate:** Before the first launch, it is recommended to delete any old database files.
+    ```bash
+    rm -f *.db
+    ```
+
+2.  **Launch the Sealer Node:** This command starts a new, isolated node on port 5000. It will begin its first learning cycle immediately.
+    ```bash
+    # Make sure your .venv is active!
     axiom_server
     ```
+    *(Note: As of V4.1, API keys are no longer required for the core discovery engine.)*
 
-    **Option B: To Join the Live Axiom Network:**
-    To connect your node to the live network and synchronize with the collective ledger, you must point it to an official bootstrap node.
-    ```bash
-    # This connects your node (running on a different port, e.g., 5001) to the main network.
-    export NEWS_API_KEY="YOUR_API_KEY"
-    export SERPAPI_API_KEY="YOUR_API_KEY"
-    export PORT="5001"
-    export BOOTSTRAP_PEER="http://bootstrap.axiom.foundation:5000" # this server has not yet been implemented. check ROADMAP.md **Public Bootstrap Node Deployment**
-    axiom_server
-    ```
-    *(Note: The official bootstrap nodes are maintained by the core contributors. As the network grows, this list will be expanded and managed by the DAO.)*
-
-### Step 2: Make Your Changes
+### Step 3: Make Your Changes
 
 1.  **Create a New Branch:** Never work directly on the `main` branch. Create a new, descriptive branch for every feature or bug fix.
     ```bash
     # Example for a new feature
     git checkout -b feature/improve-crucible-filter
-
-    # Example for a bug fix
-    git checkout -b fix/resolve-p2p-sync-error
     ```
 
 2.  **Write Your Code:** Make your changes. Please try to follow the existing style and add comments where your logic is complex.
 
-### Step 3: Submit Your Contribution
+### Step 4: Submit Your Contribution
 
-1.  **Commit Your Changes:** Once you're happy with your changes, commit them with a clear and descriptive message following the [Conventional Commits](https://www.conventionalcommits.org/) standard.
+1.  **Run the Quality Check Again:** Before committing, always run the full check suite to ensure your changes haven't introduced any issues.
+    ```bash
+    ./check.sh
+    ```
+
+2.  **Commit Your Changes:** Once all checks pass, commit your changes with a clear and descriptive message following the [Conventional Commits](https://www.conventionalcommits.org/) standard.
     ```bash
     git add .
     git commit -m "feat(Crucible): Add filter for subjective adverbs"
     ```
 
-2.  **Push to Your Fork:** Push your new branch to your personal fork on GitHub.
+3.  **Push to Your Fork:** Push your new branch to your personal fork on GitHub.
     ```bash
     git push origin feature/improve-crucible-filter
     ```
 
-3.  **Open a Pull Request:** Go to your fork on the GitHub website. You will see a prompt to "Compare & pull request." Click it, give it a clear title and description, and submit it for review.
+4.  **Open a Pull Request:** Go to your fork on the GitHub website. You will see a prompt to "Compare & pull request." Click it, give it a clear title and a detailed description, and submit it for review.
 
-### Step 4: Code Review
+### Step 5: Code Review
 
-Once your pull request is submitted, it will be reviewed by the core maintainers. This is a collaborative process. We may ask questions or request changes. Once approved, your code will be merged into the main AxiomEngine codebase.
+Once your pull request is submitted, it will be reviewed by the core maintainers. This is a collaborative process. We may ask questions or request changes. Once approved, your code will be merged into the main `AxiomEngine` codebase.
 
 Congratulations, you are now an official Axiom contributor! Thank you for your work.
