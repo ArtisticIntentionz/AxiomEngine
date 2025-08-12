@@ -1,164 +1,130 @@
-# Axiom Client - Desktop Application main.py
-# Copyright (C) 2025 The Axiom Contributors
-# This program is licensed under the Peer Production License (PPL).
-# See the LICENSE file for full details.
+"""Axiom Client - Desktop Application."""
 
 from __future__ import annotations
 
 import sys
-import random
-from typing import TypedDict, TypeAlias, cast
+from typing import TypeAlias, TypedDict, cast
 
 import requests
+from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QApplication,
-    QWidget,
-    QVBoxLayout,
-    QLineEdit,
-    QTextEdit,
-    QPushButton,
     QLabel,
-    QProgressBar,
+    QLineEdit,
+    QPushButton,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt6.QtCore import QThread, pyqtSignal
-from PyQt6.QtGui import QFont, QIcon
-# QIcon can be used later to add a logo
 
-# --- CONFIGURATION (Same as CLI client) ---
-BOOTSTRAP_NODES = ["..."]
-CIRCUIT_LENGTH = 3
-# -------------------------------------------
+
+# --- V4.1 Data Models ---
+class Source(TypedDict):
+    """Represents a source domain."""
+
+    domain: str
 
 
 class Fact(TypedDict):
-    trust_score: float
-    fact_content: str
-    source_url: str
+    """Represents a serialized Fact from the server."""
+
+    content: str
+    disputed: bool
+    hash: str
+    last_checked: str
+    score: int
+    sources: list[str]  # The server sends a simple list of strings
+    status: str
 
 
 class FactResponse(TypedDict):
+    """A response containing a list of facts."""
+
     results: list[Fact]
 
 
 class ErrorResponse(TypedDict):
+    """A response containing an error message."""
+
     error: str
 
 
-ResponseData: TypeAlias = ErrorResponse | FactResponse
+class FormattedResponse(TypedDict):
+    """The formatted data package sent from the worker to the GUI."""
+
+    confidence: str
+    data: FactResponse | ErrorResponse
 
 
-class NetworkWorker(QThread):  # type: ignore[misc,unused-ignore,no-any-unimported]
-    """
-    A separate thread to handle all network operations (discovery, querying)
-    to prevent the GUI from freezing.
-    """
+ResponseData: TypeAlias = FormattedResponse
 
-    finished = pyqtSignal(
-        ResponseData
-    )  # Signal to send results back to the main GUI
-    progress = pyqtSignal(str)  # Signal to send status updates back to the GUI
 
-    def __init__(self, query_term: str) -> None:
+class NetworkWorker(QThread):
+    """The V4.1 Network Worker with the Three-Tiered Response Protocol."""
+
+    finished = pyqtSignal(object)
+    progress = pyqtSignal(str)
+
+    def __init__(self, query_term: str, node_url: str) -> None:
+        """Initialize the V4.1 network worker."""
         super().__init__()
         self.query_term = query_term
+        self.node_url = node_url
         self.is_running = True
 
     def run(self) -> None:
-        """The main logic that runs in the background thread."""
+        """Execute the new, intelligent two-step query logic."""
         try:
-            # 1. Discover the network
-            self.progress.emit("Mapping the Axiom network...")
-            peers = self._get_network_peers(BOOTSTRAP_NODES)
-            if not peers:
-                self.finished.emit(
-                    {"error": "Could not connect to the Axiom network."}
-                )
-                return
+            # Tier 1 & 2 are handled by the new semantic search
             self.progress.emit(
-                f"Network discovery complete. Found {len(peers)} nodes."
+                f"Performing semantic search via {self.node_url}...",
             )
+            response = self._perform_semantic_query()
 
-            # 2. Build the anonymous circuit
-            self.progress.emit("Building anonymous circuit...")
-            circuit = self._build_anonymous_circuit(peers, CIRCUIT_LENGTH)
-            if not circuit:
+            if response.get("results"):
+                self.finished.emit({"confidence": "FOUND", "data": response})
+            else:
                 self.finished.emit(
-                    {"error": "Could not build anonymous circuit."}
+                    {"confidence": "NONE", "data": {"results": []}},
                 )
-                return
-            self.progress.emit(
-                f"{len(circuit)}-hop private circuit established."
-            )
-
-            # 3. Send the query
-            self.progress.emit(
-                f"Sending query into the network via entry node: {circuit[0]}"
-            )
-            final_response = self._send_anonymous_query(
-                circuit, self.query_term
-            )
-            self.finished.emit(final_response)
 
         except Exception as e:
-            self.finished.emit({"error": f"An unexpected error occurred: {e}"})
+            self.finished.emit(
+                {
+                    "confidence": "ERROR",
+                    "data": {"error": f"An error occurred: {e}"},
+                },
+            )
 
-    def stop(self) -> None:
-        self.is_running = False
-
-    # --- Private methods for networking logic (copied from CLI client) ---
-    def _get_network_peers(self, bootstrap_nodes: list[str]) -> list[str]:
-        all_known_peers = set()
-        for node_url in bootstrap_nodes:
-            try:
-                response = requests.get(f"{node_url}/get_peers", timeout=5)
-                if response.status_code == 200:
-                    peers = response.json().get("peers", {}).keys()
-                    all_known_peers.update(peers)
-                    all_known_peers.add(node_url)
-            except requests.exceptions.RequestException:
-                continue
-        return list(all_known_peers)
-
-    def _build_anonymous_circuit(
-        self, peers: list[str], length: int
-    ) -> list[str]:
-        if len(peers) < length:
-            random.shuffle(peers)
-            return peers
-        return random.sample(peers, length)
-
-    def _send_anonymous_query(
-        self, circuit: list[str], search_term: str
-    ) -> ResponseData:
-        entry_node = circuit[0]
-        relay_circuit = circuit[1:]
-        response = requests.post(
-            f"{entry_node}/anonymous_query",
-            json={
-                "term": search_term,
-                "circuit": relay_circuit,
-                "sender_peer": None,
-            },
-            timeout=30,
+    def _perform_semantic_query(self) -> FactResponse:
+        """Perform a single semantic query against the node."""
+        response = requests.get(
+            f"{self.node_url}/local_query",
+            params={"term": self.query_term},
+            timeout=15,
         )
         response.raise_for_status()
-        result = response.json()
-        if "error" in result:
-            return ErrorResponse({"error": result["error"]})
-        return FactResponse({"results": result["results"]})
+        return cast("FactResponse", response.json())
+
+    def stop(self) -> None:
+        """Stop the worker thread."""
+        self.is_running = False
 
 
 class AxiomClientApp(QWidget):  # type: ignore[misc,unused-ignore,no-any-unimported]
     """The main GUI window for the Axiom Client."""
 
     def __init__(self) -> None:
+        """Initialize axiom client."""
         super().__init__()
         self.setWindowTitle("Axiom Client")
         self.setGeometry(100, 100, 700, 500)
         self.network_worker: NetworkWorker
-        self.initUI()
+        self.setup_ui()
 
-    def initUI(self) -> None:
+    def setup_ui(self) -> None:
+        """Initialize user interface."""
         # --- Layout and Widgets ---
         self.qv_box_layout = QVBoxLayout()
         self.setLayout(self.qv_box_layout)
@@ -194,7 +160,7 @@ class AxiomClientApp(QWidget):  # type: ignore[misc,unused-ignore,no-any-unimpor
         self.qv_box_layout.addWidget(self.results_output)
 
     def start_search(self) -> None:
-        """Called when the user clicks 'Search' or presses Enter."""
+        """Handle when the user clicks 'Search' or presses Enter."""
         query = self.query_input.text()
         if not query:
             return
@@ -203,45 +169,55 @@ class AxiomClientApp(QWidget):  # type: ignore[misc,unused-ignore,no-any-unimpor
         self.results_output.setText("...")
 
         # Start the network operations in the background thread
-        self.network_worker = NetworkWorker(query)
+        self.network_worker = NetworkWorker(
+            query,
+            node_url="http://127.0.0.1:5000",
+        )
         self.network_worker.progress.connect(self.update_status)
         self.network_worker.finished.connect(self.display_results)
         self.network_worker.start()
 
     def update_status(self, message: str) -> None:
-        """Updates the status label with messages from the worker thread."""
+        """Update the status label with messages from the worker thread."""
         self.status_label.setText(f"Status: {message}")
 
-    def display_results(self, response_data: ResponseData) -> None:
-        """Called when the worker thread is finished. Displays the final results."""
+    def display_results(self, response_obj: object) -> None:
+        """Display the results from the Honesty Engine."""
+        response = cast("FormattedResponse", response_obj)
+        confidence = response["confidence"]
+        data = response["data"]
+
         self.status_label.setText("Status: Idle")
         self.search_button.setEnabled(True)
+        html = ""
 
-        if not response_data or response_data.get("error"):
-            response_data = cast("ErrorResponse", response_data)
-            error_msg = response_data.get(
-                "error", "An unknown error occurred."
+        if confidence == "ERROR":
+            error_msg = cast("ErrorResponse", data).get(
+                "error",
+                "Unknown error",
             )
-            self.results_output.setHtml(f"<h2>Error</h2><p>{error_msg}</p>")
-            return
-        assert "results" in response_data
-        response_data = cast("FactResponse", response_data)
+            html = f"<h2>Error</h2><p>{error_msg}</p>"
 
-        results: list[Fact] = response_data.get("results", [])
+        elif confidence == "NONE":
+            html = "<h2>Found 0 Facts</h2><p>Your query did not match any facts currently in the network's ledger.</p>"
 
-        # Build an HTML string to display the results nicely
-        html = f"<h2>Found {len(results)} unique, trusted facts.</h2>"
-        if not results:
-            html += "<p>Your query did not match any facts that have been corroborated by the network yet.</p>"
-        else:
-            sorted_results = sorted(
-                results, key=lambda x: x.get("trust_score", 1), reverse=True
+        elif confidence == "FOUND":
+            results = cast("FactResponse", data).get("results", [])
+            html = (
+                f"<h2>Found {len(results)} Semantically Similar Fact(s)</h2>"
             )
-            for i, fact in enumerate(sorted_results):
-                html += f"<h4>[Result {i + 1}] (Trust Score: {fact.get('trust_score', 'N/A')})</h4>"
-                html += f'<p><b>Fact:</b> "{fact.get("fact_content", "")}"</p>'
+            # --- THE FIX: Use '_' for unused loop variables ---
+            for fact in results:
+                status_color = (
+                    "green"
+                    if fact.get("status") == "corroborated"
+                    else "orange"
+                )
+                html += f"<h4>[Fact #{fact.get('hash', '')[:8]}] <span style='color:{status_color};'>({fact.get('status', 'N/A').upper()})</span></h4>"
+                html += f'<p><b>Fact:</b> "{fact.get("content", "")}"</p>'
+                source_domains = fact.get("sources", [])
                 html += (
-                    f"<p><i>Source: {fact.get('source_url', '')}</i></p><hr>"
+                    f"<p><i>Sources: {', '.join(source_domains)}</i></p><hr>"
                 )
 
         self.results_output.setHtml(html)
@@ -250,9 +226,10 @@ class AxiomClientApp(QWidget):  # type: ignore[misc,unused-ignore,no-any-unimpor
 def cli_run() -> int:
     """Application entrypoint."""
     app = QApplication(sys.argv)
+
     ex = AxiomClientApp()
     ex.show()
-    sys.exit(cli_run())
+    sys.exit(app.exec())
 
 
 # --- Main Execution Block to Launch the Application ---

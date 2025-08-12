@@ -1,9 +1,18 @@
-from dataclasses import dataclass
+"""Common - Shared data."""
+
+from __future__ import annotations
+
+# Axiom - common.py
+# Copyright (C) 2025 The Axiom Contributors
+# This program is licensed under the Peer Production License (PPL).
+# See the LICENSE file for full details.
+from typing import Final
 
 import spacy
 
-NLP_MODEL = spacy.load("en_core_web_sm")
-SUBJECTIVITY_INDICATORS = {
+NLP_MODEL: Final = spacy.load("en_core_web_sm")
+
+SUBJECTIVITY_INDICATORS: Final = {
     "believe",
     "think",
     "feel",
@@ -50,13 +59,3 @@ SUBJECTIVITY_INDICATORS = {
     "unwelcome",
     "flatly",
 }
-
-
-@dataclass
-class TrustedURL:
-    value: str
-
-
-@dataclass
-class UntrustedURL:
-    value: str
