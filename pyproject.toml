@@ -38,7 +38,8 @@ dependencies = [
     # --- Database & Blockchain ---
     "sqlalchemy",
     # --- AI & Natural Language Processing ---
-    "spacy==3.8.7",
+    "spacy>=3.7.2,<3.8.0", # --- THE FIX #2: Officialy request a compatible version ---
+    "en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl",
     "pydantic",
     "feedparser==6.0.11",
 ]

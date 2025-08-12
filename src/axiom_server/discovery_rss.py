@@ -14,32 +14,28 @@ import feedparser
 logger = logging.getLogger(__name__)
 
 RSS_FEEDS: Final = (
+    # --- DAO Governed Sources ---
     "http://rss.cnn.com/rss/cnn_topstories.rss",
     "https://feeds.bbci.co.uk/news/rss.xml",
     "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml",
-    "http://feeds.reuters.com/news/artsculture",
-    "http://feeds.reuters.com/reuters/businessNews",
-    "http://feeds.reuters.com/reuters/companyNews",
-    "http://feeds.reuters.com/reuters/entertainment",
-    "http://feeds.reuters.com/reuters/environment",
-    "http://feeds.reuters.com/reuters/healthNews",
-    "http://feeds.reuters.com/reuters/lifestyle",
-    "http://feeds.reuters.com/news/wealth",
-    "http://feeds.reuters.com/reuters/MostRead",
-    "http://feeds.reuters.com/reuters/oddlyEnoughNews",
-    "http://feeds.reuters.com/ReutersPictures",
-    "http://feeds.reuters.com/reuters/peopleNews",
-    "http://feeds.reuters.com/Reuters/PoliticsNews",
-    "http://feeds.reuters.com/reuters/scienceNews",
-    "http://feeds.reuters.com/reuters/sportsNews",
-    "http://feeds.reuters.com/reuters/technologyNews",
-    "http://feeds.reuters.com/reuters/topNews",
-    "http://feeds.reuters.com/Reuters/domesticNews",
-    "http://feeds.reuters.com/Reuters/worldNews",
-    "http://feeds.reuters.com/reuters/environment",
-    "https://feeds.arstechnica.com/arstechnica/index/",
-    "https://www.theverge.com/rss/index.xml",
-    "https://feeds.npr.org/1001/rss.xml",
+    "https://feeds.reuters.com/reuters/topNews",  # Top News from Reuters
+    "https://feeds.reuters.com/Reuters/worldNews",  # World News from Reuters
+    "https://apnews.com/hub/ap-top-news/rss",  # Associated Press Top News
+    "https://feeds.npr.org/1001/rss.xml",  # NPR News
+    "https://feeds.washingtonpost.com/rss/world",  # The Washington Post
+    "https://feeds.a.dj.com/rss/RSSWorldNews.xml",  # The Wall Street Journal
+    "https://www.aljazeera.com/xml/rss/all.xml",  # Al Jazeera
+    "https://www.propublica.org/feeds/propublica/main",  # ProPublica
+    "http://feeds.revealnews.org/revealnews",  # The Center for Investigative Reporting
+    "https://www.themarshallproject.org/rss.xml",  # The Marshall Project
+    "https://www.politifact.com/rss/all/",  # PolitiFact
+    "https://feeds.arstechnica.com/arstechnica/index/",  # Ars Technica
+    "https://www.theverge.com/rss/index.xml",  # The Verge
+    "https://www.technologyreview.com/feed/",  # MIT Technology Review
+    "https://www.wired.com/feed/rss",  # Wired
+    "https://spectrum.ieee.org/rss/full-text",  # IEEE Spectrum
+    "https://www.economist.com/feeds/latest/full.xml",  # The Economist
+    "https://www.reddit.com/r/worldnews/.rss",  # Reddit World News
 )
 
 
