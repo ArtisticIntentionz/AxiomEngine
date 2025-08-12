@@ -9,11 +9,13 @@ import logging
 import re
 import sys
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import TYPE_CHECKING, Generic, TypeVar
 
 from axiom_server.common import NLP_MODEL, SUBJECTIVITY_INDICATORS
 from axiom_server.ledger import (
     Fact,
+    RelationshipType,
     Semantics,
     add_fact_object_corroboration,
     insert_relationship_object,
@@ -279,6 +281,62 @@ def check_corroboration(
     return bool(existing_fact.content[:50] == new_fact.content[:50])
 
 
+def _extract_dates(text: str) -> list[datetime]:
+    """Extract dates from text using regular expressions."""
+    # This regex is a simplified example. A production version would be more complex.
+    # It looks for patterns like YYYY-MM-DD, MM/DD/YYYY, and Month Day, Year
+    patterns = [
+        r"\d{4}-\d{2}-\d{2}",
+        r"\d{1,2}/\d{1,2}/\d{4}",
+        r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \d{1,2}, \d{4}",
+    ]
+    found_dates = []
+    for pattern in patterns:
+        matches = re.findall(pattern, text)
+        for match in matches:
+            try:
+                # Attempt to parse the found date string into a real datetime object
+                if "/" in match:
+                    dt = datetime.strptime(match, "%m/%d/%Y")
+                elif "-" in match:
+                    dt = datetime.strptime(match, "%Y-%m-%d")
+                else:
+                    dt = datetime.strptime(match, "%B %d, %Y")
+                found_dates.append(dt)
+            except ValueError:
+                continue  # Ignore formats that don't parse correctly
+    return found_dates
+
+
+def _infer_relationship(fact1: Fact, fact2: Fact) -> RelationshipType | None:
+    """Analyzes two facts and infers the nature of their relationship."""
+    # --- UPGRADE: Use our new, internal date extractor ---
+    dates1 = _extract_dates(fact1.content)
+    dates2 = _extract_dates(fact2.content)
+
+    if len(dates1) > 0 and len(dates2) > 0:
+        # For simplicity, we'll just compare the first found date in each fact
+        date1 = min(dates1)
+        date2 = min(dates2)
+        if date1 < date2:
+            return RelationshipType.CHRONOLOGY
+        if date2 < date1:
+            return RelationshipType.CHRONOLOGY
+
+    # --- The rest of the logic is unchanged ---
+    # (Placeholder for a future, more powerful contradiction engine)
+    # if is_contradictory(fact1.content, fact2.content):
+    #     return RelationshipType.CONTRADICTION
+
+    causal_words = {"because", "due to", "as a result", "caused by", "led to"}
+    if any(word in fact1.content for word in causal_words) or any(
+        word in fact2.content for word in causal_words
+    ):
+        return RelationshipType.CAUSATION
+
+    return None
+
+
 @dataclass
 class CrucibleFactAdder:
     """Crucible fact adder."""
@@ -398,11 +456,17 @@ class CrucibleFactAdder:
             existing_doc = existing_fact.get_semantics()["doc"]
             existing_entities = {ent.text.lower() for ent in existing_doc.ents}
             score = len(new_entities & existing_entities)
+
             if score > 0:
-                insert_relationship_object(
-                    self.session,
-                    fact,
-                    existing_fact,
-                    score,
-                )
+                # --- UPGRADE: Only create a link if a strong relationship is inferred ---
+                relationship = _infer_relationship(fact, existing_fact)
+
+                if relationship:
+                    insert_relationship_object(
+                        self.session,
+                        fact,
+                        existing_fact,
+                        score,
+                        relationship,
+                    )
         return fact

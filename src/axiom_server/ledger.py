@@ -23,6 +23,7 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Integer,
+    LargeBinary,
     String,
     Text,
     create_engine,
@@ -76,6 +77,16 @@ class FactStatus(str, enum.Enum):
     LOGICALLY_CONSISTENT = "logically_consistent"
     CORROBORATED = "corroborated"
     EMPIRICALLY_VERIFIED = "empirically_verified"
+
+
+class RelationshipType(str, enum.Enum):
+    """Defines the nature of the link between two facts."""
+
+    CORRELATION = "correlation"  # The facts are about the same topic.
+    CONTRADICTION = "contradiction"  # The facts state opposing information.
+    CAUSATION = "causation"  # One fact is a likely cause of the other.
+    CHRONOLOGY = "chronology"  # One fact chronologically follows another.
+    ELABORATION = "elaboration"
 
 
 class Block(Base):
@@ -162,9 +173,14 @@ def semantics_from_serialized(serialized: SerializedSemantics) -> Semantics:
 
 
 class Fact(Base):
-    """Fact entry."""
+    """A single, objective statement extracted from a source."""
 
-    __tablename__ = "fact"
+    __tablename__ = "facts"
+
+    vector_data: Mapped[FactVector] = relationship(
+        back_populates="fact",
+        cascade="all, delete-orphan",
+    )
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     content: Mapped[str] = mapped_column(String, default="", nullable=False)
     status: Mapped[FactStatus] = mapped_column(
@@ -250,6 +266,17 @@ class Fact(Base):
         )
 
 
+class FactVector(Base):
+    """Stores the pre-computed NLP vector for a fact for fast semantic search."""
+
+    __tablename__ = "fact_vectors"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    fact_id: Mapped[int] = mapped_column(ForeignKey("facts.id"), unique=True)
+    vector: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+
+    fact: Mapped[Fact] = relationship(back_populates="vector_data")
+
+
 class SerializedFact(BaseModel):
     """Serialized Fact table entry."""
 
@@ -294,7 +321,7 @@ class FactSourceLink(Base):
     __tablename__ = "fact_source_link"
     fact_id: Mapped[int] = mapped_column(
         Integer,
-        ForeignKey("fact.id"),
+        ForeignKey("facts.id"),
         primary_key=True,
     )
     source_id: Mapped[int] = mapped_column(
@@ -309,16 +336,24 @@ class FactLink(Base):
 
     __tablename__ = "fact_link"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+
+    # --- UPGRADE: Add the new column ---
+    relationship_type: Mapped[RelationshipType] = mapped_column(
+        Enum(RelationshipType),
+        default=RelationshipType.CORRELATION,
+        nullable=False,
+    )
+
     score: Mapped[int] = mapped_column(Integer, nullable=False)
     fact1_id: Mapped[int] = mapped_column(
         Integer,
-        ForeignKey("fact.id"),
+        ForeignKey("facts.id"),
         nullable=False,
     )
     fact1: Mapped[Fact] = relationship("Fact", foreign_keys=[fact1_id])
     fact2_id: Mapped[int] = mapped_column(
         Integer,
-        ForeignKey("fact.id"),
+        ForeignKey("facts.id"),
         nullable=False,
     )
     fact2: Mapped[Fact] = relationship("Fact", foreign_keys=[fact2_id])
@@ -401,6 +436,7 @@ def insert_relationship(
     fact_id_1: int,
     fact_id_2: int,
     score: int,
+    relationship_type: RelationshipType = RelationshipType.CORRELATION,
 ) -> None:
     """Insert a relationship between two facts into the knowledge graph. Both facts must exist."""
     fact1 = session.get(Fact, fact_id_1)
@@ -409,7 +445,7 @@ def insert_relationship(
         raise LedgerError(f"fact(s) not found: {fact_id_1=}")
     if fact2 is None:
         raise LedgerError(f"fact(s) not found: {fact_id_2=}")
-    insert_relationship_object(session, fact1, fact2, score)
+    insert_relationship_object(session, fact1, fact2, score, relationship_type)
 
 
 def insert_relationship_object(
@@ -417,28 +453,35 @@ def insert_relationship_object(
     fact1: Fact,
     fact2: Fact,
     score: int,
+    relationship_type: RelationshipType,  # --- UPGRADE: Add the new parameter ---
 ) -> None:
     """Insert fact relationship given Fact objects."""
-    link = FactLink(score=score, fact1=fact1, fact2=fact2)
+    # --- UPGRADE: Pass the type to the constructor ---
+    link = FactLink(
+        score=score,
+        fact1=fact1,
+        fact2=fact2,
+        relationship_type=relationship_type,
+    )
     session.add(link)
     logger.info(
-        f"inserted relationship between {fact1.id=} and {fact2.id=} with {score=}",
+        f"inserted {relationship_type.value} relationship between {fact1.id=} and {fact2.id=} with {score=}",
     )
 
 
 def mark_facts_as_disputed(
     session: Session,
-    original_fact_id: int,
-    new_fact_id: int,
+    original_facts_id: int,
+    new_facts_id: int,
 ) -> None:
     """Mark two facts as disputed and links them together."""
-    original_fact = session.get(Fact, original_fact_id)
-    new_fact = session.get(Fact, new_fact_id)
-    if original_fact is None:
-        raise LedgerError(f"fact not found: {original_fact_id=}")
-    if new_fact is None:
-        raise LedgerError(f"fact not found: {new_fact_id=}")
-    mark_fact_objects_as_disputed(session, original_fact, new_fact)
+    original_facts = session.get(Fact, original_facts_id)
+    new_facts = session.get(Fact, new_facts_id)
+    if original_facts is None:
+        raise LedgerError(f"fact not found: {original_facts_id=}")
+    if new_facts is None:
+        raise LedgerError(f"fact not found: {new_facts_id=}")
+    mark_fact_objects_as_disputed(session, original_facts, new_facts)
 
 
 def mark_fact_objects_as_disputed(
@@ -449,7 +492,12 @@ def mark_fact_objects_as_disputed(
     """Mark two Fact objects as disputed and link them."""
     original_fact.disputed = True
     new_fact.disputed = True
-    link = FactLink(score=-1, fact1=original_fact, fact2=new_fact)
+    link = FactLink(
+        score=-1,
+        fact1=original_fact,
+        fact2=new_fact,
+        relationship_type=RelationshipType.CONTRADICTION,
+    )
     session.add(link)
     logger.info(
         f"marked facts as disputed: {original_fact.id=}, {new_fact.id=}",
