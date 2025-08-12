@@ -1,6 +1,7 @@
 
 from __future__ import annotations
 from ipaddress import ip_address
+from pathlib import Path
 import ssl
 import logging
 import sys
@@ -9,7 +10,7 @@ import struct
 import select
 from enum import Enum
 from dataclasses import dataclass
-from typing import Self, Union
+from typing import Any, Callable, Iterable, Literal, Self, Union
 from socket import socket as Socket
 
 import cryptography
@@ -20,7 +21,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.exceptions import InvalidSignature
 
-from p2p.constants import ENCODING, KEY_SIZE, NODE_BACKLOG, NODE_CHECK_TIME, NODE_CHUNK_SIZE, NODE_CONNECTION_TIMEOUT, SEPARATOR
+from p2p.constants import BOOTSTRAP_SERVER_IP_ADDR, BOOTSTRAP_SERVER_PORT, ENCODING, KEY_SIZE, NODE_BACKLOG, NODE_CHECK_TIME, NODE_CHUNK_SIZE, NODE_CONNECTION_TIMEOUT, SEPARATOR
 
 logger = logging.getLogger(__name__)
 
@@ -131,13 +132,12 @@ class ApplicationData(MessageContent):
 class SerializedPeer(BaseModel):
     ip_address: str
     port: int
-    public_key: bytes
 
     def to_peer(self) -> Peer:
         return Peer(
             ip_address=self.ip_address,
             port=self.port,
-            public_key=deserialize_public_key(self.public_key),
+            public_key=None,
         )
 
 class Peer(BaseModel):
@@ -153,8 +153,7 @@ class Peer(BaseModel):
         assert self.public_key is not None
         return SerializedPeer(
             ip_address=self.ip_address,
-            port=self.port,
-            public_key=serialize_public_key(self.public_key)
+            port=self.port
         )
 
 
@@ -239,6 +238,9 @@ class NodeContextManager:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.node.stop()
 
+def ALL(item: Any) -> Literal[True]:
+    return True
+
 @dataclass
 class Node:
     ip_address: str
@@ -251,7 +253,7 @@ class Node:
     server_socket: Socket
 
     @staticmethod
-    def start(ip_address: str, port: int) -> Node:
+    def start(ip_address: str, port: int = 0) -> Node:
         context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
         context.load_cert_chain(certfile="node.crt", keyfile="node.key")
         server_socket = Socket(socket_lib.AF_INET, socket_lib.SOCK_STREAM)
@@ -303,11 +305,48 @@ class Node:
 
         self.peer_links = [link for link in self.peer_links if link.alive]
 
-    def has_peer(self, peer: Peer) -> bool:
-        return any(
-            link.peer.public_key == peer.public_key
-            for link in self.peer_links
+    def search_link_by_peer(self, fun: Callable[[Peer], bool]) -> PeerLink|None:
+        for link in self.peer_links:
+            if fun(link.peer):
+                return link
+
+        return None
+    
+    def iter_links_by_peer(self, fun: Callable[[Peer], bool] = ALL) -> Iterable[PeerLink]:
+        for link in self.peer_links:
+            if fun(link.peer):
+                yield link
+    
+    def search_link(self, fun: Callable[[PeerLink], bool]) -> PeerLink|None:
+        for link in self.peer_links:
+            if fun(link):
+                return link
+
+        return None
+    
+    def iter_links(self, fun: Callable[[PeerLink], bool] = ALL) -> Iterable[PeerLink]:
+        for link in self.peer_links:
+            if fun(link):
+                yield link
+    
+    def broadcast_application_message(self, data: str):
+        message = Message.application_data(data)
+        self._send_message_to_peers(message)
+
+    def bootstrap(self):
+        logger.info("bootstrapping")
+        link = self.search_link_by_peer(
+            lambda peer: peer.ip_address == BOOTSTRAP_SERVER_IP_ADDR and peer.port == BOOTSTRAP_SERVER_PORT
         )
+
+        if link is None:
+            link = self._create_link(BOOTSTRAP_SERVER_IP_ADDR, BOOTSTRAP_SERVER_PORT)
+
+            if link is None:
+                logger.error("failed to bootstrap: can't connect to server")
+                return
+            
+        self._send_message(link, Message.peers_request())
 
     def _connect_to_peer(self, ip_address: str, port: int) -> Socket|None:
         context = ssl.create_default_context()
@@ -340,10 +379,11 @@ class Node:
         assert isinstance(ip_addr, str)
         assert isinstance(port, int)
         link = PeerLink(
-            peer=Peer(ip_address=ip_addr, port=port, public_key=None),
+            peer=Peer(ip_address=ip_addr, port=None, public_key=None),
             socket=socket, alive=True, buffer=b""
         )
         self.peer_links.append(link)
+        self._send(link, self.serialized_public_key)
         logger.info(f"{link.fmt_addr()} established connection")
 
     def _handle_public_key_declaration(self, link: PeerLink) -> bool:
@@ -373,7 +413,7 @@ class Node:
             link.peer.port = port
             logger.info(f"{link.fmt_addr()} port set")
             return True
-        
+
         return False
 
     def _handle_peers_request(self, link: PeerLink):
@@ -384,23 +424,28 @@ class Node:
             )
         )
 
-    def _handle_peer_sharing(self, link: PeerLink, content: PeersSharing):
+    def _handle_peers_sharing(self, link: PeerLink, content: PeersSharing):
         for serialized_peer in content.peers:
-            peer = serialized_peer.to_peer()
-            assert peer.public_key is not None
-            assert peer.port is not None
-            if self.has_peer(peer): continue
-            socket = self._connect_to_peer(peer.ip_address, peer.port)
+            shared_peer = serialized_peer.to_peer()
+            assert shared_peer.port is not None
+            if self.search_link_by_peer(lambda peer: peer.ip_address==shared_peer.ip_address and peer.port==shared_peer.port): continue
+            self._create_link(shared_peer.ip_address, shared_peer.port)
 
-            if socket is not None:
-                link = PeerLink(
-                    peer=peer,
-                    socket=socket, alive=True, buffer=b""
-                )
-                self.peer_links.append(link)
-                self._declare_to_peer(link)
+    def _create_link(self, ip_address: str, port: int) -> PeerLink|None:
+        socket = self._connect_to_peer(ip_address, port)
 
-    def _handle_ready_to_recv(self, link: PeerLink):
+        if socket is not None:
+            link = PeerLink(
+                peer=Peer(ip_address=ip_address, port=port, public_key=None),
+                socket=socket, alive=True, buffer=b""
+            )
+            self.peer_links.append(link)
+            self._declare_to_peer(link)
+            return link
+        
+        return None
+
+    def _handle_buffer_readable(self, link: PeerLink):
         if self._handle_public_key_declaration(link): return
         assert link.peer.public_key is not None
         if self._handle_port_declaration(link): return
@@ -423,17 +468,18 @@ class Node:
 
     def _handle_message(self, link: PeerLink, message: Message):
         if message.message_type == MessageType.APPLICATION:
-            self._handle_application_message(message)
+            assert isinstance(message.content, ApplicationData)
+            self._handle_application_message(link, message.content)
 
         if message.message_type == MessageType.PEERS_REQUEST:
             self._handle_peers_request(link)
 
         if message.message_type == MessageType.PEERS_SHARING:
             assert isinstance(message.content, PeersSharing)
-            self._handle_peer_sharing(link, message.content)
+            self._handle_peers_sharing(link, message.content)
         
-    def _handle_application_message(self, message: Message):
-        ...
+    def _handle_application_message(self, link: PeerLink, content: ApplicationData):
+        logger.info(f"application data: {content.data}")
 
     def _send_message(self, link: PeerLink, message: Message):
         raw_message = message.to_raw(self.private_key)
@@ -469,7 +515,7 @@ class Node:
         
         link.buffer += chunk
 
-        if SEPARATOR in chunk:
+        while SEPARATOR in link.buffer:
             link.buffer, rest = link.buffer.split(SEPARATOR, 1)
-            self._handle_ready_to_recv(link)
+            self._handle_buffer_readable(link)
             link.buffer = rest
