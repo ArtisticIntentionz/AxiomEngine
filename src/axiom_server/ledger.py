@@ -37,6 +37,7 @@ from sqlalchemy.orm import (
 )
 from typing_extensions import Self, TypedDict
 
+from axiom_server import merkle
 from axiom_server.common import NLP_MODEL
 
 logger = logging.getLogger("ledger")
@@ -88,6 +89,13 @@ class Block(Base):
     nonce: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     fact_hashes: Mapped[str] = mapped_column(Text, nullable=False)
 
+    # --- ADDITION: The cryptographic fingerprint of the block's contents ---
+    merkle_root: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+        default="",
+    )
+
     def __init__(self, **kwargs: Any) -> None:
         """Initialize Block."""
         super().__init__(**kwargs)
@@ -102,13 +110,22 @@ class Block(Base):
                 "fact_hashes": sorted(json.loads(self.fact_hashes)),
                 "timestamp": self.timestamp,
                 "nonce": self.nonce,
+                "merkle_root": self.merkle_root,
             },
             sort_keys=True,
         ).encode()
         return hashlib.sha256(block_string).hexdigest()
 
     def seal_block(self, difficulty: int) -> None:
-        """Mine block with difficulty number of leading zeros."""
+        """Calculate the Merkle Root and then seal the block via Proof of Work."""
+        # --- ADDITION: Calculate the Merkle Root ---
+        fact_hashes_list = json.loads(self.fact_hashes)
+        if fact_hashes_list:  # Only build a tree if there are facts
+            merkle_tree = merkle.MerkleTree(fact_hashes_list)
+            self.merkle_root = merkle_tree.root.hex()
+        else:
+            self.merkle_root = hashlib.sha256(b"").hexdigest()
+
         self.hash = self.calculate_hash()
         target = "0" * difficulty
         while not self.hash.startswith(target):
