@@ -1,11 +1,3 @@
-Excellent idea. A clear and accurate `CONTRIBUTING.md` is the most welcoming and valuable document for any open-source project. Capturing the new P2P setup process is essential.
-
-I have taken your existing file, which is already very well-structured, and updated it to reflect the new P2P mesh network architecture. I've preserved the excellent "Gold Standard" installation steps and focused on rewriting the "Launch the Development Network" section to be accurate for the new system.
-
-Here is the updated `CONTRIBUTING.md` file.
-
----
-
 # Contributing to the Axiom Project
 
 First off, thank you for considering contributing. It is people like you that will make Axiom a robust, independent, and permanent public utility for truth. This project is a digital commonwealth, and your contributions are vital to its success.
