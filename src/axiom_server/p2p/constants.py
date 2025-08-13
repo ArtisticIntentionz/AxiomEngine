@@ -2,7 +2,9 @@ from pathlib import Path
 from typing import Final
 
 # This file is now located at: .../AxiomEngine/src/axiom_server/p2p/constants.py
-PROJECT_ROOT: Final[Path] = Path(__file__).resolve().parent.parent.parent.parent
+PROJECT_ROOT: Final[Path] = (
+    Path(__file__).resolve().parent.parent.parent.parent
+)
 
 # The SSL folder is at the project root.
 SSL_FOLDER: Final[Path] = PROJECT_ROOT / "ssl"
@@ -33,7 +35,9 @@ NODE_KEY_FILE: Final[Path] = SSL_FOLDER / "node.key"
 
 # --- Bootstrap Server Configuration ---
 BOOTSTRAP_SERVER_IP_ADDR: Final[str] = "localhost"
-BOOTSTRAP_SERVER_PORT: Final[int] = 42_180 # Note: This can be overridden at runtime
+BOOTSTRAP_SERVER_PORT: Final[int] = (
+    42_180  # Note: This can be overridden at runtime
+)
 
 
 # --- Protocol Constants ---
