@@ -1,13 +1,13 @@
 
-from axiom_server.p2p.node import RawMessage, generate_key_pair, sign
+from axiom_server.p2p.node import RawMessage, _generate_key_pair, _sign
 
 
 def test_rawmessage_sign_and_verify():
     # Generate key pair
-    private_key, public_key = generate_key_pair()
+    private_key, public_key = _generate_key_pair()
     data = b"hello world"
     # Sign data
-    signature = sign(data, private_key)
+    signature = _sign(data, private_key)
     # Create RawMessage
     raw = RawMessage(data=data, signature=signature)
     # Check signature with correct key
@@ -18,9 +18,9 @@ def test_rawmessage_sign_and_verify():
 
 
 def test_rawmessage_to_bytes_and_from_bytes():
-    private_key, _ = generate_key_pair()
+    private_key, _ = _generate_key_pair()
     data = b"test bytes"
-    signature = sign(data, private_key)
+    signature = _sign(data, private_key)
     raw = RawMessage(data=data, signature=signature)
     # Convert to bytes and back
     raw_bytes = raw.to_bytes()
