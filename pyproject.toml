@@ -36,7 +36,7 @@ dependencies = [
     "Flask==3.0.3",
     "gunicorn==22.0.0",
     "requests==2.31.0",
-    
+
     # --- Database & Blockchain ---
     "sqlalchemy",
     "cryptography>=45.0.6",
