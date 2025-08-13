@@ -409,7 +409,11 @@ class Node:
         message = Message.application_data(data)
         self._send_message_to_peers(message)
 
-    def bootstrap(self, ip_addr: str = BOOTSTRAP_SERVER_IP_ADDR, port: int = BOOTSTRAP_SERVER_PORT):
+    def bootstrap(
+        self,
+        ip_addr: str = BOOTSTRAP_SERVER_IP_ADDR,
+        port: int = BOOTSTRAP_SERVER_PORT,
+    ):
         logger.info(f"Bootstrapping to target: {ip_addr}:{port}")
         link = self.search_link_by_peer(
             lambda peer: peer.ip_address == ip_addr and peer.port == port,

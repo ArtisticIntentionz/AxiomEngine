@@ -382,10 +382,12 @@ def create_genesis_block(session: Session) -> None:
     session.commit()
     logger.info("Genesis Block created and sealed.")
 
+
 # --- NEW FUNCTION FOR P2P SYNCHRONIZATION ---
-def add_block_from_peer_data(session: Session, block_data: dict[str, Any]) -> Block:
-    """
-    Validates and adds a new block received from a peer.
+def add_block_from_peer_data(
+    session: Session, block_data: dict[str, Any],
+) -> Block:
+    """Validates and adds a new block received from a peer.
 
     This is the core of blockchain synchronization. It ensures that a node
     only accepts blocks that correctly extend its own version of the chain.
@@ -400,6 +402,7 @@ def add_block_from_peer_data(session: Session, block_data: dict[str, Any]) -> Bl
     Raises:
         ValueError: If the block is invalid (e.g., wrong height, hash mismatch).
         KeyError: If the peer data is missing required fields.
+
     """
     latest_local_block = get_latest_block(session)
     if not latest_local_block:
@@ -410,7 +413,7 @@ def add_block_from_peer_data(session: Session, block_data: dict[str, Any]) -> Bl
     if block_data["height"] != expected_height:
         raise ValueError(
             f"Block height mismatch. Expected {expected_height}, "
-            f"but peer sent {block_data['height']}. Node may be out of sync."
+            f"but peer sent {block_data['height']}. Node may be out of sync.",
         )
 
     # 2. CRITICAL VALIDATION: Does the new block correctly chain to our latest block?
@@ -418,7 +421,7 @@ def add_block_from_peer_data(session: Session, block_data: dict[str, Any]) -> Bl
         raise ValueError(
             f"Block integrity error: Peer block's previous_hash "
             f"({block_data['previous_hash']}) does not match local head "
-            f"({latest_local_block.hash}). A fork may have occurred."
+            f"({latest_local_block.hash}). A fork may have occurred.",
         )
 
     # 3. If validation passes, create the Block object from the peer data.
@@ -436,7 +439,9 @@ def add_block_from_peer_data(session: Session, block_data: dict[str, Any]) -> Bl
     )
     session.add(new_block)
     session.commit()
-    logger.info(f"Added new block #{new_block.height} from peer to local ledger.")
+    logger.info(
+        f"Added new block #{new_block.height} from peer to local ledger.",
+    )
     return new_block
 
 
