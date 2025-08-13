@@ -1,3 +1,4 @@
+"""Definig the base unit of P2P network, a Node."""
 from __future__ import annotations
 
 import logging
@@ -6,11 +7,16 @@ import socket as socket_lib
 import ssl
 import sys
 import time
-from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
-from socket import socket as Socket
-from typing import Any, Callable, Literal, Union
+
+# Yes, I am renaming socket.socket because type names should
+# start with an uppercase character.
+from socket import socket as Socket  # noqa N812
+from typing import TYPE_CHECKING, Any, Callable, Literal
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 import cryptography
 import cryptography.exceptions
@@ -49,60 +55,79 @@ logger.propagate = False
 
 
 class P2PRuntimeError(BaseException):
+    """Raised when the system can't recover from a situation."""
     __slots__ = ()
 
 
 class RawMessage(BaseModel):
+    """Represent a message ready to be transmitted over network.
+
+    The main job of this layer is to check the authenticity of
+    the sender.
+    """
     data: bytes
     signature: bytes
 
     def to_bytes(self) -> bytes:
+        """Encode this into a byte buffer."""
         return self.signature + self.data
 
     @staticmethod
     def from_bytes(data: bytes) -> RawMessage:
+        """Decode a byte buffer to a raw message."""
         return RawMessage(
             signature=data[:SIGNATURE_SIZE],
             data=data[SIGNATURE_SIZE:],
         )
 
     def check_signature(self, public_key: rsa.RSAPublicKey) -> bool:
-        return verify(self.signature, self.data, public_key)
+        """Check the validity of the signature.
+
+        Returns True if and only if public_key is paired with
+        the private key used to sign the message.
+        This establishes the authenticity of the emitter.
+        """
+        return _verify(self.signature, self.data, public_key)
 
 
 class MessageType(Enum):
+    """Represent the possible message types."""
     PEERS_REQUEST = 0
     PEERS_SHARING = 1
     APPLICATION = 2
 
 
 class Message(BaseModel):
+    """A message carrying information."""
     message_type: MessageType
-    content: Union[PeersRequest, PeersSharing, ApplicationData]
+    content: PeersRequest | PeersSharing | ApplicationData
 
     def _to_bytes(self) -> bytes:
         return self.model_dump_json().encode(ENCODING)
 
     def to_raw(self, private_key: rsa.RSAPrivateKey) -> RawMessage:
+        """Create a raw message, signing it."""
         data = self._to_bytes()
 
-        return RawMessage(data=data, signature=sign(data, private_key))
+        return RawMessage(data=data, signature=_sign(data, private_key))
 
     @staticmethod
     def _from_bytes(data: bytes) -> Message:
         try:
             return Message.model_validate_json(data.decode(ENCODING))
 
-        except (UnicodeDecodeError, ValidationError):
-            message = "cannot create Message from bytes"
+        except (UnicodeDecodeError, ValidationError) as e:
+            message = f"cannot create Message from bytes ({e})"
             logger.exception(message)
-            raise P2PRuntimeError(message)
+            raise P2PRuntimeError(message) from e
 
     @staticmethod
     def from_raw(raw: RawMessage) -> Message:
+        """Decode a raw message."""
         return Message._from_bytes(raw.data)
 
     def check_content(self) -> bool:
+        """Check the pertinence of message_type and the actual type of content."""
         if self.message_type == MessageType.PEERS_REQUEST and isinstance(
             self.content,
             PeersRequest,
@@ -113,15 +138,14 @@ class Message(BaseModel):
             PeersSharing,
         ):
             return True
-        if self.message_type == MessageType.APPLICATION and isinstance(
+        return self.message_type == MessageType.APPLICATION and isinstance(
             self.content,
             ApplicationData,
-        ):
-            return True
-        return False
+        )
 
     @staticmethod
     def peers_request() -> Message:
+        """Build a peers request message."""
         return Message(
             message_type=MessageType.PEERS_REQUEST,
             content=PeersRequest(),
@@ -129,6 +153,7 @@ class Message(BaseModel):
 
     @staticmethod
     def peers_sharing(peers: list[Peer]) -> Message:
+        """Build a peers sharing message."""
         return Message(
             message_type=MessageType.PEERS_SHARING,
             content=PeersSharing(
@@ -142,31 +167,38 @@ class Message(BaseModel):
 
     @staticmethod
     def application_data(data: str) -> Message:
+        """Build a message carrying application data."""
         return Message(
             message_type=MessageType.APPLICATION,
             content=ApplicationData(data=data),
         )
 
 
-class MessageContent(BaseModel): ...
+class MessageContent(BaseModel):
+    """Data transmited in a message."""
 
 
-class PeersRequest(MessageContent): ...
+class PeersRequest(MessageContent):
+    """Request for sharing of peer information."""
 
 
 class PeersSharing(MessageContent):
+    """Peer information sharing."""
     peers: list[SerializedPeer]
 
 
 class ApplicationData(MessageContent):
+    """Client code data."""
     data: str
 
 
 class SerializedPeer(BaseModel):
+    """Represent a peer ready to be transmited over network."""
     ip_address: str
     port: int
 
     def to_peer(self) -> Peer:
+        """Deserialize the peer."""
         return Peer(
             ip_address=self.ip_address,
             port=self.port,
@@ -176,20 +208,26 @@ class SerializedPeer(BaseModel):
 
 @dataclass
 class Peer:
+    """Represent the home address of a node."""
     ip_address: str
     port: int | None
     public_key: rsa.RSAPublicKey | None
 
     def can_be_shared(self) -> bool:
+        """Check if the peer can be shared.
+
+        This means checking if the peer has declared a home port and public key.
+        """
         return self.public_key is not None and self.port is not None
 
     def to_serialized(self) -> SerializedPeer:
+        """Serialize the peer."""
         assert self.port is not None
         assert self.public_key is not None
         return SerializedPeer(ip_address=self.ip_address, port=self.port)
 
 
-def deserialize_public_key(data: bytes) -> rsa.RSAPublicKey:
+def _deserialize_public_key(data: bytes) -> rsa.RSAPublicKey:
     try:
         key = serialization.load_pem_public_key(data)
 
@@ -200,7 +238,7 @@ def deserialize_public_key(data: bytes) -> rsa.RSAPublicKey:
     ) as e:
         message = f"unable to load key from bytes: {e}"
         logger.exception(message)
-        raise P2PRuntimeError(message)
+        raise P2PRuntimeError(message) from e
 
     if not isinstance(key, rsa.RSAPublicKey):
         message = f"invalid key, not a public RSA key: '{key}'"
@@ -210,7 +248,7 @@ def deserialize_public_key(data: bytes) -> rsa.RSAPublicKey:
     return key
 
 
-def serialize_public_key(key: rsa.RSAPublicKey) -> bytes:
+def _serialize_public_key(key: rsa.RSAPublicKey) -> bytes:
     return key.public_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
@@ -220,7 +258,7 @@ def serialize_public_key(key: rsa.RSAPublicKey) -> bytes:
 # the following is taken from https://elc.github.io/python-security/chapters/07_Asymmetric_Encryption.html#rsa-encryption
 
 
-def generate_key_pair() -> tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
+def _generate_key_pair() -> tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
     private_key = rsa.generate_private_key(
         public_exponent=65537,
         key_size=KEY_SIZE,
@@ -230,7 +268,7 @@ def generate_key_pair() -> tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
     return private_key, public_key
 
 
-def sign(message: bytes, private_key: rsa.RSAPrivateKey):
+def _sign(message: bytes, private_key: rsa.RSAPrivateKey):
     return private_key.sign(
         message,
         padding.PSS(
@@ -241,7 +279,7 @@ def sign(message: bytes, private_key: rsa.RSAPrivateKey):
     )
 
 
-def verify(signature: bytes, message: bytes, public_key: rsa.RSAPublicKey):
+def _verify(signature: bytes, message: bytes, public_key: rsa.RSAPublicKey):
     try:
         public_key.verify(
             signature,
@@ -259,32 +297,40 @@ def verify(signature: bytes, message: bytes, public_key: rsa.RSAPublicKey):
 
 @dataclass
 class PeerLink:
+    """Represents an active link with a peer."""
     peer: Peer
     socket: Socket
     alive: bool
     buffer: bytes
 
     def fmt_addr(self) -> str:
+        """Give a short description of the peer home address."""
         return f"{self.peer.ip_address}:{self.peer.port}"
 
 
 @dataclass
 class NodeContextManager:
+    """Handle the systematic stopping of the given node."""
     node: Node
 
     def __enter__(self) -> Node:
+        """Return the node."""
         return self.node
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """Handle stopping the node."""
         self.node.stop()
 
 
-def ALL(item: Any) -> Literal[True]:
+def _all(item: Any) -> Literal[True]:
     return True
+
+ALL = _all
 
 
 @dataclass
 class Node:
+    """A P2P node, associated with a home address, and RSA keys."""
     ip_address: str
     port: int
     serialized_port: bytes
@@ -296,6 +342,13 @@ class Node:
 
     @staticmethod
     def start(ip_address: str, port: int = 0) -> Node:
+        """Create a new Node by generating new public and private keys, binding the home socket to ip_address and port.
+
+        Args:
+            ip_address str: the ip_address to bind to.
+            port int: the port to bind to.
+
+        """
         context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
 
         if not NODE_CERT_FILE.exists():
@@ -316,7 +369,7 @@ class Node:
             server_socket,
             server_side=True,
         )
-        private_key, public_key = generate_key_pair()
+        private_key, public_key = _generate_key_pair()
         computed_ip_address, computed_port = secure_server_socket.getsockname()
         assert isinstance(computed_ip_address, str)
         assert isinstance(computed_port, int)
@@ -327,12 +380,17 @@ class Node:
             serialized_port=str(computed_port).encode(ENCODING),
             private_key=private_key,
             public_key=public_key,
-            serialized_public_key=serialize_public_key(public_key),
+            serialized_public_key=_serialize_public_key(public_key),
             peer_links=[],
             server_socket=secure_server_socket,
         )
 
     def stop(self):
+        """Stop the node by closing all active peer connections and the server socket.
+
+        This method iterates through all peer links, closes the socket for each active link,
+        and then closes the main server socket.
+        """
         for link in self.peer_links:
             if link.alive:
                 link.socket.close()
@@ -341,6 +399,20 @@ class Node:
         logger.info("closed server socket")
 
     def update(self):
+        """Handle incoming and outgoing network events for the node.
+
+        This method performs the following tasks:
+            - Monitors the server socket and all peer sockets for readability.
+            - Accepts new incoming connections.
+            - Receives data from connected peers.
+            - Handles exceptions during connection acceptance and data reception, logging errors.
+            - Removes peer links that are no longer alive from the list of active connections.
+
+        Raises:
+            Exception: If an error occurs while accepting a new connection.
+            P2PRuntimeError: If an error occurs while receiving data from a peer.
+
+        """
         sockets: list[Socket] = [self.server_socket] + [
             peer_link.socket for peer_link in self.peer_links
         ]
@@ -376,6 +448,15 @@ class Node:
         self,
         fun: Callable[[Peer], bool],
     ) -> PeerLink | None:
+        """Search for a PeerLink in the peer_links list whose associated Peer satisfies the given predicate function.
+
+        Args:
+            fun (Callable[[Peer], bool]): A function that takes a Peer object and returns True if the Peer matches the search criteria.
+
+        Returns:
+            PeerLink | None: The first PeerLink whose associated Peer satisfies the predicate, or None if no such PeerLink is found.
+
+        """
         for link in self.peer_links:
             if fun(link.peer):
                 return link
@@ -386,11 +467,29 @@ class Node:
         self,
         fun: Callable[[Peer], bool] = ALL,
     ) -> Iterable[PeerLink]:
+        """Iterate over peer links, yielding those whose associated peer satisfies a given condition.
+
+        Args:
+            fun (Callable[[Peer], bool], optional): A predicate function that takes a Peer object and returns True if the link should be yielded. Defaults to ALL (a function that always returns True).
+
+        Yields:
+            PeerLink: The peer link whose associated peer satisfies the predicate function.
+
+        """
         for link in self.peer_links:
             if fun(link.peer):
                 yield link
 
     def search_link(self, fun: Callable[[PeerLink], bool]) -> PeerLink | None:
+        """Search for a peer link in self.peer_links that matches a given condition.
+
+        Args:
+            fun (Callable[[PeerLink], bool]): A function that takes a PeerLink object and returns True if it matches the desired condition.
+
+        Returns:
+            PeerLink | None: The first PeerLink object that satisfies the condition, or None if no such link is found.
+
+        """
         for link in self.peer_links:
             if fun(link):
                 return link
@@ -401,11 +500,29 @@ class Node:
         self,
         fun: Callable[[PeerLink], bool] = ALL,
     ) -> Iterable[PeerLink]:
+        """Iterate over peer links, yielding those for which the provided function returns True.
+
+        Args:
+            fun (Callable[[PeerLink], bool], optional): A predicate function that takes a PeerLink and returns True if the link should be yielded. Defaults to ALL, which yields all links.
+
+        Yields:
+            PeerLink: Each peer link for which the predicate function returns True.
+
+        """
         for link in self.peer_links:
             if fun(link):
                 yield link
 
     def broadcast_application_message(self, data: str):
+        """Broadcast an application-level message to all connected peers.
+
+        This method wraps the provided data in an application-specific message format
+        and sends it to all peers connected to the node.
+
+        Args:
+            data (str): The application data to be sent to peers.
+
+        """
         message = Message.application_data(data)
         self._send_message_to_peers(message)
 
@@ -414,6 +531,20 @@ class Node:
         ip_addr: str = BOOTSTRAP_IP_ADDR,
         port: int = BOOTSTRAP_PORT,
     ):
+        """Attempt to connect this node to a target peer in the network.
+
+        This method searches for an existing link to the specified peer using its IP address and port.
+        If no such link exists, it tries to create a new link.
+        Upon successful connection, it sends a request for the peer list of the target node.
+
+        Args:
+            ip_addr (str): The IP address of the peer to bootstrap to. Defaults to BOOTSTRAP_IP_ADDR.
+            port (int): The port of the peer to bootstrap to. Defaults to BOOTSTRAP_PORT.
+
+        Returns:
+            None
+
+        """
         logger.info(f"Bootstrapping to target: {ip_addr}:{port}")
         link = self.search_link_by_peer(
             lambda peer: peer.ip_address == ip_addr and peer.port == port,
@@ -487,7 +618,7 @@ class Node:
     def _handle_public_key_declaration(self, link: PeerLink) -> bool:
         if link.peer.public_key is None:
             try:
-                key = deserialize_public_key(link.buffer)
+                key = _deserialize_public_key(link.buffer)
 
             except P2PRuntimeError as e:
                 logger.exception(
@@ -540,7 +671,7 @@ class Node:
                 continue
             assert shared_peer.port is not None
             if self.search_link_by_peer(
-                lambda peer: peer.ip_address == shared_peer.ip_address
+                lambda peer, shared_peer=shared_peer: peer.ip_address == shared_peer.ip_address
                 and peer.port == shared_peer.port,
             ):
                 continue

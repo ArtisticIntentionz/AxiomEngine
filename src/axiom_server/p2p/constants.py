@@ -1,3 +1,5 @@
+"""Defining constants related to P2P."""
+
 from pathlib import Path
 from typing import Final
 

@@ -1,13 +1,9 @@
-"""
-Docstring for axiom_server.run_node
-"""
+"""Docstring for axiom_server.run_node."""
 
-from argparse import ArgumentParser
-from dataclasses import dataclass
 import logging
 import os
 import sys
-import sys
+from argparse import ArgumentParser
 from typing import Final
 
 from pydantic import BaseModel
@@ -32,6 +28,7 @@ logger.propagate = False
 
 
 class Config(BaseModel):
+    """Used as a checkpoint between user input and software."""
     host: str
     port: int
     bootstrap: bool
@@ -49,7 +46,7 @@ The bootstrap defaults are computed like this:
 
 When --default_bootstrap is defined, this process is also used for --addr and --port.
 
-"""
+""",
 )
 
 COMPUTED_BOOTSTRAP_IP_ADDR: Final[str] = os.environ.get("AXIOM_BOOTSTRAP_IP_ADDR", BOOTSTRAP_IP_ADDR)
@@ -71,7 +68,7 @@ if __name__ == "__main__":
         port=arguments.port,
         bootstrap=arguments.bootstrap,
         bootstrap_host=arguments.boot_addr,
-        bootstrap_port=arguments.boot_port
+        bootstrap_port=arguments.boot_port,
     )
 
     if arguments.default_bootstrap:
@@ -79,7 +76,7 @@ if __name__ == "__main__":
         CONFIG.port = COMPUTED_BOOTSTRAP_PORT
 
     logger.info(f"running with config {CONFIG}")
-    
+
     try:
         with NodeContextManager(Node.start(CONFIG.host, CONFIG.port)) as node:
             if CONFIG.bootstrap:
