@@ -1,5 +1,3 @@
----
-
 ## ✅ Phase 1: The Genesis Engine (V1) - COMPLETE
 
 **Goal:** To prove the core concept of an autonomous, fact-gathering P2P network.
