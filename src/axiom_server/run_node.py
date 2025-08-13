@@ -40,8 +40,15 @@ class Config(BaseModel):
 
 parser = ArgumentParser(
     prog="Axiom run_node",
-    description=r"""
-Runs an axiom node.
+    description=f"""
+The bootstrap defaults are computed like this:
+
+    If supplied by CLI, use that.
+    If not, look into AXIOM_BOOTSTRAP_IP_ADDR and AXIOM_BOOTSTRAP_PORT environment variables.
+    If not defined, use the standard defaults ({BOOTSTRAP_IP_ADDR} & {BOOTSTRAP_PORT}).
+
+When --default_bootstrap is defined, this process is also used for --addr and --port.
+
 """
 )
 
