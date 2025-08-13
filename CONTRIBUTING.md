@@ -12,7 +12,7 @@ This project and everyone participating in it is governed by the Axiom Code of C
 
 There are many ways to add value to Axiom, and not all of them involve writing code.
 
-*   **Running a Node:** One of the most valuable ways to contribute is by running a stable Axiom Sealer Node to help strengthen and grow the network's knowledge base.
+*   **Running a Node:** One of the most valuable ways to contribute is by running a stable Axiom Node to help strengthen and grow the network's knowledge base and P2P fabric.
 *   **Reporting Bugs:** Find a bug or a security vulnerability? Please open a detailed "Issue" on our GitHub repository.
 *   **Suggesting Enhancements:** Have an idea for a new feature? Open an "Issue" to start a discussion with the community.
 *   **Improving Documentation:** If you find parts of our documentation unclear, you can submit a pull request to improve it.
@@ -41,7 +41,6 @@ Before you begin, ensure your system has no memory of previous installation atte
 2.  **Close and Re-open Your Terminal:** Your new terminal prompt should now be clean, without a `(base)` prefix.
 3.  **(Optional but Recommended) Purge Old Environments:** If you have any old Axiom environments, destroy them to avoid conflicts.
     ```bash
-    conda env remove -n AxiomEngineMain -y
     conda env remove -n AxiomFork -y
     # Add any other old environment names you might have used
     ```
@@ -100,47 +99,53 @@ The P2P engine requires SSL certificates for secure communication between nodes.
 
 ---
 
-### Step 2: Launch the Development Network
+### Step 2: Launch the P2P Development Network
 
-Your environment is now complete. We provide a convenient script to launch the entire 3-node network (Sealer, Listener, Client) automatically.
+Your environment is now complete. The Axiom network is a true peer-to-peer mesh. To develop locally, you need to simulate this by running at least two nodes: a **Bootstrap Server** (a simple meeting point) and one or more **Axiom Nodes**.
 
-**Method 1: Automated Launch (Recommended)**
+The launch process is done manually from the command line, giving you full control and clear, separated logs for each component.
 
+**Instructions:** Open three separate terminals. In each one, navigate to your `AxiomEngine` project directory and activate the Conda environment with `conda activate AxiomFork`.
 
-2.  **Make the Script Executable:**
+**Terminal 1: The Bootstrap Server**
+
+This server's only job is to introduce new nodes to each other. It doesn't process facts.
+
+1.  **Launch the server:**
     ```bash
-    chmod +x start-dev-network.sh
+    python -m axiom_server.p2p.node 0
     ```
+2.  **Observe the output.** It will log the port it started on, for example:
+    `[__main__] ... INFO | node.py:323 >>> started node on 127.0.0.1:57539`
+3.  **Keep this terminal running.** This is the anchor for your local network. Note the port number (`57539` in this example) for the next step.
 
-3.  **Run the Network:**
+**Terminal 2: The First Axiom Node**
+
+This is a full Axiom node that will discover facts, seal blocks, and communicate with peers.
+
+1.  **Launch the node:** Replace `<bootstrap_port>` with the port number from Terminal 1.
     ```bash
-    # To run with default ports (Sealer: 5000, Listener: 6001)
-    ./start-dev-network.sh
-
-    # To run with custom ports (e.g., if 5000 is taken)
-    ./start-dev-network.sh 5001 6002
+    # P2P will run on port 5001, API on 8001
+    python -m axiom_server.node --p2p-port 5001 --api-port 8001 --bootstrap-peer http://127.0.0.1:<bootstrap_port>
     ```
-    This will open three new terminal windows and start each node correctly. You are now ready to develop!
+2.  **Observe the logs.** You will see it initialize the Axiom engine and the P2P layer, and you should see connection logs appear in both Terminal 1 and Terminal 2.
+3.  **Keep this terminal running.**
 
-**Method 2: Manual Launch**
+**Terminal 3: The Second Axiom Node (Optional but Recommended)**
 
-If you prefer to launch each component by hand or are on an unsupported OS, you can run these commands in three separate terminals. Make sure you are in the `AxiomEngine` directory and have activated the conda environment in each.
+Running a second full node allows you to see the P2P gossip protocol in action.
 
-*   **Terminal 1 (Sealer Node):**
+1.  **Launch the node:** Use different ports for this node.
     ```bash
-    rm -f *.db # Start with a clean database
-    axiom_server
+    # P2P will run on port 5002, API on 8002
+    python -m axiom_server.node --p2p-port 5002 --api-port 8002 --bootstrap-peer http://127.0.0.1:<bootstrap_port>
     ```
+2.  **Observe the logs.** This node will also connect to the bootstrap server and then discover and connect to the first Axiom node.
+3.  **Keep this terminal running.**
 
-*   **Terminal 2 (Listener Node):**
-    ```bash
-    export PORT="6000" && export SEALER_URL="http://127.0.0.1:5000" && python3 -m axiom_server.listener_node
-    ```
+**Verifying Success:** When Node 1 (in Terminal 2) seals a new block and broadcasts it, you will see a `SUCCESS: Validated and added new block #1 from peer.` message appear in the logs for Node 2 (in Terminal 3).
 
-*   **Terminal 3 (Client):**
-    ```bash
-    axiom_client
-    ```
+You are now running a local Axiom mesh network and are ready to develop!
 
 ---
 
@@ -148,12 +153,14 @@ If you prefer to launch each component by hand or are on an unsupported OS, you 
 
 Once you have the system running, you can start developing.
 
-1.  **Create a New Branch:** Never work directly on the `main` or `master` branch. Create a new, descriptive branch for every feature or bug fix.
+1.  **Create a New Branch:** Never work directly on the `main` branch. Create a new, descriptive branch for every feature or bug fix.
     ```bash
     # Example for a new feature
     git checkout -b feature/improve-crucible-filter
     ```
 2.  **Write Your Code:** Make your changes. Please try to follow the existing style and add comments where your logic is complex.
+
+---
 
 ### Step 4: Submit Your Contribution
 
@@ -173,6 +180,8 @@ Once you have the system running, you can start developing.
     git push origin feature/improve-crucible-filter
     ```
 4.  **Open a Pull Request:** Go to your fork on the GitHub website. You will see a prompt to "Compare & pull request." Click it, give it a clear title and a detailed description, and submit it for review.
+
+---
 
 ### Step 5: Code Review
 

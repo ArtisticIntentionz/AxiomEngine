@@ -44,14 +44,17 @@ dependencies = [
 
     # --- Data & Validation ---
     "pydantic",
+    "PyQt6",
     "beautifulsoup4>=4.12.3",
     "feedparser==6.0.11",
+    "ddgs",
 
     # --- AI & Natural Language Processing ---
     "spacy>=3.7.2,<3.8.0",
     "en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl",
     "typing-extensions>=4.14.1",
 ]
+
 
 
 [tool.setuptools.dynamic]
@@ -84,6 +87,13 @@ axiom_server = "axiom_server.node:cli_run"
 
 [project.gui-scripts]
 axiom_client = "axiom_client.main:cli_run"
+[tool.pytest.ini_options]
+pythonpath = [
+  "src"
+]
+testpaths = [
+  "tests"
+]
 
 [tool.setuptools.package-data]
 axiom_server = ["py.typed", "*.html"]
