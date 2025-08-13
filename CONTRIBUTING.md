@@ -30,19 +30,72 @@ This guide provides the official, verified steps to get your development environ
 *   A working `git` installation.
 *   A working `conda` installation. [Miniforge](https://github.com/conda-forge/miniforge) is highly recommended, especially for macOS users.
 
-**(The installation steps from your original file are excellent and remain unchanged, as the dependencies are the same.)**
-
 **Phase 1: The "Clean Slate" Protocol (Run This Once)**
-... *(This section remains the same)* ...
+
+Before you begin, ensure your system has no memory of previous installation attempts. This guarantees a pristine foundation.
+
+1.  **Disable Conda's Base Environment:** Open a new terminal and run this command. This prevents the `(base)` environment from automatically activating, which can cause issues.
+    ```bash
+    conda config --set auto_activate_base false
+    ```
+2.  **Close and Re-open Your Terminal:** Your new terminal prompt should now be clean, without a `(base)` prefix.
+3.  **(Optional but Recommended) Purge Old Environments:** If you have any old Axiom environments, destroy them to avoid conflicts.
+    ```bash
+    conda env remove -n AxiomFork -y
+    # Add any other old environment names you might have used
+    ```
 
 **Phase 2: Fork, Clone, and Create the Environment**
-... *(This section remains the same)* ...
+
+1.  **Fork & Clone:** Start by "forking" the main `ArtisticIntentionz/AxiomEngine` repository on GitHub. Then, clone your personal fork to your local machine.
+    ```bash
+    # Navigate to where you want the project to live, e.g., ~/Documents/
+    git clone https://github.com/YOUR_USERNAME/AxiomEngine.git
+    cd AxiomEngine
+    ```
+    *(Remember to replace `YOUR_USERNAME` with your actual GitHub username!)*
+
+2.  **Create and Activate the Conda Environment:**
+    ```bash
+    conda create -n AxiomFork python=3.11 -y
+    conda activate AxiomFork
+    ```
+    Your terminal prompt will now correctly show `(AxiomFork)`.
 
 **Phase 3: The "Gold Standard" Installation**
-... *(This section remains the same)* ...
+
+This hybrid Conda/Pip approach is proven to work reliably.
+
+1.  **Install Heavy Binaries with Conda:** This installs pre-compiled packages that are guaranteed to be compatible.
+    ```bash
+    conda install -c conda-forge numpy scipy "spacy>=3.7.2,<3.8.0" cryptography beautifulsoup4 -y
+    ```
+2.  **Install Pure-Python Libraries with Pip:** This installs the remaining application-level dependencies.
+    ```bash
+    pip install Flask gunicorn requests sqlalchemy pydantic feedparser PyQt6 ruff mypy pytest pre-commit attrs types-requests
+    ```
+3.  **Install the AI Model:**
+    ```bash
+    pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
+    ```
+4.  **Install the Axiom Project Itself:** This final step makes the `axiom_server` and `axiom_client` commands available in your terminal.
+    ```bash
+    pip install -e .
+    ```
 
 **Phase 4: Final One-Time Setup (SSL)**
-... *(This section remains the same)* ...
+
+The P2P engine requires SSL certificates for secure communication between nodes.
+
+1.  **Create the SSL Directory:**
+    ```bash
+    mkdir -p ssl
+    ```
+2.  **Generate the Certificates:**
+    ```bash
+    openssl req -new -x509 -days 365 -nodes -out ssl/node.crt -keyout ssl/node.key
+    ```
+    *(You will be prompted for information. You can press `Enter` for every question to accept the defaults.)*
 
 ---
 
