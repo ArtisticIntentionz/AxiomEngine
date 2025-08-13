@@ -37,7 +37,7 @@ NODE_KEY_FILE: Final[Path] = SSL_FOLDER / "node.key"
 
 # --- Bootstrap Server Configuration ---
 BOOTSTRAP_IP_ADDR: Final[str] = "localhost"
-BOOTSTRAP_PORT: Final[int] = 42_180 # Note: This can be overridden at runtime
+BOOTSTRAP_PORT: Final[int] = 42_180  # Note: This can be overridden at runtime
 
 
 # --- Protocol Constants ---

@@ -274,7 +274,7 @@ class AxiomClientApp(QWidget):  # type: ignore[misc,unused-ignore,no-any-unimpor
             self.set_disconnected_status()
 
     def set_disconnected_status(self):
-        """Helper function to set all UI elements to a disconnected state."""
+        """Set all UI elements to a disconnected state."""
         self.connection_status_label.setText(
             f"🔴 Disconnected from {self.server_url}",
         )

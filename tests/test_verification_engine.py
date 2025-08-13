@@ -1,5 +1,7 @@
 # tests/test_verification_engine.py
 
+from __future__ import annotations
+
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -23,7 +25,7 @@ class MockSpacyDoc:
         self.text = text
         self.similarity_map = similarity_map or {}
 
-    def similarity(self, other_doc: "MockSpacyDoc") -> float:
+    def similarity(self, other_doc: MockSpacyDoc) -> float:
         """Return a pre-defined similarity score for the given text."""
         # This allows us to say "when comparing to doc B, return 0.95".
         return self.similarity_map.get(other_doc.text, 0.0)
@@ -42,7 +44,8 @@ class TestVerificationEngine(unittest.TestCase):
         self.source3 = Source(domain="sourceC.com")
 
     def test_find_corroborating_claims_success(self):
-        """Test that find_corroborating_claims correctly identifies a similar fact
+        """Test that find_corroborating_claims correctly identifies a similar fact.
+
         from a different source.
         """
         # --- Arrange ---
@@ -99,10 +102,10 @@ class TestVerificationEngine(unittest.TestCase):
         )
 
         # --- Assert ---
-        self.assertEqual(len(results), 1)
-        self.assertEqual(results[0]["content"], corroborating_fact_text)
-        self.assertEqual(results[0]["source"], "sourceB.com")
-        self.assertGreater(results[0]["similarity"], 0.90)
+        assert len(results) == 1
+        assert results[0]["content"] > corroborating_fact_text
+        assert results[0]["source"] > "sourceB.com"
+        assert results[0]["similarity"] > 0.90
 
     def test_find_corroborating_claims_from_same_source(self):
         """Test that a similar fact from the SAME source is NOT considered a corroboration."""
@@ -141,7 +144,7 @@ class TestVerificationEngine(unittest.TestCase):
         )
 
         # --- Assert ---
-        self.assertEqual(len(results), 0)  # Should find no corroborations
+        assert len(results) == 0  # Should find no corroborations
 
     # We use the @patch decorator to mock the `requests.head` call
     @patch("axiom_server.verification_engine.requests.head")
@@ -166,22 +169,13 @@ class TestVerificationEngine(unittest.TestCase):
         results = verification_engine.verify_citations(fact_to_verify)
 
         # --- Assert ---
-        self.assertEqual(len(results), 2)
+        assert len(results) == 2
 
         # We use a helper to make asserting easier since dict order isn't guaranteed
         results_map = {item["url"]: item for item in results}
-
-        self.assertIn("http://good-url.com", results_map)
-        self.assertEqual(
-            results_map["http://good-url.com"]["status"],
-            "VALID_AND_LIVE",
-        )
-
-        self.assertIn("http://bad-url.com", results_map)
-        self.assertEqual(
-            results_map["http://bad-url.com"]["status"],
-            "BROKEN_404",
-        )
+        assert results_map["http://good-url.com"]["status"] == "VALID_AND_LIVE"
+        assert "http://bad-url.com" in results_map
+        assert results_map["http://bad-url.com"]["status"] == "BROKEN_44"
 
 
 if __name__ == "__main__":

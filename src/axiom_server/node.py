@@ -12,6 +12,8 @@ import sys
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
+from typing import Any
 from urllib.parse import urlparse
 
 from flask import Flask, Response, jsonify, request
@@ -39,7 +41,6 @@ from axiom_server.ledger import (
     get_latest_block,
     initialize_database,
 )
-
 from axiom_server.p2p.constants import (
     BOOTSTRAP_IP_ADDR,
     BOOTSTRAP_PORT,
@@ -121,8 +122,10 @@ class AxiomNode(P2PBaseNode):
         link: Any,
         content: ApplicationData,
     ) -> None:
-        """This method is automatically called by the P2P layer when an
-        'application' message is received. This is our entry point.
+        """Handle an incoming 'application' message from the P2P layer.
+
+        This method serves as the entry point for all application-specific data
+        received from peers.
         """
         try:
             message = json.loads(content.data)
@@ -153,7 +156,7 @@ class AxiomNode(P2PBaseNode):
             )
 
     def _background_work_loop(self) -> None:
-        """The main work cycle for fact-gathering and block-sealing."""
+        """Run the main work cycle for fact-gathering and block-sealing."""
         background_thread_logger.info("Starting continuous Axiom work cycle.")
         while True:
             background_thread_logger.info("Axiom engine cycle start")
@@ -288,9 +291,7 @@ class AxiomNode(P2PBaseNode):
 
     @classmethod
     def start_node(cls, host: str, port: int, bootstrap: bool) -> AxiomNode:
-        """A factory method to create and initialize a complete AxiomNode.
-        This is the preferred way to instantiate the node.
-        """
+        """Create and initialize a complete AxiomNode."""
         # 1. Use the parent's factory to create the low-level P2P components.
         p2p_instance = P2PBaseNode.start(ip_address=host, port=port)
 
@@ -381,7 +382,7 @@ def handle_get_blocks() -> Response:
 
 @app.route("/status", methods=["GET"])
 def handle_get_status() -> Response:
-    """Provides a simple status check for the node."""
+    """Provide a simple status check for the node."""
     with SessionMaker() as session:
         latest_block = get_latest_block(session)
         height = latest_block.height if latest_block else 0
@@ -465,6 +466,7 @@ def handle_get_facts_by_hash() -> Response:
 
 @app.route("/get_merkle_proof", methods=["GET"])
 def handle_get_merkle_proof() -> Response | tuple[Response, int]:
+    """Retrieve the Merkle proof for a given fact within a block."""
     fact_hash = request.args.get("fact_hash")
     block_height_str = request.args.get("block_height")
     if not fact_hash or not block_height_str:
@@ -509,26 +511,31 @@ def handle_get_merkle_proof() -> Response | tuple[Response, int]:
 
 @app.route("/anonymous_query", methods=["POST"])
 def handle_anonymous_query() -> Response | tuple[Response, int]:
+    """Handle anonymous queries (Not Implemented)."""
     return jsonify({"error": "Anonymous query not implemented in V4"}), 501
 
 
 @app.route("/dao/proposals", methods=["GET"])
 def handle_get_proposals() -> Response:
+    """Get DAO proposals (Not Implemented)."""
     return jsonify({"error": "DAO not implemented in V4"}), 501
 
 
 @app.route("/dao/submit_proposal", methods=["POST"])
 def handle_submit_proposal() -> Response | tuple[Response, int]:
+    """Submit a DAO proposal (Not Implemented)."""
     return jsonify({"error": "DAO not implemented in V4"}), 501
 
 
 @app.route("/dao/submit_vote", methods=["POST"])
 def handle_submit_vote() -> Response | tuple[Response, int]:
+    """Submit a vote on a DAO proposal (Not Implemented)."""
     return jsonify({"error": "DAO not implemented in V4"}), 501
 
 
 @app.route("/verify_fact", methods=["POST"])
 def handle_verify_fact() -> Response | tuple[Response, int]:
+    """Trigger the verification process for a given fact ID."""
     fact_id = (request.json or {}).get("fact_id")
     if not fact_id:
         return jsonify({"error": "fact_id is required"}), 400
@@ -558,6 +565,7 @@ def handle_verify_fact() -> Response | tuple[Response, int]:
 
 @app.route("/get_fact_context/<fact_hash>", methods=["GET"])
 def handle_get_fact_context(fact_hash: str) -> Response | tuple[Response, int]:
+    """Get the context for a specific fact by its hash."""
     with SessionMaker() as session:
         target_fact = (
             session.query(Fact).filter(Fact.hash == fact_hash).one_or_none()
@@ -594,7 +602,7 @@ def handle_get_fact_context(fact_hash: str) -> Response | tuple[Response, int]:
 
 
 def main() -> None:
-    """The main entry point for running an Axiom Node from the command line."""
+    """Run the main entry point for an Axiom Node from the command line."""
     global node_instance
 
     # 1. Setup the argument parser
