@@ -22,8 +22,8 @@ RSS_FEEDS: Final[Tuple[str, ...]] = (
     # Major Global News
     "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml",
     "https://feeds.bbci.co.uk/news/rss.xml",
-    # "https://www.reutersagency.com/feed/?best-topics=world-news&post_type=best",
-    # "https://www.washingtonpost.com/rss",
+# # "https://www.reutersagency.com/feed/?best-topics=world-news&post_type=best",
+    # "https://web.archive.org/web/20120506093420/https://twitter.com/statuses/user_timeline/2467791.rss",
     "https://www.theguardian.com/world/rss",
     "https://www.aljazeera.com/xml/rss/all.xml",
     "https://www.lemonde.fr/rss/une.xml",
@@ -32,7 +32,7 @@ RSS_FEEDS: Final[Tuple[str, ...]] = (
     "https://foreignpolicy.com/feed/",
     # --- Other Major Global Sources (for diverse perspectives) ---
     "https://www.aljazeera.com/xml/rss/all.xml",  # Al Jazeera - All
-    # "https://www.cbc.ca/rss/world",                        # CBC (Canada) - World News
+# # "https://www.cbc.ca/rss/world",                        # CBC (Canada) - World News
     "https://www.abc.net.au/news/feed/51120/rss.xml",  # ABC (Australia) - Top Stories
     "https://www.spiegel.de/international/index.rss",  # Der Spiegel (Germany) - International
     "https://www.lemonde.fr/rss/une.xml",  # Le Monde (France) - English Edition
@@ -59,25 +59,25 @@ RSS_FEEDS: Final[Tuple[str, ...]] = (
     "https://arstechnica.com/feed/",
     "https://techcrunch.com/feed/",
     # Business & Finance
-    # "https://www.economist.com/feeds/latest/full.xml",
+# # "https://www.economist.com/feeds/latest/full.xml",
     "https://www.ft.com/rss/home/international",
     "https://www.ft.com/rss/home",
     "https://www.cnbc.com/id/100003114/device/rss/rss.html",
     "https://feeds.a.dj.com/rss/RSSWorldNews.xml",
     # Investigative & Specialized
     "https://www.propublica.org/feeds/propublica/main",
-    # "https://feeds.revealnews.org/revealnews",
+# # "https://feeds.revealnews.org/revealnews",
     "https://www.themarshallproject.org/rss/recent",
     "https://www.politifact.com/rss/all/",
     "https://www.icij.org/feed/",
-    # "https://www.transparency.org/news/feed",
-    # "https://www.cfr.org/rss/current",
+# # "https://www.transparency.org/news/feed",
+# # "https://www.cfr.org/rss/current",
     "https://www.bellingcat.com/feed/",
     # Health & Environment
     "https://www.statnews.com/feed/",
     "https://www.sciencedaily.com/rss/all.xml",
-    # "https://www.nih.gov/news-events/news-releases/rss",
-    # "https://www.who.int/rss-feeds/news-english",
+# # "https://www.nih.gov/news-events/news-releases/rss",
+# # "https://www.who.int/rss-feeds/news-english",
     "https://www.nationalgeographic.cz/rss/vse.xml",
     "https://insideclimatenews.org/feed/",
     # Additional Trusted Sources
@@ -89,38 +89,38 @@ RSS_FEEDS: Final[Tuple[str, ...]] = (
     # Alabama
     "https://www.al.com/arc/outboundfeeds/rss/?outputType=xml",
     # Alaska
-    # "https://www.adn.com/feed/",
+    # "https://www.adiario.mx/feed/",
     # Arizona
-    # "https://www.azcentral.com/rss/",
+# # "https://www.azcentral.com/rss/",
     # Arkansas
-    # "https://www.arkansasonline.com/feed/",
+# # "https://www.arkansasonline.com/feed/",
     # California
     "https://www.latimes.com/index.rss",
     # Colorado
     "https://www.denverpost.com/feed/",
     # Connecticut
-    # "https://www.ctinsider.com/rss/",
+# # "https://www.ctinsider.com/rss/",
     # Delaware
-    # "https://www.delawareonline.com/rss/",
+# # "https://www.delawareonline.com/rss/",
     # Florida
-    # "https://www.miamiherald.com/latest-news/rss/",
+# # "https://www.miamiherald.com/latest-news/rss/",
     # Georgia
-    # "https://www.ajc.com/rss/",
+# # "https://www.ajc.com/rss/",
     # Hawaii
     "https://www.staradvertiser.com/feed/",
     # Idaho
-    # "https://www.idahostatesman.com/latest-news/rss/",
+# # "https://www.idahostatesman.com/latest-news/rss/",
     # Illinois
     "https://www.chicagotribune.com/rss",
     "https://www.chicagotribune.com/rss.xml",
     # Indiana
-    # "https://www.indystar.com/rss/",
+# # "https://www.indystar.com/rss/",
     # Iowa
-    # "https://www.desmoinesregister.com/rss/",
+# # "https://www.desmoinesregister.com/rss/",
     # Kansas
-    # "https://www.kansas.com/latest-news/rss/",
+# # "https://www.kansas.com/latest-news/rss/",
     # Kentucky
-    # "https://www.courier-journal.com/rss/",
+# # "https://www.courier-journal.com/rss/",
     # Louisiana
     "http://www.nola.com/news/podcasts/?f=rss&t=article&c=&l=50&s=start_time&sd=desc",
     # Maine
@@ -128,23 +128,23 @@ RSS_FEEDS: Final[Tuple[str, ...]] = (
     # Maryland
     "https://www.baltimoresun.com/feed/",
     # Massachusetts
-    # "https://www.bostonglobe.com/rss/",
+# # "https://www.bostonglobe.com/rss/",
     # Michigan
-    # "https://www.freep.com/rss/",
+# # "https://www.freep.com/rss/",
     # Minnesota
     "https://www.startribune.com/rss/",
     # Mississippi
-    # "https://www.clarionledger.com/rss/",
+# # "https://www.clarionledger.com/rss/",
     # Missouri
     "http://www.stltoday.com/search/?f=rss&t=article&l=50&s=start_time&sd=desc&k%5B%5D=%23topstory",
     # Montana
     "https://billingsgazette.com/feeds",
     # Nebraska
-    "http://omaha.com/search/?f=rss&t=article&l=50&s=start_time&sd=desc&k%5B%5D=%23topstory",
+    # "http://omaha.com/search/?f=rss&t=article&l=50&s=start_time&sd=desc&k%5B%5D=%23topstory",
     # Nevada
-    # "https://lasvegassun.com/feeds/",
+    # "https://www.youtube.com/feeds/videos.xml?channel_id=UCo30hbSt6D9z2ObnR4Goo0A",
     # New Hampshire
-    # "https://www.unionleader.com/rss",
+# # "https://www.unionleader.com/rss",
     # New Jersey
     "https://www.nj.com/arc/outboundfeeds/rss/?outputType=xml",
     # New Mexico
@@ -152,27 +152,27 @@ RSS_FEEDS: Final[Tuple[str, ...]] = (
     # New York
     "https://www.nytimes.com/svc/collections/v1/publish/www.nytimes.com/section/nyregion/rss.xml",
     # North Carolina
-    # "https://www.newsobserver.com/latest-news/rss/",
+# # "https://www.newsobserver.com/latest-news/rss/",
     # North Dakota
     "http://bismarcktribune.com/search/?f=rss&t=article&l=50&s=start_time&sd=desc&k%5B%5D=%23topstory",
     # Ohio
-    # "https://www.dispatch.com/arc/outboundfeeds/rss/",
+# # "https://www.dispatch.com/arc/outboundfeeds/rss/",
     # Oklahoma
-    # "https://www.oklahoman.com/feed/",
+# # "https://www.oklahoman.com/feed/",
     # Oregon
     "https://www.oregonlive.com/arc/outboundfeeds/rss/",
     # Pennsylvania
-    # "https://www.inquirer.com/arc/outboundfeeds/rss/",
+# # "https://www.inquirer.com/arc/outboundfeeds/rss/",
     # Rhode Island
-    # "https://www.providencejournal.com/arc/outboundfeeds/rss/",
+# # "https://www.providencejournal.com/arc/outboundfeeds/rss/",
     # South Carolina
     "https://www.postandcourier.com/search/?f=rss&t=article&l=50&s=start_time&sd=desc&k%5B%5D=%23topstory",
     # South Dakota
     "http://rapidcityjournal.com/search/?f=rss&t=article&l=50&s=start_time&sd=desc&k%5B%5D=%23topstory",
     # Tennessee
-    # "https://www.tennessean.com/rss/",
+# # "https://www.tennessean.com/rss/",
     # Texas
-    # "https://www.dallasnews.com/feed/",
+# # "https://www.dallasnews.com/feed/",
     # Utah
     "https://www.sltrib.com/arc/outboundfeeds/rss/?outputType=xml",
     # Vermont
@@ -184,7 +184,7 @@ RSS_FEEDS: Final[Tuple[str, ...]] = (
     # West Virginia
     "http://www.wvgazettemail.com/search/?f=rss&t=article&c=news&l=50&s=start_time&sd=desc",
     # Wisconsin
-    # "https://www.jsonline.com/rss/",
+# # "https://www.jsonline.com/rss/",
     # Wyoming
     "http://trib.com/search/?f=rss&t=article&l=50&s=start_time&sd=desc&k%5B%5D=%23topstory",
 )

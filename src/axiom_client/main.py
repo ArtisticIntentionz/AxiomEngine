@@ -129,7 +129,7 @@ class AxiomClientApp(QWidget):  # type: ignore[misc,unused-ignore,no-any-unimpor
         # Setup a timer to periodically check the network status
         self.status_timer = QTimer(self)
         self.status_timer.timeout.connect(self.update_network_status)
-        self.status_timer.start(10000)  # Check every 10 seconds
+        self.status_timer.start(2700000)  # Check every 45 minutes
 
         # Perform an initial check immediately on startup
         self.update_network_status()
@@ -227,22 +227,27 @@ class AxiomClientApp(QWidget):  # type: ignore[misc,unused-ignore,no-any-unimpor
 
         elif confidence == "FOUND":
             results = cast("FactResponse", data).get("results", [])
-            html = (
-                f"<h2>Found {len(results)} Semantically Similar Fact(s)</h2>"
-            )
-            # --- THE FIX: Use '_' for unused loop variables ---
+            html = f"<h2>Found {len(results)} Semantically Similar Fact(s)</h2>"
+
             for fact in results:
-                status_color = (
-                    "green"
-                    if fact.get("status") == "corroborated"
-                    else "orange"
-                )
-                html += f"<h4>[Fact #{fact.get('hash', '')[:8]}] <span style='color:{status_color};'>({fact.get('status', 'N/A').upper()})</span></h4>"
+                status = fact.get("status", "unknown")
+                fact_hash_short = fact.get('hash', '')[:8]
+
+                # --- NEW, MORE EXPLICIT WARNING LOGIC ---
+                if status == "corroborated":
+                    status_color = "green"
+                    status_text = f"({status.upper()})"
+                    warning_message = ""
+                else:
+                    status_color = "orange"
+                    status_text = f"({status.upper()})"
+                    warning_message = "<p><b style='color:orange;'>⚠️ WARNING: This fact is not yet corroborated by the network and may not be true.</b></p>"
+                
+                html += f"<h4>[Fact #{fact_hash_short}] <span style='color:{status_color};'>{status_text}</span></h4>"
                 html += f'<p><b>Fact:</b> "{fact.get("content", "")}"</p>'
+                html += warning_message  # Add the warning message here
                 source_domains = fact.get("sources", [])
-                html += (
-                    f"<p><i>Sources: {', '.join(source_domains)}</i></p><hr>"
-                )
+                html += f"<p><i>Sources: {', '.join(source_domains)}</i></p><hr>"
 
         self.results_output.setHtml(html)
 
