@@ -2,7 +2,9 @@ from pathlib import Path
 from typing import Final
 
 # This file is now located at: .../AxiomEngine/src/axiom_server/p2p/constants.py
-PROJECT_ROOT: Final[Path] = Path(__file__).resolve().parent.parent.parent.parent
+PROJECT_ROOT: Final[Path] = (
+    Path(__file__).resolve().parent.parent.parent.parent
+)
 
 # The SSL folder is at the project root.
 SSL_FOLDER: Final[Path] = PROJECT_ROOT / "ssl"
