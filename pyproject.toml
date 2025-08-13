@@ -30,22 +30,29 @@ classifiers = [
 keywords = [
     "ai", "p2p", "truth", "blockchain"
 ]
+
 dependencies = [
     # --- Core Web & Networking ---
     "Flask==3.0.3",
     "gunicorn==22.0.0",
     "requests==2.31.0",
+    
     # --- Database & Blockchain ---
     "sqlalchemy",
-    # --- AI & Natural Language Processing ---
-    "typing-extensions>=4.14.1",
     "cryptography>=45.0.6",
     "pip>=25.2",
-    "spacy>=3.7.2,<3.8.0", # --- THE FIX #2: Officialy request a compatible version ---
-    "en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl",
+
+    # --- Data & Validation ---
     "pydantic",
+    "beautifulsoup4>=4.12.3",
     "feedparser==6.0.11",
+
+    # --- AI & Natural Language Processing ---
+    "spacy>=3.7.2,<3.8.0",
+    "en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl",
+    "typing-extensions>=4.14.1",
 ]
+
 
 [tool.setuptools.dynamic]
 version = {attr = "axiom_server.node.__version__"}
@@ -68,6 +75,8 @@ tools = [
     "pre-commit>=4.2.0",
     "attrs>=25.3.0",
     "types-requests>=2.32.4.20250611",
+    "lxml",
+    "ddgs",
 ]
 
 [project.scripts]
