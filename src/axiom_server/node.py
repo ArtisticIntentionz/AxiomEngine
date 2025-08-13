@@ -5,7 +5,6 @@ from __future__ import annotations
 # Copyright (C) 2025 The Axiom Contributors
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.
-print("DEBUG: Importing built-in modules...")
 import argparse
 import json
 import logging
@@ -15,12 +14,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urlparse
 
-print("DEBUG: Finished importing built-in modules.")
-
-print("DEBUG: Importing Flask...")
 from flask import Flask, Response, jsonify, request
-
-print("DEBUG: Finished importing Flask.")
 
 from axiom_server import (
     crucible,
@@ -46,14 +40,11 @@ from axiom_server.ledger import (
     initialize_database,
 )
 
-print("DEBUG: Importing P2P library... (This is the suspect)")
 from axiom_server.p2p.constants import (
-    BOOTSTRAP_SERVER_IP_ADDR,
-    BOOTSTRAP_SERVER_PORT,
+    BOOTSTRAP_IP_ADDR,
+    BOOTSTRAP_PORT,
 )
 from axiom_server.p2p.node import ApplicationData, Node as P2PBaseNode
-
-print("DEBUG: Finished importing P2P library.")
 
 __version__ = "3.1.3"
 
@@ -115,8 +106,8 @@ class AxiomNode(P2PBaseNode):
             # We run this in a thread so it doesn't block the main startup.
             # --- NEW: Parse the URL and pass it to bootstrap() ---
             parsed_url = urlparse(bootstrap_peer)
-            bootstrap_host = parsed_url.hostname or BOOTSTRAP_SERVER_IP_ADDR
-            bootstrap_port = parsed_url.port or BOOTSTRAP_SERVER_PORT
+            bootstrap_host = parsed_url.hostname or BOOTSTRAP_IP_ADDR
+            bootstrap_port = parsed_url.port or BOOTSTRAP_PORT
 
             threading.Thread(
                 target=self.bootstrap,

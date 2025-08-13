@@ -20,8 +20,8 @@ from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from pydantic import BaseModel, ValidationError
 
 from .constants import (
-    BOOTSTRAP_SERVER_IP_ADDR,
-    BOOTSTRAP_SERVER_PORT,
+    BOOTSTRAP_IP_ADDR,
+    BOOTSTRAP_PORT,
     ENCODING,
     KEY_SIZE,
     NODE_BACKLOG,
@@ -411,8 +411,8 @@ class Node:
 
     def bootstrap(
         self,
-        ip_addr: str = BOOTSTRAP_SERVER_IP_ADDR,
-        port: int = BOOTSTRAP_SERVER_PORT,
+        ip_addr: str = BOOTSTRAP_IP_ADDR,
+        port: int = BOOTSTRAP_PORT,
     ):
         logger.info(f"Bootstrapping to target: {ip_addr}:{port}")
         link = self.search_link_by_peer(
