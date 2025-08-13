@@ -227,11 +227,13 @@ class AxiomClientApp(QWidget):  # type: ignore[misc,unused-ignore,no-any-unimpor
 
         elif confidence == "FOUND":
             results = cast("FactResponse", data).get("results", [])
-            html = f"<h2>Found {len(results)} Semantically Similar Fact(s)</h2>"
+            html = (
+                f"<h2>Found {len(results)} Semantically Similar Fact(s)</h2>"
+            )
 
             for fact in results:
                 status = fact.get("status", "unknown")
-                fact_hash_short = fact.get('hash', '')[:8]
+                fact_hash_short = fact.get("hash", "")[:8]
 
                 # --- NEW, MORE EXPLICIT WARNING LOGIC ---
                 if status == "corroborated":
@@ -242,12 +244,14 @@ class AxiomClientApp(QWidget):  # type: ignore[misc,unused-ignore,no-any-unimpor
                     status_color = "orange"
                     status_text = f"({status.upper()})"
                     warning_message = "<p><b style='color:orange;'>⚠️ WARNING: This fact is not yet corroborated by the network and may not be true.</b></p>"
-                
+
                 html += f"<h4>[Fact #{fact_hash_short}] <span style='color:{status_color};'>{status_text}</span></h4>"
                 html += f'<p><b>Fact:</b> "{fact.get("content", "")}"</p>'
                 html += warning_message  # Add the warning message here
                 source_domains = fact.get("sources", [])
-                html += f"<p><i>Sources: {', '.join(source_domains)}</i></p><hr>"
+                html += (
+                    f"<p><i>Sources: {', '.join(source_domains)}</i></p><hr>"
+                )
 
         self.results_output.setHtml(html)
 

@@ -9,16 +9,17 @@ print("DEBUG: Importing built-in modules...")
 import argparse
 import json
 import logging
-import os
 import sys
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urlparse
+
 print("DEBUG: Finished importing built-in modules.")
 
 print("DEBUG: Importing Flask...")
 from flask import Flask, Response, jsonify, request
+
 print("DEBUG: Finished importing Flask.")
 
 from axiom_server import (
@@ -39,16 +40,19 @@ from axiom_server.ledger import (
     SerializedFact,
     SessionMaker,
     Source,
-    Votes,
     add_block_from_peer_data,
     create_genesis_block,
     get_latest_block,
     initialize_database,
 )
+
 print("DEBUG: Importing P2P library... (This is the suspect)")
-from axiom_server.p2p.node import ApplicationData
-from axiom_server.p2p.node import Node as P2PBaseNode
-from axiom_server.p2p.constants import BOOTSTRAP_SERVER_IP_ADDR, BOOTSTRAP_SERVER_PORT
+from axiom_server.p2p.constants import (
+    BOOTSTRAP_SERVER_IP_ADDR,
+    BOOTSTRAP_SERVER_PORT,
+)
+from axiom_server.p2p.node import ApplicationData, Node as P2PBaseNode
+
 print("DEBUG: Finished importing P2P library.")
 
 __version__ = "4.0.0-P2P"
@@ -74,9 +78,10 @@ CORROBORATION_THRESHOLD = 2
 class AxiomNode(P2PBaseNode):
     """A class representing a single Axiom node, inheriting P2P capabilities."""
 
-    def __init__(self, host: str, port: int, bootstrap_peer: str | None) -> None:
+    def __init__(
+        self, host: str, port: int, bootstrap_peer: str | None,
+    ) -> None:
         """Initialize both the P2P layer and the Axiom logic layer."""
-        
         logger.info(f"Initializing Axiom Node on {host}:{port}")
 
         # 1. We must call the parent constructor from the P2P library first.
@@ -109,10 +114,10 @@ class AxiomNode(P2PBaseNode):
             parsed_url = urlparse(bootstrap_peer)
             bootstrap_host = parsed_url.hostname or BOOTSTRAP_SERVER_IP_ADDR
             bootstrap_port = parsed_url.port or BOOTSTRAP_SERVER_PORT
-            
+
             threading.Thread(
                 target=self.bootstrap,
-                args=(bootstrap_host, bootstrap_port), # Pass as arguments
+                args=(bootstrap_host, bootstrap_port),  # Pass as arguments
                 daemon=True,
             ).start()
 
@@ -122,8 +127,7 @@ class AxiomNode(P2PBaseNode):
         link: Any,
         content: ApplicationData,
     ) -> None:
-        """
-        This method is automatically called by the P2P layer when an
+        """This method is automatically called by the P2P layer when an
         'application' message is received. This is our entry point.
         """
         try:
@@ -131,20 +135,28 @@ class AxiomNode(P2PBaseNode):
             msg_type = message.get("type")
             msg_data = message.get("data")
 
-            background_thread_logger.debug(f"Received P2P message of type: {msg_type}")
+            background_thread_logger.debug(
+                f"Received P2P message of type: {msg_type}",
+            )
 
             if msg_type == "new_block_header":
                 with SessionMaker() as session:
                     add_block_from_peer_data(session, msg_data)
                     background_thread_logger.info(
-                        f"SUCCESS: Validated and added new block #{msg_data.get('height')} from peer."
+                        f"SUCCESS: Validated and added new block #{msg_data.get('height')} from peer.",
                     )
         except json.JSONDecodeError:
-            background_thread_logger.warning("Received malformed JSON from peer.")
+            background_thread_logger.warning(
+                "Received malformed JSON from peer.",
+            )
         except ValueError as e:
-            background_thread_logger.warning(f"Failed to add block from peer: {e}")
+            background_thread_logger.warning(
+                f"Failed to add block from peer: {e}",
+            )
         except Exception as e:
-            background_thread_logger.error(f"Error processing peer message: {e}")
+            background_thread_logger.error(
+                f"Error processing peer message: {e}",
+            )
 
     def _background_work_loop(self) -> None:
         """The main work cycle for fact-gathering and block-sealing."""
@@ -190,7 +202,9 @@ class AxiomNode(P2PBaseNode):
                         )
                         latest_block = get_latest_block(session)
                         assert latest_block is not None
-                        fact_hashes = sorted([f.hash for f in facts_for_sealing])
+                        fact_hashes = sorted(
+                            [f.hash for f in facts_for_sealing],
+                        )
                         new_block = Block(
                             height=latest_block.height + 1,
                             previous_hash=latest_block.hash,
@@ -215,26 +229,44 @@ class AxiomNode(P2PBaseNode):
                                 "nonce": new_block.nonce,
                             },
                         }
-                        self.broadcast_application_message(json.dumps(broadcast_data))
-                        background_thread_logger.info("Broadcasted new block header to network.")
+                        self.broadcast_application_message(
+                            json.dumps(broadcast_data),
+                        )
+                        background_thread_logger.info(
+                            "Broadcasted new block header to network.",
+                        )
 
                 except Exception as e:
                     background_thread_logger.exception(
                         f"Critical error in learning loop: {e}",
                     )
                 try:
-                    background_thread_logger.info("Starting verification phase...")
-                    facts_to_verify = session.query(Fact).filter(Fact.status == 'ingested').all()
+                    background_thread_logger.info(
+                        "Starting verification phase...",
+                    )
+                    facts_to_verify = (
+                        session.query(Fact)
+                        .filter(Fact.status == "ingested")
+                        .all()
+                    )
                     if not facts_to_verify:
-                        background_thread_logger.info("No new facts to verify.")
+                        background_thread_logger.info(
+                            "No new facts to verify.",
+                        )
                     else:
-                        background_thread_logger.info(f"Found {len(facts_to_verify)} facts to verify.")
+                        background_thread_logger.info(
+                            f"Found {len(facts_to_verify)} facts to verify.",
+                        )
                         for fact in facts_to_verify:
-                            claims = verification_engine.find_corroborating_claims(fact, session)
+                            claims = (
+                                verification_engine.find_corroborating_claims(
+                                    fact, session,
+                                )
+                            )
                             if len(claims) >= CORROBORATION_THRESHOLD:
-                                fact.status = 'corroborated'
+                                fact.status = "corroborated"
                                 background_thread_logger.info(
-                                    f"Fact '{fact.hash[:8]}' has been corroborated with {len(claims)} pieces of evidence."
+                                    f"Fact '{fact.hash[:8]}' has been corroborated with {len(claims)} pieces of evidence.",
                                 )
                                 fact.score += 10
                         session.commit()
@@ -248,7 +280,9 @@ class AxiomNode(P2PBaseNode):
 
     def start(self) -> None:
         """Start all background tasks and the main P2P loop."""
-        work_thread = threading.Thread(target=self._background_work_loop, daemon=True)
+        work_thread = threading.Thread(
+            target=self._background_work_loop, daemon=True,
+        )
         work_thread.start()
 
         logger.info("Starting P2P network update loop...")
@@ -258,8 +292,7 @@ class AxiomNode(P2PBaseNode):
 
     @classmethod
     def start_node(cls, host: str, port: int, bootstrap: bool) -> AxiomNode:
-        """
-        A factory method to create and initialize a complete AxiomNode.
+        """A factory method to create and initialize a complete AxiomNode.
         This is the preferred way to instantiate the node.
         """
         # 1. Use the parent's factory to create the low-level P2P components.
@@ -276,10 +309,12 @@ class AxiomNode(P2PBaseNode):
         axiom_instance.serialized_port = p2p_instance.serialized_port
         axiom_instance.private_key = p2p_instance.private_key
         axiom_instance.public_key = p2p_instance.public_key
-        axiom_instance.serialized_public_key = p2p_instance.serialized_public_key
+        axiom_instance.serialized_public_key = (
+            p2p_instance.serialized_public_key
+        )
         axiom_instance.peer_links = p2p_instance.peer_links
         axiom_instance.server_socket = p2p_instance.server_socket
-        
+
         return axiom_instance
 
 
@@ -568,9 +603,21 @@ def main() -> None:
 
     # 1. Setup the argument parser
     parser = argparse.ArgumentParser(description="Run an Axiom P2P Node.")
-    parser.add_argument("--host", type=str, default="127.0.0.1", help="Host IP to bind to.")
-    parser.add_argument("--p2p-port", type=int, default=5000, help="Port for P2P communication.")
-    parser.add_argument("--api-port", type=int, default=8000, help="Port for the Flask API server.")
+    parser.add_argument(
+        "--host", type=str, default="127.0.0.1", help="Host IP to bind to.",
+    )
+    parser.add_argument(
+        "--p2p-port",
+        type=int,
+        default=5000,
+        help="Port for P2P communication.",
+    )
+    parser.add_argument(
+        "--api-port",
+        type=int,
+        default=8000,
+        help="Port for the Flask API server.",
+    )
     parser.add_argument(
         "--bootstrap-peer",
         type=str,
@@ -589,11 +636,18 @@ def main() -> None:
 
         # 3. Start the Flask API server in its own thread.
         api_thread = threading.Thread(
-            target=lambda: app.run(host=args.host, port=args.api_port, debug=False, use_reloader=False),
+            target=lambda: app.run(
+                host=args.host,
+                port=args.api_port,
+                debug=False,
+                use_reloader=False,
+            ),
             daemon=True,
         )
         api_thread.start()
-        logger.info(f"Flask API server started on http://{args.host}:{args.api_port}")
+        logger.info(
+            f"Flask API server started on http://{args.host}:{args.api_port}",
+        )
 
         # 4. Start the main P2P and Axiom work loops.
         node_instance.start()
@@ -601,7 +655,10 @@ def main() -> None:
     except KeyboardInterrupt:
         logger.info("Shutdown signal received. Exiting.")
     except Exception as e:
-        logger.critical(f"A critical error occurred during node startup: {e}", exc_info=True)
+        logger.critical(
+            f"A critical error occurred during node startup: {e}",
+            exc_info=True,
+        )
         sys.exit(1)
 
 
