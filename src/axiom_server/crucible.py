@@ -368,6 +368,7 @@ class CrucibleFactAdder:
                 ),
             ],
         )
+        self.addition_count += 1
         self._load_all_facts()
         pipeline.run(fact)
         self.session.commit()
@@ -444,6 +445,9 @@ class CrucibleFactAdder:
             ):
                 for source in fact.sources:
                     add_fact_object_corroboration(existing_fact, source)
+
+                self.corroboration_count += 1
+                self.session.commit()
         return fact
 
     def _detect_relationships(self, fact: Fact) -> Fact:

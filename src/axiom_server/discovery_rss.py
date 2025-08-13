@@ -11,14 +11,14 @@ from concurrent.futures import (
     ThreadPoolExecutor,
     as_completed,
 )  # <-- NEW IMPORT
-from typing import Dict, Final, List
+from typing import Dict, Final, Iterable, List
 
 import feedparser
 
 logger = logging.getLogger(__name__)
 
 # Your curated and verified list of RSS feeds.
-RSS_FEEDS: Final[Tuple[str, ...]] = (
+RSS_FEEDS: Final[tuple[str, ...]] = (
     # Major Global News
     "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml",
     "https://feeds.bbci.co.uk/news/rss.xml",
@@ -306,3 +306,11 @@ def get_all_headlines_from_feeds() -> List[str]:
         f"Fetched a total of {len(all_headlines)} headlines concurrently.",
     )
     return all_headlines
+
+
+def fetch_new_content(url: str) -> Iterable[str]:
+    """ Fetch the content that was served from the RSS feed since the last call of this function.
+    
+    TODO
+    """
+    yield ""

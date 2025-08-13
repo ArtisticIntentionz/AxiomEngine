@@ -7,13 +7,13 @@ import socket as socket_lib
 import ssl
 import sys
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 
 # Yes, I am renaming socket.socket because type names should
 # start with an uppercase character.
 from socket import socket as Socket  # noqa N812
-from typing import TYPE_CHECKING, Any, Callable, Literal
+from typing import TYPE_CHECKING, Any, Callable, Generator, Literal
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -327,6 +327,34 @@ def _all(item: Any) -> Literal[True]:
 
 ALL = _all
 
+type ElectionStrategy = Callable[[NodeProcess], bool]
+type NodeCoroutine = Generator[None, Any, None]
+
+
+def continuous(process: NodeProcess) -> bool:
+    return True
+
+@dataclass
+class PeriodicRun:
+    period: float # period in seconds between each execution
+    last_run: float = 0
+
+    def strategy(self, process: NodeProcess) -> bool:
+        now = time.time()
+
+        if now - self.last_run >= self.period:
+            self.last_run = now
+            return True
+        
+        return False
+
+
+@dataclass(kw_only=True)
+class NodeProcess:
+    name: str
+    instance: NodeCoroutine
+    election_strategy: ElectionStrategy
+
 
 @dataclass
 class Node:
@@ -339,6 +367,7 @@ class Node:
     serialized_public_key: bytes
     peer_links: list[PeerLink]
     server_socket: Socket
+    processes: list[NodeProcess]
 
     @staticmethod
     def start(ip_address: str, port: int = 0) -> Node:
@@ -383,6 +412,7 @@ class Node:
             serialized_public_key=_serialize_public_key(public_key),
             peer_links=[],
             server_socket=secure_server_socket,
+            processes=[],
         )
 
     def stop(self):
@@ -407,6 +437,7 @@ class Node:
             - Receives data from connected peers.
             - Handles exceptions during connection acceptance and data reception, logging errors.
             - Removes peer links that are no longer alive from the list of active connections.
+            - Runs the processes.
 
         Raises:
             Exception: If an error occurs while accepting a new connection.
@@ -443,6 +474,7 @@ class Node:
                     logger.info(f"{link.fmt_addr()} closed connection")
 
         self.peer_links = [link for link in self.peer_links if link.alive]
+        self._run_processes()
 
     def search_link_by_peer(
         self,
@@ -558,6 +590,31 @@ class Node:
                 return
 
         self._send_message(link, Message.peers_request())
+
+    def add_process(
+        self,
+        name: str, coroutine: NodeCoroutine,
+        election_strategy: ElectionStrategy = continuous,
+    ):
+        self.processes.append(
+            NodeProcess(name=name, instance=coroutine, election_strategy=election_strategy)
+        )
+        logger.info(f"added process: '{name}'")
+
+    def _run_processes(self):
+        for process in self.processes[:]:
+            if not process.election_strategy(process): continue
+
+            try:
+                next(process.instance)
+
+            except StopIteration:
+                logger.info(f"process exited normally: '{process.name}'")
+                self.processes.remove(process)
+
+            except Exception as e:
+                logger.exception(f"error in process '{process.name}': {e}")
+                self.processes.remove(process)
 
     def _connect_to_peer(self, ip_address: str, port: int) -> Socket | None:
         context = ssl.create_default_context()
