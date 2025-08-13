@@ -1,4 +1,4 @@
-"""Definig the base unit of P2P network, a Node."""
+"""Defining the base unit of P2P network, a Node."""
 
 from __future__ import annotations
 
@@ -180,7 +180,7 @@ class Message(BaseModel):
 
 
 class MessageContent(BaseModel):
-    """Data transmited in a message."""
+    """Data transmitted in a message."""
 
 
 class PeersRequest(MessageContent):
@@ -200,7 +200,7 @@ class ApplicationData(MessageContent):
 
 
 class SerializedPeer(BaseModel):
-    """Represent a peer ready to be transmited over network."""
+    """Represent a peer ready to be transmitted over network."""
 
     ip_address: str
     port: int
