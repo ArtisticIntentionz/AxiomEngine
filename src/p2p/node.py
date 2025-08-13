@@ -62,7 +62,8 @@ class RawMessage(BaseModel):
     @staticmethod
     def from_bytes(data: bytes) -> RawMessage:
         return RawMessage(
-            signature=data[:SIGNATURE_SIZE], data=data[SIGNATURE_SIZE:],
+            signature=data[:SIGNATURE_SIZE],
+            data=data[SIGNATURE_SIZE:],
         )
 
     def check_signature(self, public_key: rsa.RSAPublicKey) -> bool:
@@ -103,15 +104,18 @@ class Message(BaseModel):
 
     def check_content(self) -> bool:
         if self.message_type == MessageType.PEERS_REQUEST and isinstance(
-            self.content, PeersRequest,
+            self.content,
+            PeersRequest,
         ):
             return True
         if self.message_type == MessageType.PEERS_SHARING and isinstance(
-            self.content, PeersSharing,
+            self.content,
+            PeersSharing,
         ):
             return True
         if self.message_type == MessageType.APPLICATION and isinstance(
-            self.content, ApplicationData,
+            self.content,
+            ApplicationData,
         ):
             return True
         return False
@@ -119,7 +123,8 @@ class Message(BaseModel):
     @staticmethod
     def peers_request() -> Message:
         return Message(
-            message_type=MessageType.PEERS_REQUEST, content=PeersRequest(),
+            message_type=MessageType.PEERS_REQUEST,
+            content=PeersRequest(),
         )
 
     @staticmethod
@@ -308,7 +313,8 @@ class Node:
         server_socket.bind((ip_address, port))
         server_socket.listen(NODE_BACKLOG)
         secure_server_socket = context.wrap_socket(
-            server_socket, server_side=True,
+            server_socket,
+            server_side=True,
         )
         private_key, public_key = generate_key_pair()
         computed_ip_address, computed_port = secure_server_socket.getsockname()
@@ -367,7 +373,8 @@ class Node:
         self.peer_links = [link for link in self.peer_links if link.alive]
 
     def search_link_by_peer(
-        self, fun: Callable[[Peer], bool],
+        self,
+        fun: Callable[[Peer], bool],
     ) -> PeerLink | None:
         for link in self.peer_links:
             if fun(link.peer):
@@ -376,7 +383,8 @@ class Node:
         return None
 
     def iter_links_by_peer(
-        self, fun: Callable[[Peer], bool] = ALL,
+        self,
+        fun: Callable[[Peer], bool] = ALL,
     ) -> Iterable[PeerLink]:
         for link in self.peer_links:
             if fun(link.peer):
@@ -390,7 +398,8 @@ class Node:
         return None
 
     def iter_links(
-        self, fun: Callable[[PeerLink], bool] = ALL,
+        self,
+        fun: Callable[[PeerLink], bool] = ALL,
     ) -> Iterable[PeerLink]:
         for link in self.peer_links:
             if fun(link):
@@ -409,7 +418,8 @@ class Node:
 
         if link is None:
             link = self._create_link(
-                BOOTSTRAP_SERVER_IP_ADDR, BOOTSTRAP_SERVER_PORT,
+                BOOTSTRAP_SERVER_IP_ADDR,
+                BOOTSTRAP_SERVER_PORT,
             )
 
             if link is None:
@@ -430,7 +440,15 @@ class Node:
         try:
             secure_socket.connect((ip_address, port))
 
-        except (OSError, socket_lib.herror, socket_lib.gaierror, socket_lib.timeout, TimeoutError, InterruptedError, Exception) as e:
+        except (
+            OSError,
+            socket_lib.herror,
+            socket_lib.gaierror,
+            socket_lib.timeout,
+            TimeoutError,
+            InterruptedError,
+            Exception,
+        ) as e:
             # just in case you want to go back to specific error catching,
             # don't delete the explicit error types
             logger.exception(
@@ -445,7 +463,9 @@ class Node:
         self._send(link, self.serialized_port)
 
     def _handle_new_connection(
-        self, socket: Socket, addr: socket_lib._RetAddress,
+        self,
+        socket: Socket,
+        addr: socket_lib._RetAddress,
     ):
         if socket.family != socket_lib.AF_INET:
             logger.info(f"{addr} ignoring non INET socket: {socket.family}")
@@ -582,7 +602,9 @@ class Node:
             self._handle_peers_sharing(link, message.content)
 
     def _handle_application_message(
-        self, link: PeerLink, content: ApplicationData,
+        self,
+        link: PeerLink,
+        content: ApplicationData,
     ):
         logger.info(f"application data: {content.data}")
 

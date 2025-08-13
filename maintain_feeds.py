@@ -67,7 +67,8 @@ def _verify_url(url: str) -> Tuple[bool, str | None]:
 
 
 def _find_single_replacement(
-    bad_url: str, original_site_title: str,
+    bad_url: str,
+    original_site_title: str,
 ) -> List[str]:
     """Worker function to find a replacement for one bad URL with relevance checking."""
     # Strategy 0: Knowledge Base
@@ -85,7 +86,8 @@ def _find_single_replacement(
         r = requests.get(base_url, headers=HEADERS, timeout=10)
         soup = BeautifulSoup(r.content, "lxml")  # Use the better parser
         for link in soup.find_all(
-            "link", {"rel": "alternate", "type": "application/rss+xml"},
+            "link",
+            {"rel": "alternate", "type": "application/rss+xml"},
         ):
             url = urljoin(base_url, link.get("href"))
             is_valid, title = _verify_url(url)
@@ -105,7 +107,9 @@ def _find_single_replacement(
             for result in ddgs.text(query, max_results=3):
                 try:
                     page_req = requests.get(
-                        result["href"], headers=HEADERS, timeout=10,
+                        result["href"],
+                        headers=HEADERS,
+                        timeout=10,
                     )
                     page_soup = BeautifulSoup(page_req.content, "lxml")
                     for link in page_soup.find_all(
@@ -193,7 +197,9 @@ def main():
     with ThreadPoolExecutor(max_workers=8) as executor:
         future_to_url = {
             executor.submit(
-                _find_single_replacement, url, bad_feeds_map[url],
+                _find_single_replacement,
+                url,
+                bad_feeds_map[url],
             ): url
             for url in bad_feeds
         }
