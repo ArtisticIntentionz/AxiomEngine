@@ -61,7 +61,7 @@ echo -n "2. Waiting for Sealer Node at ${SEALER_URL} to come online..."
 while ! curl -s -f -o /dev/null "${HEALTHCHECK_ENDPOINT}"
 do
     echo -n "."
-    sleep 300
+    sleep 30
 done
 echo "" # Newline for clean output
 echo "✅ Sealer Node is online and healthy!"
