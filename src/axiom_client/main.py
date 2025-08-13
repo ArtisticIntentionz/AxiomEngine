@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-
+import os
 import sys
 from typing import TypeAlias, TypedDict, cast
 
 import requests
-
-from PyQt6.QtCore import QThread, pyqtSignal, QTimer
+from PyQt6.QtCore import QThread, QTimer, pyqtSignal
 from PyQt6.QtGui import QFont
-import os
 from PyQt6.QtWidgets import (
     QApplication,
     QLabel,
@@ -255,11 +253,11 @@ class AxiomClientApp(QWidget):  # type: ignore[misc,unused-ignore,no-any-unimpor
             response.raise_for_status()
 
             data = response.json()
-            block_height = data.get('latest_block_height', 'N/A')
-            node_version = data.get('version', 'N/A')
+            block_height = data.get("latest_block_height", "N/A")
+            node_version = data.get("version", "N/A")
 
             # Update UI for "Connected" state
-            self.connection_status_label.setText(f"🟢 Connected")
+            self.connection_status_label.setText("🟢 Connected")
             self.block_height_label.setText(f"Block: {block_height}")
             self.version_label.setText(f"Node: v{node_version}")
 
@@ -268,7 +266,9 @@ class AxiomClientApp(QWidget):  # type: ignore[misc,unused-ignore,no-any-unimpor
 
     def set_disconnected_status(self):
         """Helper function to set all UI elements to a disconnected state."""
-        self.connection_status_label.setText(f"🔴 Disconnected from {self.server_url}")
+        self.connection_status_label.setText(
+            f"🔴 Disconnected from {self.server_url}",
+        )
         self.block_height_label.setText("Block: N/A")
         self.version_label.setText("Node: N/A")
 

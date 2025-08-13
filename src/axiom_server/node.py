@@ -317,10 +317,10 @@ def handle_get_blocks() -> Response:
         ]
         return jsonify({"blocks": blocks_data})
 
+
 @app.route("/status", methods=["GET"])
 def handle_get_status() -> Response:
-    """
-    Provides a simple status check for the node.
+    """Provides a simple status check for the node.
     Returns the current block height and node version.
     """
     with SessionMaker() as session:
@@ -333,6 +333,7 @@ def handle_get_status() -> Response:
                 "version": __version__,
             },
         )
+
 
 @app.route("/local_query", methods=["GET"])
 def handle_local_query() -> Response:
