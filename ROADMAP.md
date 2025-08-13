@@ -1,3 +1,5 @@
+---
+
 ## ✅ Phase 1: The Genesis Engine (V1) - COMPLETE
 
 **Goal:** To prove the core concept of an autonomous, fact-gathering P2P network.
@@ -5,17 +7,28 @@
 -   **[✓] Core Node Architecture:** A stable, production-ready Flask/Gunicorn server.
 -   **[✓] Autonomous Learning Loop:** The ability to discover topics, find sources, and extract content.
 -   **[✓] The Crucible (V1 & V2.1):** An AI filter to distinguish objective statements from opinion, now with an enhanced subjectivity filter.
--   **[✓] The Immutable Ledger:** A reliable SQLite database for storing facts.
+-   **[✓] The Immutable Ledger:** A reliable SQLite database for storing facts, now enhanced with a full blockchain implementation.
 -   **[✓] Professional Sourcing:** Migrated from direct scraping to the robust SerpApi, solving rate-limiting and anti-bot roadblocks.
--   **[✓] P2P Synchronization:** A basic protocol for nodes to share knowledge.
 -   **[✓] Anonymous Query Layer:** A functional API endpoint for private user queries.
 -   **[✓] Foundational Documentation:** Creation of `README.md`, `CONTRIBUTING.md`, `DAO_CHARTER.md`, and `LICENSE`.
 
 ---
 
-## 🚧 Phase 2: The Resilient Network (V2) - IN PROGRESS
+## ✅ Phase 2: The Resilient Network (V2) - COMPLETE / IN PROGRESS
 
-**Goal:** To harden the V1 prototype into a truly resilient, scalable, and intelligent network that can survive in the real world. This is our current focus.
+**Goal:** To harden the V1 prototype into a truly resilient, scalable, and intelligent network that can survive in the real world. **The core P2P upgrade has completed a major part of this phase.**
+
+### Sub-System: The Network (P2P & Governance)
+-   **[IN PROGRESS] V2.0 Robust P2P Mesh Network:** The legacy client-server sync protocol has been **completely replaced** with a true, decentralized P2P mesh network.
+    -   **Action Complete:** Integrated a robust, third-party P2P library (`DigammaF/p2p-tools`).
+    -   **Action Complete:** Replaced the passive "Listener Node" with a model where every node is a full peer.
+    -   **Action Complete:** Implemented a **gossip protocol** for nodes to proactively broadcast new block headers.
+-   **[IN PROGRESS] V2.0 Merkle Tree Synchronization:** The blockchain implementation now includes a **Merkle Root** in every block. The P2P layer broadcasts headers containing this root, allowing for efficient and secure verification of data integrity.
+-   **[IN PROGRESS] V2.1 DAO Implementation:**
+    -   **Status:** The on-chain data structures (`Proposal`, `Votes`) and API endpoints exist.
+    -   **Next Step:** Build out the off-chain infrastructure (e.g., a dedicated web portal or Discord bot) for submitting and voting on Axiom Improvement Proposals (AIPs).
+-   **[PLANNED] V2.2 Node Anonymity:** Add an optional feature for node operators to route their outbound learning traffic through **Tor or a VPN** to protect their own privacy.
+-   **[PLANNED] V3.0 Decentralized Discovery:** Evolve beyond reliance on centralized APIs. Implement new discovery modules like an "Encyclopedic Explorer" (crawling foundational knowledge) and a "Curiosity Engine" (autonomously investigating gaps in the ledger).
 
 ### Sub-System: The AI Brain (Crucible & Synthesizer)
 -   **[✓] V2.2 Contradiction Detection:** The database schema and core logic are in place to detect, flag, and link directly contradictory facts.
@@ -26,12 +39,6 @@
     -   **Action:** A fact's initial trust score will be based on its source's reputation. Corroborations will add the new source's reputation score to the total.
 -   **[PLANNED] V3.0 Coreference Resolution:** A major AI upgrade. Teach The Crucible to understand and resolve pronouns (e.g., "he," "she," "it") to create contextually complete facts.
 
-### Sub-System: The Network (P2P & Governance)
--   **[PLANNED] V2.0 Robust Syncing:** Upgrade the P2P synchronization protocol from a simple hash-list comparison to a more efficient and scalable model using **Merkle Trees**.
--   **[PLANNED] V2.1 DAO Implementation:** Build out the off-chain infrastructure (e.g., a dedicated web portal or Discord bot) for submitting and voting on Axiom Improvement Proposals (AIPs), bringing the `DAO_CHARTER.md` to life.
--   **[PLANNED] V2.2 Node Anonymity:** Add an optional feature for node operators to route their outbound learning traffic through **Tor or a VPN** to protect their own privacy.
--   **[PLANNED] V3.0 Decentralized Discovery:** Evolve beyond reliance on centralized APIs. Implement new discovery modules like an "Encyclopedic Explorer" (crawling foundational knowledge) and a "Curiosity Engine" (autonomously investigating gaps in the ledger).
-
 ---
 
 ## 🚀 Phase 3: The Public Utility (Public Launch)
@@ -40,8 +47,8 @@
 
 -   **[PLANNED] Public Bootstrap Node Deployment:**
     -   **Action:** Procure a cloud server (VPS) and a domain name (e.g., `axiom.foundation`).
-    -   **Action:** Configure DNS to create a permanent, public address for at least one bootstrap node (e.g., `http://bootstrap.axiom.foundation:5000`).
-    -   **Action:** Deploy a stable Axiom node to this server to run 24/7, serving as the main entry point for new contributors joining the network.
+    -   **Action:** Configure DNS to create a permanent, public address for at least one bootstrap node (e.g., `http://bootstrap.axiom.foundation:42180`).
+    -   **Action:** Deploy a stable Axiom bootstrap server to this address to run 24/7, serving as the main entry point for new contributors joining the network.
 -   **[PLANNED] The Axiom Client (GUI):** Design and build the official open-source desktop client for macOS, Windows, and Linux.
     -   **V1: Simple Search:** A clean, minimal interface for submitting queries.
     -   **V2: Cognitive Prosthesis:** A more advanced UI, designed with input from UX and mental health experts, that helps users navigate conflicting information by visualizing evidence and providing consensus weights.
