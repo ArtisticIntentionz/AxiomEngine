@@ -79,7 +79,10 @@ class AxiomNode(P2PBaseNode):
     """A class representing a single Axiom node, inheriting P2P capabilities."""
 
     def __init__(
-        self, host: str, port: int, bootstrap_peer: str | None,
+        self,
+        host: str,
+        port: int,
+        bootstrap_peer: str | None,
     ) -> None:
         """Initialize both the P2P layer and the Axiom logic layer."""
         logger.info(f"Initializing Axiom Node on {host}:{port}")
@@ -260,7 +263,8 @@ class AxiomNode(P2PBaseNode):
                         for fact in facts_to_verify:
                             claims = (
                                 verification_engine.find_corroborating_claims(
-                                    fact, session,
+                                    fact,
+                                    session,
                                 )
                             )
                             if len(claims) >= CORROBORATION_THRESHOLD:
@@ -281,7 +285,8 @@ class AxiomNode(P2PBaseNode):
     def start(self) -> None:
         """Start all background tasks and the main P2P loop."""
         work_thread = threading.Thread(
-            target=self._background_work_loop, daemon=True,
+            target=self._background_work_loop,
+            daemon=True,
         )
         work_thread.start()
 
@@ -604,7 +609,10 @@ def main() -> None:
     # 1. Setup the argument parser
     parser = argparse.ArgumentParser(description="Run an Axiom P2P Node.")
     parser.add_argument(
-        "--host", type=str, default="127.0.0.1", help="Host IP to bind to.",
+        "--host",
+        type=str,
+        default="127.0.0.1",
+        help="Host IP to bind to.",
     )
     parser.add_argument(
         "--p2p-port",

@@ -385,7 +385,8 @@ def create_genesis_block(session: Session) -> None:
 
 # --- NEW FUNCTION FOR P2P SYNCHRONIZATION ---
 def add_block_from_peer_data(
-    session: Session, block_data: dict[str, Any],
+    session: Session,
+    block_data: dict[str, Any],
 ) -> Block:
     """Validates and adds a new block received from a peer.
 

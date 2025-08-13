@@ -16,7 +16,9 @@ class MockSpacyDoc:
     """A mock spaCy Doc object for controlling similarity scores in tests."""
 
     def __init__(
-        self, text: str, similarity_map: dict[str, float] | None = None,
+        self,
+        text: str,
+        similarity_map: dict[str, float] | None = None,
     ):
         self.text = text
         self.similarity_map = similarity_map or {}
@@ -61,21 +63,24 @@ class TestVerificationEngine(unittest.TestCase):
 
         # Create mock Fact objects
         fact_to_verify = Fact(
-            content=fact_to_verify_text, sources=[self.source1],
+            content=fact_to_verify_text,
+            sources=[self.source1],
         )
         fact_to_verify.get_semantics = MagicMock(
             return_value={"doc": mock_doc_to_verify},
         )
 
         corroborating_fact = Fact(
-            content=corroborating_fact_text, sources=[self.source2],
+            content=corroborating_fact_text,
+            sources=[self.source2],
         )
         corroborating_fact.get_semantics = MagicMock(
             return_value={"doc": MockSpacyDoc(corroborating_fact_text)},
         )
 
         unrelated_fact = Fact(
-            content=unrelated_fact_text, sources=[self.source3],
+            content=unrelated_fact_text,
+            sources=[self.source3],
         )
         unrelated_fact.get_semantics = MagicMock(
             return_value={"doc": MockSpacyDoc(unrelated_fact_text)},
@@ -89,7 +94,8 @@ class TestVerificationEngine(unittest.TestCase):
 
         # --- Act ---
         results = verification_engine.find_corroborating_claims(
-            fact_to_verify, self.mock_session,
+            fact_to_verify,
+            self.mock_session,
         )
 
         # --- Assert ---
@@ -99,19 +105,20 @@ class TestVerificationEngine(unittest.TestCase):
         self.assertGreater(results[0]["similarity"], 0.90)
 
     def test_find_corroborating_claims_from_same_source(self):
-        """Test that a similar fact from the SAME source is NOT considered a corroboration.
-        """
+        """Test that a similar fact from the SAME source is NOT considered a corroboration."""
         # --- Arrange ---
         fact_to_verify_text = "The sky is blue"
         similar_fact_text = "The sky is indeed blue"
 
         # High similarity
         mock_doc_to_verify = MockSpacyDoc(
-            fact_to_verify_text, similarity_map={similar_fact_text: 0.98},
+            fact_to_verify_text,
+            similarity_map={similar_fact_text: 0.98},
         )
 
         fact_to_verify = Fact(
-            content=fact_to_verify_text, sources=[self.source1],
+            content=fact_to_verify_text,
+            sources=[self.source1],
         )
         fact_to_verify.get_semantics = MagicMock(
             return_value={"doc": mock_doc_to_verify},
@@ -129,7 +136,8 @@ class TestVerificationEngine(unittest.TestCase):
 
         # --- Act ---
         results = verification_engine.find_corroborating_claims(
-            fact_to_verify, self.mock_session,
+            fact_to_verify,
+            self.mock_session,
         )
 
         # --- Assert ---
@@ -138,8 +146,7 @@ class TestVerificationEngine(unittest.TestCase):
     # We use the @patch decorator to mock the `requests.head` call
     @patch("axiom_server.verification_engine.requests.head")
     def test_verify_citations(self, mock_requests_head):
-        """Test that verify_citations correctly identifies and checks URLs in fact content.
-        """
+        """Test that verify_citations correctly identifies and checks URLs in fact content."""
         # --- Arrange ---
         fact_content = "Check this live link http://good-url.com and this broken one http://bad-url.com."
         fact_to_verify = Fact(content=fact_content)
@@ -166,12 +173,14 @@ class TestVerificationEngine(unittest.TestCase):
 
         self.assertIn("http://good-url.com", results_map)
         self.assertEqual(
-            results_map["http://good-url.com"]["status"], "VALID_AND_LIVE",
+            results_map["http://good-url.com"]["status"],
+            "VALID_AND_LIVE",
         )
 
         self.assertIn("http://bad-url.com", results_map)
         self.assertEqual(
-            results_map["http://bad-url.com"]["status"], "BROKEN_404",
+            results_map["http://bad-url.com"]["status"],
+            "BROKEN_404",
         )
 
 
