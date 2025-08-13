@@ -50,10 +50,9 @@ Before you begin, ensure your system has no memory of previous installation atte
 1.  **Fork & Clone:** Start by "forking" the main `ArtisticIntentionz/AxiomEngine` repository on GitHub. Then, clone your personal fork to your local machine.
     ```bash
     # Navigate to where you want the project to live, e.g., ~/Documents/
-    git clone https://github.com/YOUR_USERNAME/AxiomEngine.git
+    git clone https://github.com/ArtisticIntentionz/AxiomEngine.git
     cd AxiomEngine
     ```
-    *(Remember to replace `YOUR_USERNAME` with your actual GitHub username!)*
 
 2.  **Create and Activate the Conda Environment:**
     ```bash
@@ -107,23 +106,24 @@ The launch process is done manually from the command line, giving you full contr
 
 **Instructions:** Open three separate terminals. In each one, navigate to your `AxiomEngine` project directory and activate the Conda environment with `conda activate AxiomFork`.
 
-**Terminal 1: The Bootstrap Server**
+**Bootstrap Server**
 
-This server's only job is to introduce new nodes to each other. It doesn't process facts.
+The bootstrap server is a p2p node that introduce new nodes to each other. It doesn't process facts.
+If you need to set one up for testing purposes, all you have to do is run a p2p node at a known
+ip address and port, and remember to communicate those to the other nodes in your network.
 
 1.  **Launch the server:**
     ```bash
-    python -m axiom_server.p2p.node 0
+    python -m axiom_server.run_node --default_bootstrap
     ```
-2.  **Observe the output.** It will log the port it started on, for example:
-    `[__main__] ... INFO | node.py:323 >>> started node on 127.0.0.1:57539`
-3.  **Keep this terminal running.** This is the anchor for your local network. Note the port number (`57539` in this example) for the next step.
 
-**Terminal 2: The First Axiom Node**
+**The Axiom Node**
+
+WORK IN PROGRESS!
 
 This is a full Axiom node that will discover facts, seal blocks, and communicate with peers.
 
-1.  **Launch the node:** Replace `<bootstrap_port>` with the port number from Terminal 1.
+1.  **Launch the node:** Replace `<bootstrap_port>` with the appropriate port.
     ```bash
     # P2P will run on port 5001, API on 8001
     python -m axiom_server.node --p2p-port 5001 --api-port 8001 --bootstrap-peer http://127.0.0.1:<bootstrap_port>
@@ -131,7 +131,7 @@ This is a full Axiom node that will discover facts, seal blocks, and communicate
 2.  **Observe the logs.** You will see it initialize the Axiom engine and the P2P layer, and you should see connection logs appear in both Terminal 1 and Terminal 2.
 3.  **Keep this terminal running.**
 
-**Terminal 3: The Second Axiom Node (Optional but Recommended)**
+**The Second Axiom Node (Optional but Recommended)**
 
 Running a second full node allows you to see the P2P gossip protocol in action.
 

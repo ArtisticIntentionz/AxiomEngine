@@ -1,4 +1,5 @@
-from src.p2p.node import RawMessage, generate_key_pair, sign
+
+from axiom_server.p2p.node import RawMessage, generate_key_pair, sign
 
 
 def test_rawmessage_sign_and_verify():
