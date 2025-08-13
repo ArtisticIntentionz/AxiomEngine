@@ -55,7 +55,7 @@ from axiom_server.p2p.node import ApplicationData, Node as P2PBaseNode
 
 print("DEBUG: Finished importing P2P library.")
 
-__version__ = "4.0.0-P2P"
+__version__ = "3.1.3"
 
 # --- Logging setup is unchanged ---
 logger = logging.getLogger("axiom-node")

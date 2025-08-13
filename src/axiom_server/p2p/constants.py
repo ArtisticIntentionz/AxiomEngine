@@ -1,24 +1,40 @@
 from pathlib import Path
+from typing import Final
 
-CURRENT_FILE_PATH = Path(__file__).resolve()
-BASE = CURRENT_FILE_PATH.parent.parent.parent
-SSL_FOLDER = BASE / "ssl"
+# This file is now located at: .../AxiomEngine/src/axiom_server/p2p/constants.py
+PROJECT_ROOT: Final[Path] = Path(__file__).resolve().parent.parent.parent.parent
 
-SIGNATURE_SIZE: int = 256  # in byte
-KEY_SIZE: int = SIGNATURE_SIZE * 8  # in bit
-assert KEY_SIZE >= 2048
+# The SSL folder is at the project root.
+SSL_FOLDER: Final[Path] = PROJECT_ROOT / "ssl"
 
-ENCODING = "utf-8"
-NODE_CHECK_TIME = 1  # in seconds
-NODE_CHUNK_SIZE = 1024
-NODE_BACKLOG = 5
-NODE_CONNECTION_TIMEOUT = 3  # in seconds
-NODE_CERT_FILE = SSL_FOLDER / "node.crt"
-NODE_KEY_FILE = SSL_FOLDER / "node.key"
-# generate those with (linux)
-# openssl req -new -x509 -days 365 -nodes -out ssl/node.crt -keyout ssl/node.key
-# or (windows)
-# openssl req -new -x509 -days 365 -nodes -out ssl\node.crt -keyout ssl\node.key
-BOOTSTRAP_SERVER_IP_ADDR = "localhost"
-BOOTSTRAP_SERVER_PORT = 42_180
-SEPARATOR = b"\0\0\0AXIOM-P2P-STOP\0\0\0"
+
+# --- Network and Cryptography Constants ---
+SIGNATURE_SIZE: Final[int] = 256  # in bytes
+KEY_SIZE: Final[int] = SIGNATURE_SIZE * 8  # in bits
+assert KEY_SIZE >= 2048, "Key size must be at least 2048 bits for security."
+
+ENCODING: Final[str] = "utf-8"
+NODE_CHECK_TIME: Final[float] = 1.0  # in seconds
+NODE_CHUNK_SIZE: Final[int] = 1024
+NODE_BACKLOG: Final[int] = 5
+NODE_CONNECTION_TIMEOUT: Final[int] = 3  # in seconds
+
+
+# --- File Path Constants ---
+NODE_CERT_FILE: Final[Path] = SSL_FOLDER / "node.crt"
+NODE_KEY_FILE: Final[Path] = SSL_FOLDER / "node.key"
+# To generate these certificates, run the following from the project root:
+#
+#   mkdir -p ssl
+#   openssl req -new -x509 -days 365 -nodes -out ssl/node.crt -keyout ssl/node.key
+#
+# (You can press Enter for all prompts to accept defaults)
+
+
+# --- Bootstrap Server Configuration ---
+BOOTSTRAP_SERVER_IP_ADDR: Final[str] = "localhost"
+BOOTSTRAP_SERVER_PORT: Final[int] = 42_180 # Note: This can be overridden at runtime
+
+
+# --- Protocol Constants ---
+SEPARATOR: Final[bytes] = b"\0\0\0AXIOM-P2P-STOP\0\0\0"
