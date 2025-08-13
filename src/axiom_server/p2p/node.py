@@ -19,7 +19,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from pydantic import BaseModel, ValidationError
 
-from p2p.constants import (
+from .constants import (
     BOOTSTRAP_SERVER_IP_ADDR,
     BOOTSTRAP_SERVER_PORT,
     ENCODING,
@@ -409,18 +409,14 @@ class Node:
         message = Message.application_data(data)
         self._send_message_to_peers(message)
 
-    def bootstrap(self):
-        logger.info("bootstrapping")
+    def bootstrap(self, ip_addr: str = BOOTSTRAP_SERVER_IP_ADDR, port: int = BOOTSTRAP_SERVER_PORT):
+        logger.info(f"Bootstrapping to target: {ip_addr}:{port}")
         link = self.search_link_by_peer(
-            lambda peer: peer.ip_address == BOOTSTRAP_SERVER_IP_ADDR
-            and peer.port == BOOTSTRAP_SERVER_PORT,
+            lambda peer: peer.ip_address == ip_addr and peer.port == port,
         )
 
         if link is None:
-            link = self._create_link(
-                BOOTSTRAP_SERVER_IP_ADDR,
-                BOOTSTRAP_SERVER_PORT,
-            )
+            link = self._create_link(ip_addr, port)
 
             if link is None:
                 logger.error("failed to bootstrap: can't connect to server")

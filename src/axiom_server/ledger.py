@@ -100,7 +100,6 @@ class Block(Base):
     nonce: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     fact_hashes: Mapped[str] = mapped_column(Text, nullable=False)
 
-    # --- ADDITION: The cryptographic fingerprint of the block's contents ---
     merkle_root: Mapped[str] = mapped_column(
         String,
         nullable=False,
@@ -129,9 +128,8 @@ class Block(Base):
 
     def seal_block(self, difficulty: int) -> None:
         """Calculate the Merkle Root and then seal the block via Proof of Work."""
-        # --- ADDITION: Calculate the Merkle Root ---
         fact_hashes_list = json.loads(self.fact_hashes)
-        if fact_hashes_list:  # Only build a tree if there are facts
+        if fact_hashes_list:
             merkle_tree = merkle.MerkleTree(fact_hashes_list)
             self.merkle_root = merkle_tree.root.hex()
         else:
@@ -337,7 +335,6 @@ class FactLink(Base):
     __tablename__ = "fact_link"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    # --- UPGRADE: Add the new column ---
     relationship_type: Mapped[RelationshipType] = mapped_column(
         Enum(RelationshipType),
         default=RelationshipType.CORRELATION,
@@ -360,7 +357,7 @@ class FactLink(Base):
 
 
 def initialize_database(engine: Engine) -> None:
-    """Ensure the database file and ALL required tables ('facts', 'fact_relationships') exist."""
+    """Ensure the database file and ALL required tables exist."""
     Base.metadata.create_all(engine)
     logger.info("initialized database")
 
@@ -384,6 +381,63 @@ def create_genesis_block(session: Session) -> None:
     session.add(genesis)
     session.commit()
     logger.info("Genesis Block created and sealed.")
+
+# --- NEW FUNCTION FOR P2P SYNCHRONIZATION ---
+def add_block_from_peer_data(session: Session, block_data: dict[str, Any]) -> Block:
+    """
+    Validates and adds a new block received from a peer.
+
+    This is the core of blockchain synchronization. It ensures that a node
+    only accepts blocks that correctly extend its own version of the chain.
+
+    Args:
+        session: The active SQLAlchemy database session.
+        block_data: A dictionary containing the block header data from a peer.
+
+    Returns:
+        The newly added Block object.
+
+    Raises:
+        ValueError: If the block is invalid (e.g., wrong height, hash mismatch).
+        KeyError: If the peer data is missing required fields.
+    """
+    latest_local_block = get_latest_block(session)
+    if not latest_local_block:
+        raise LedgerError("Cannot add peer block: Local ledger has no blocks.")
+
+    # 1. CRITICAL VALIDATION: Is the new block the very next one in the sequence?
+    expected_height = latest_local_block.height + 1
+    if block_data["height"] != expected_height:
+        raise ValueError(
+            f"Block height mismatch. Expected {expected_height}, "
+            f"but peer sent {block_data['height']}. Node may be out of sync."
+        )
+
+    # 2. CRITICAL VALIDATION: Does the new block correctly chain to our latest block?
+    if block_data["previous_hash"] != latest_local_block.hash:
+        raise ValueError(
+            f"Block integrity error: Peer block's previous_hash "
+            f"({block_data['previous_hash']}) does not match local head "
+            f"({latest_local_block.hash}). A fork may have occurred."
+        )
+
+    # 3. If validation passes, create the Block object from the peer data.
+    # Note: We trust the peer's nonce and hash, but a more secure system
+    # might re-verify the proof-of-work hash here as a defense against spam.
+    # For now, this is efficient.
+    new_block = Block(
+        height=block_data["height"],
+        hash=block_data["hash"],
+        previous_hash=block_data["previous_hash"],
+        merkle_root=block_data["merkle_root"],
+        timestamp=block_data["timestamp"],
+        nonce=block_data.get("nonce", 0),  # Use .get for safety
+        fact_hashes="[]",  # We don't have the full facts yet, just the header.
+    )
+    session.add(new_block)
+    session.commit()
+    logger.info(f"Added new block #{new_block.height} from peer to local ledger.")
+    return new_block
 
 
 def get_all_facts_for_analysis(session: Session) -> list[Fact]:
@@ -453,10 +507,9 @@ def insert_relationship_object(
     fact1: Fact,
     fact2: Fact,
     score: int,
-    relationship_type: RelationshipType,  # --- UPGRADE: Add the new parameter ---
+    relationship_type: RelationshipType,
 ) -> None:
     """Insert fact relationship given Fact objects."""
-    # --- UPGRADE: Pass the type to the constructor ---
     link = FactLink(
         score=score,
         fact1=fact1,
