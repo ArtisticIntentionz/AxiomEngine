@@ -2,17 +2,19 @@
 
 from __future__ import annotations
 
+import os
 import sys
 from typing import TypeAlias, TypedDict, cast
 
 import requests
-from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtCore import QThread, QTimer, pyqtSignal
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QApplication,
     QLabel,
     QLineEdit,
     QPushButton,
+    QStatusBar,
     QTextEdit,
     QVBoxLayout,
     QWidget,
@@ -121,7 +123,16 @@ class AxiomClientApp(QWidget):  # type: ignore[misc,unused-ignore,no-any-unimpor
         self.setWindowTitle("Axiom Client")
         self.setGeometry(100, 100, 700, 500)
         self.network_worker: NetworkWorker
+        self.server_url = os.environ.get("SEALER_URL", "http://127.0.0.1:5000")
         self.setup_ui()
+
+        # Setup a timer to periodically check the network status
+        self.status_timer = QTimer(self)
+        self.status_timer.timeout.connect(self.update_network_status)
+        self.status_timer.start(10000)  # Check every 10 seconds
+
+        # Perform an initial check immediately on startup
+        self.update_network_status()
 
     def setup_ui(self) -> None:
         """Initialize user interface."""
@@ -129,7 +140,7 @@ class AxiomClientApp(QWidget):  # type: ignore[misc,unused-ignore,no-any-unimpor
         self.qv_box_layout = QVBoxLayout()
         self.setLayout(self.qv_box_layout)
 
-        # Title Label
+        # Title Label (existing)
         self.title_label = QLabel("AXIOM")
         self.title_label.setFont(QFont("Arial", 24, QFont.Weight.Bold))
         self.qv_box_layout.addWidget(self.title_label)
@@ -138,7 +149,6 @@ class AxiomClientApp(QWidget):  # type: ignore[misc,unused-ignore,no-any-unimpor
         self.query_input = QLineEdit()
         self.query_input.setPlaceholderText("Ask Axiom a question...")
         self.query_input.setFont(QFont("Arial", 14))
-        # Allow pressing Enter
         self.query_input.returnPressed.connect(self.start_search)
         self.qv_box_layout.addWidget(self.query_input)
 
@@ -157,7 +167,21 @@ class AxiomClientApp(QWidget):  # type: ignore[misc,unused-ignore,no-any-unimpor
         self.results_output = QTextEdit()
         self.results_output.setReadOnly(True)
         self.results_output.setFont(QFont("Arial", 12))
-        self.qv_box_layout.addWidget(self.results_output)
+        self.qv_box_layout.addWidget(self.results_output, 1)
+
+        # Shows a Connected/Disconnected status bar
+        self.status_bar = QStatusBar()
+        self.qv_box_layout.addWidget(self.status_bar)
+
+        # Create the labels for the status bar
+        self.connection_status_label = QLabel("⚫️ Checking...")
+        self.block_height_label = QLabel("Block: N/A")
+        self.version_label = QLabel("Node: N/A")
+
+        # Add labels to the status bar
+        self.status_bar.addPermanentWidget(self.connection_status_label)
+        self.status_bar.addPermanentWidget(self.block_height_label)
+        self.status_bar.addPermanentWidget(self.version_label)
 
     def start_search(self) -> None:
         """Handle when the user clicks 'Search' or presses Enter."""
@@ -171,7 +195,7 @@ class AxiomClientApp(QWidget):  # type: ignore[misc,unused-ignore,no-any-unimpor
         # Start the network operations in the background thread
         self.network_worker = NetworkWorker(
             query,
-            node_url="http://127.0.0.1:5000",
+            node_url=self.server_url,
         )
         self.network_worker.progress.connect(self.update_status)
         self.network_worker.finished.connect(self.display_results)
@@ -221,6 +245,32 @@ class AxiomClientApp(QWidget):  # type: ignore[misc,unused-ignore,no-any-unimpor
                 )
 
         self.results_output.setHtml(html)
+
+    def update_network_status(self):
+        """Periodically called by a QTimer to update the status bar."""
+        try:
+            response = requests.get(f"{self.server_url}/status", timeout=2)
+            response.raise_for_status()
+
+            data = response.json()
+            block_height = data.get("latest_block_height", "N/A")
+            node_version = data.get("version", "N/A")
+
+            # Update UI for "Connected" state
+            self.connection_status_label.setText("🟢 Connected")
+            self.block_height_label.setText(f"Block: {block_height}")
+            self.version_label.setText(f"Node: v{node_version}")
+
+        except requests.exceptions.RequestException:
+            self.set_disconnected_status()
+
+    def set_disconnected_status(self):
+        """Helper function to set all UI elements to a disconnected state."""
+        self.connection_status_label.setText(
+            f"🔴 Disconnected from {self.server_url}",
+        )
+        self.block_height_label.setText("Block: N/A")
+        self.version_label.setText("Node: N/A")
 
 
 def cli_run() -> int:

@@ -318,6 +318,23 @@ def handle_get_blocks() -> Response:
         return jsonify({"blocks": blocks_data})
 
 
+@app.route("/status", methods=["GET"])
+def handle_get_status() -> Response:
+    """Provides a simple status check for the node.
+    Returns the current block height and node version.
+    """
+    with SessionMaker() as session:
+        latest_block = get_latest_block(session)
+        height = latest_block.height if latest_block else 0
+        return jsonify(
+            {
+                "status": "ok",
+                "latest_block_height": height,
+                "version": __version__,
+            },
+        )
+
+
 @app.route("/local_query", methods=["GET"])
 def handle_local_query() -> Response:
     """Handle local query request using semantic vector search."""
