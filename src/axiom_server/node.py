@@ -70,6 +70,7 @@ db_lock = threading.Lock()
 # This lock ensures only one thread can read from or write to the fact indexer at a time.
 fact_indexer_lock = threading.Lock()
 
+fact_indexer: FactIndexer | None = None 
 
 # --- NEW: We create a single class that combines Axiom logic and P2P networking ---
 class AxiomNode(P2PBaseNode):
@@ -309,7 +310,7 @@ class AxiomNode(P2PBaseNode):
 app = Flask(__name__)
 CORS(app)
 node_instance: AxiomNode
-fact_indexer = FactIndexer()
+fact_indexer: FactIndexer | None = None
 
 
 @app.route("/chat", methods=["POST"])
@@ -652,9 +653,12 @@ def main() -> None:
             bootstrap_peer=args.bootstrap_peer,
         )
 
-        logger.info("--- Initializing Fact Indexer for HashNLP Chat ---")
+        logger.info("--- Initializing Fact Indexer for Hybrid Search ---")
         with SessionMaker() as db_session:
-            fact_indexer.index_facts_from_db(db_session)
+            # Create the indexer instance, passing it the session it needs.
+            fact_indexer = FactIndexer(db_session)
+            # Build the initial index.
+            fact_indexer.index_facts_from_db()
 
         # 3. Start the Flask API server in its own thread.
         api_thread = threading.Thread(

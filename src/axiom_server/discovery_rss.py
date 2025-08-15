@@ -11,7 +11,7 @@ from concurrent.futures import (
     ThreadPoolExecutor,
     as_completed,
 )  # <-- NEW IMPORT
-from typing import Dict, Final, List
+from typing import Dict, Final, List, Tuple
 
 import feedparser
 
