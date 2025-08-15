@@ -34,6 +34,7 @@ keywords = [
 dependencies = [
     # --- Core Web & Networking ---
     "Flask==3.0.3",
+    "flask-cors",
     "gunicorn==22.0.0",
     "requests==2.31.0",
 
@@ -46,12 +47,13 @@ dependencies = [
     "pydantic",
     "PyQt6",
     "beautifulsoup4>=4.12.3",
+    "transformers",
     "feedparser==6.0.11",
     "ddgs",
 
     # --- AI & Natural Language Processing ---
     "spacy>=3.7.2,<3.8.0",
-    "en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl",
+    "en-core-web-lg @ https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.7.1/en_core_web_lg-3.7.1-py3-none-any.whl",
     "typing-extensions>=4.14.1",
 ]
 

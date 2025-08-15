@@ -10,7 +10,7 @@ from typing import Final
 
 import spacy
 
-NLP_MODEL: Final = spacy.load("en_core_web_sm")
+NLP_MODEL = spacy.load("en_core_web_lg")
 
 SUBJECTIVITY_INDICATORS: Final = {
     "believe",
