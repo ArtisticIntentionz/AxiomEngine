@@ -74,8 +74,7 @@ class NetworkWorker(QThread):
             self.finished.emit({"error": f"An error occurred: {e}"})
 
     def _perform_chat_query(self) -> ChatResponse | ErrorResponse:
-        """Performs a single POST request to the new /chat endpoint.
-        """
+        """Performs a single POST request to the new /chat endpoint."""
         response = requests.post(
             f"{self.node_url}/chat",
             json={
@@ -103,7 +102,8 @@ class AxiomClientApp(QWidget):
 
         # --- MODIFIED: Update the default server URL to use port 8001 ---
         self.server_url = os.environ.get(
-            "AXIOM_API_URL", "http://127.0.0.1:8001",
+            "AXIOM_API_URL",
+            "http://127.0.0.1:8001",
         )
         self.setup_ui()
 

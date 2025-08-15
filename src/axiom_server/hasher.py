@@ -57,8 +57,7 @@ class FactIndexer:
         )
 
     def index_facts_from_db(self, session: Session):
-        """Reads all non-disputed facts from the database and builds the index.
-        """
+        """Reads all non-disputed facts from the database and builds the index."""
         logger.info("Starting to index facts from the ledger...")
 
         # Query the database for all proven, non-disputed facts.
@@ -94,10 +93,11 @@ class FactIndexer:
         )
 
     def find_closest_facts(
-        self, query_text: str, top_n: int = 3,
+        self,
+        query_text: str,
+        top_n: int = 3,
     ) -> list[dict]:
-        """Takes a user's question, finds the most similar facts from the index.
-        """
+        """Takes a user's question, finds the most similar facts from the index."""
         if self.vector_matrix is None or len(self.fact_ids) == 0:
             logger.warning("Attempted to search, but the fact index is empty.")
             return []  # Return empty if the index is not built yet.
