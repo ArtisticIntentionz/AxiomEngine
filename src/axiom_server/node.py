@@ -40,7 +40,6 @@ from axiom_server.ledger import (
     get_latest_block,
     initialize_database,
 )
-
 from axiom_server.p2p.constants import (
     BOOTSTRAP_IP_ADDR,
     BOOTSTRAP_PORT,
@@ -115,7 +114,9 @@ class AxiomNode(P2PBaseNode):
             ).start()
 
     # --- The rest of the AxiomNode class methods are unchanged ---
-    def _handle_application_message(self, link: any, content: ApplicationData) -> None:
+    def _handle_application_message(
+        self, link: any, content: ApplicationData,
+    ) -> None:
         """This method is automatically called by the P2P layer."""
         try:
             message = json.loads(content.data)
@@ -126,7 +127,9 @@ class AxiomNode(P2PBaseNode):
                 with SessionMaker() as session:
                     add_block_from_peer_data(session, msg_data)
         except Exception as e:
-            background_thread_logger.error(f"Error processing peer message: {e}")
+            background_thread_logger.error(
+                f"Error processing peer message: {e}",
+            )
 
     def _background_work_loop(self) -> None:
         """The main work cycle for fact-gathering and block-sealing."""
@@ -149,7 +152,9 @@ class AxiomNode(P2PBaseNode):
 
                     facts_for_sealing: list[Fact] = []
                     if content_list:
-                        adder = crucible.CrucibleFactAdder(session, fact_indexer)
+                        adder = crucible.CrucibleFactAdder(
+                            session, fact_indexer,
+                        )
                         for item in content_list:
                             domain = urlparse(item["source_url"]).netloc
                             source = session.query(Source).filter(
@@ -297,11 +302,11 @@ node_instance: AxiomNode
 
 fact_indexer = FactIndexer()
 
+
 @app.route("/chat", methods=["POST"])
 def handle_chat_query():
-    """
-    Handles natural language queries from the client.
-    
+    """Handles natural language queries from the client.
+
     Finding the most semantically similar facts in the ledger.
     """
     data = request.get_json()
@@ -309,12 +314,13 @@ def handle_chat_query():
         return jsonify({"error": "Missing 'query' in request body"}), 400
 
     query = data["query"]
-    
+
     # Use our globally defined indexer to find the closest matching facts.
     closest_facts = fact_indexer.find_closest_facts(query)
-    
+
     # Return the results to the client.
     return jsonify({"results": closest_facts})
+
 
 @app.route("/get_timeline/<topic>", methods=["GET"])
 def handle_get_timeline(topic: str) -> Response:
@@ -592,7 +598,7 @@ def handle_get_fact_context(fact_hash: str) -> Response | tuple[Response, int]:
 
 def main() -> None:
     """The main entry point for running an Axiom Node from the command line."""
-    global node_instance, fact_indexer 
+    global node_instance, fact_indexer
 
     # 1. Setup the argument parser
     parser = argparse.ArgumentParser(description="Run an Axiom P2P Node.")
@@ -623,15 +629,13 @@ def main() -> None:
     args = parser.parse_args()
 
     try:
-
-
         # 2. Create the AxiomNode instance, passing the arguments directly.
         node_instance = AxiomNode(
             host=args.host,
             port=args.p2p_port,
             bootstrap_peer=args.bootstrap_peer,
         )
-        
+
         logger.info("--- Initializing Fact Indexer for HashNLP Chat ---")
         with SessionMaker() as db_session:
             fact_indexer.index_facts_from_db(db_session)

@@ -1,4 +1,5 @@
-"""Definig the base unit of P2P network, a Node."""
+"""Defining the base unit of P2P network, a Node."""
+
 from __future__ import annotations
 
 import logging
@@ -56,6 +57,7 @@ logger.propagate = False
 
 class P2PRuntimeError(BaseException):
     """Raised when the system can't recover from a situation."""
+
     __slots__ = ()
 
 
@@ -65,6 +67,7 @@ class RawMessage(BaseModel):
     The main job of this layer is to check the authenticity of
     the sender.
     """
+
     data: bytes
     signature: bytes
 
@@ -92,6 +95,7 @@ class RawMessage(BaseModel):
 
 class MessageType(Enum):
     """Represent the possible message types."""
+
     PEERS_REQUEST = 0
     PEERS_SHARING = 1
     APPLICATION = 2
@@ -99,6 +103,7 @@ class MessageType(Enum):
 
 class Message(BaseModel):
     """A message carrying information."""
+
     message_type: MessageType
     content: PeersRequest | PeersSharing | ApplicationData
 
@@ -175,7 +180,7 @@ class Message(BaseModel):
 
 
 class MessageContent(BaseModel):
-    """Data transmited in a message."""
+    """Data transmitted in a message."""
 
 
 class PeersRequest(MessageContent):
@@ -184,16 +189,19 @@ class PeersRequest(MessageContent):
 
 class PeersSharing(MessageContent):
     """Peer information sharing."""
+
     peers: list[SerializedPeer]
 
 
 class ApplicationData(MessageContent):
     """Client code data."""
+
     data: str
 
 
 class SerializedPeer(BaseModel):
-    """Represent a peer ready to be transmited over network."""
+    """Represent a peer ready to be transmitted over network."""
+
     ip_address: str
     port: int
 
@@ -209,6 +217,7 @@ class SerializedPeer(BaseModel):
 @dataclass
 class Peer:
     """Represent the home address of a node."""
+
     ip_address: str
     port: int | None
     public_key: rsa.RSAPublicKey | None
@@ -298,6 +307,7 @@ def _verify(signature: bytes, message: bytes, public_key: rsa.RSAPublicKey):
 @dataclass
 class PeerLink:
     """Represents an active link with a peer."""
+
     peer: Peer
     socket: Socket
     alive: bool
@@ -311,6 +321,7 @@ class PeerLink:
 @dataclass
 class NodeContextManager:
     """Handle the systematic stopping of the given node."""
+
     node: Node
 
     def __enter__(self) -> Node:
@@ -325,12 +336,14 @@ class NodeContextManager:
 def _all(item: Any) -> Literal[True]:
     return True
 
+
 ALL = _all
 
 
 @dataclass
 class Node:
     """A P2P node, associated with a home address, and RSA keys."""
+
     ip_address: str
     port: int
     serialized_port: bytes
@@ -671,7 +684,8 @@ class Node:
                 continue
             assert shared_peer.port is not None
             if self.search_link_by_peer(
-                lambda peer, shared_peer=shared_peer: peer.ip_address == shared_peer.ip_address
+                lambda peer, shared_peer=shared_peer: peer.ip_address
+                == shared_peer.ip_address
                 and peer.port == shared_peer.port,
             ):
                 continue
