@@ -29,11 +29,13 @@ logger.propagate = False
 
 class Config(BaseModel):
     """Used as a checkpoint between user input and software."""
+
     host: str
     port: int
     bootstrap: bool
     bootstrap_host: str
     bootstrap_port: int
+
 
 parser = ArgumentParser(
     prog="Axiom run_node",
@@ -49,15 +51,42 @@ When --default_bootstrap is defined, this process is also used for --addr and --
 """,
 )
 
-COMPUTED_BOOTSTRAP_IP_ADDR: Final[str] = os.environ.get("AXIOM_BOOTSTRAP_IP_ADDR", BOOTSTRAP_IP_ADDR)
-COMPUTED_BOOTSTRAP_PORT: Final[int] = int(os.environ.get("AXIOM_BOOTSTRAP_PORT", BOOTSTRAP_PORT))
+COMPUTED_BOOTSTRAP_IP_ADDR: Final[str] = os.environ.get(
+    "AXIOM_BOOTSTRAP_IP_ADDR", BOOTSTRAP_IP_ADDR,
+)
+COMPUTED_BOOTSTRAP_PORT: Final[int] = int(
+    os.environ.get("AXIOM_BOOTSTRAP_PORT", BOOTSTRAP_PORT),
+)
 
-parser.add_argument("-a", "--addr", default="localhost", help="home IP address of the node")
-parser.add_argument("-p", "--port", default=0, type=int, help="home port of the node")
-parser.add_argument("--default_bootstrap", default=False, action="store_true", help="use default (or environ) bootstrap values for --addr and --port")
-parser.add_argument("-b", "--bootstrap", default=False, action="store_true", help="bootstrap the node after start")
-parser.add_argument("--boot_addr", default=COMPUTED_BOOTSTRAP_IP_ADDR, help="home IP address of the relevant bootstrap node")
-parser.add_argument("--boot_port", default=COMPUTED_BOOTSTRAP_PORT, help="home port of the relevant bootstrap node")
+parser.add_argument(
+    "-a", "--addr", default="localhost", help="home IP address of the node",
+)
+parser.add_argument(
+    "-p", "--port", default=0, type=int, help="home port of the node",
+)
+parser.add_argument(
+    "--default_bootstrap",
+    default=False,
+    action="store_true",
+    help="use default (or environ) bootstrap values for --addr and --port",
+)
+parser.add_argument(
+    "-b",
+    "--bootstrap",
+    default=False,
+    action="store_true",
+    help="bootstrap the node after start",
+)
+parser.add_argument(
+    "--boot_addr",
+    default=COMPUTED_BOOTSTRAP_IP_ADDR,
+    help="home IP address of the relevant bootstrap node",
+)
+parser.add_argument(
+    "--boot_port",
+    default=COMPUTED_BOOTSTRAP_PORT,
+    help="home port of the relevant bootstrap node",
+)
 
 
 if __name__ == "__main__":
