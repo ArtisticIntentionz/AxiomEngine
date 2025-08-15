@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Axiom - A Decentralized Knowledge Network</title>
+    <style>
+        /* A simple, clean, modern stylesheet */
+        :root {
+            --background-color: #121212;
+            --text-color: #EAEAEA;
+            --primary-color: #00BFFF; /* Deep Sky Blue */
+            --secondary-color: #333333;
+            --card-color: #1E1E1E;
+            --success-color: #2E7D32;
+            --error-color: #C62828;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            max-width: 800px;
+            width: 90%;
+            margin: 2rem auto;
+            padding: 1rem;
+        }
+        header {
+            text-align: center;
+            padding: 4rem 1rem;
+            border-bottom: 1px solid var(--secondary-color);
+        }
+        header h1 {
+            font-size: 3.5rem;
+            color: var(--text-color);
+            margin: 0;
+        }
+        header h1 span {
+            color: var(--primary-color);
+        }
+        header p {
+            font-size: 1.2rem;
+            color: #AAAAAA;
+        }
+        section {
+            padding: 3rem 0;
+            border-bottom: 1px solid var(--secondary-color);
+        }
+        h2 {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .card {
+            background-color: var(--card-color);
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        .card h3 {
+            margin-top: 0;
+            font-size: 1.8rem;
+        }
+        .button {
+            display: inline-block;
+            background-color: var(--primary-color);
+            color: var(--background-color);
+            padding: 12px 25px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: transform 0.2s ease;
+            text-align: center;
+        }
+        .button:hover {
+            transform: scale(1.05);
+        }
+        .button.secondary {
+            background-color: transparent;
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+        }
+        
+        /* --- NEW STYLES FOR THE WEB CLIENT --- */
+        #axiom-client-container {
+            border: 1px solid var(--secondary-color);
+            border-radius: 8px;
+            padding: 2rem;
+            background-color: var(--card-color);
+        }
+        #query-input {
+            width: 100%;
+            padding: 14px;
+            font-size: 1.1rem;
+            border-radius: 5px;
+            border: 1px solid var(--secondary-color);
+            background-color: #2c2c2c;
+            color: var(--text-color);
+            box-sizing: border-box; /* Important */
+            margin-bottom: 1rem;
+        }
+        #search-button {
+            width: 100%;
+            padding: 14px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #results-output {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            background-color: #121212;
+            border-radius: 5px;
+            min-height: 100px;
+            border: 1px solid var(--secondary-color);
+        }
+        #results-output h4 {
+            margin-top: 0;
+            color: var(--primary-color);
+        }
+        #client-status-bar {
+            margin-top: 1rem;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #888;
+        }
+        .status-light {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+            background-color: var(--error-color); /* Default to red */
+        }
+        .status-light.connected {
+            background-color: var(--success-color);
+        }
+
+        .download-grid, .community-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+        footer {
+            text-align: center;
+            padding: 2rem;
+            font-size: 0.9rem;
+            color: #777777;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+
+        <header>
+            <h1>Axiom<span>.</span></h1>
+            <p>A Decentralized Network for Verifiable Truth.</p>
+        </header>
+
+        <main>
+            <!-- ============================================= -->
+            <!-- === NEW: AXIOM LIVE WEB CLIENT SECTION === -->
+            <!-- ============================================= -->
+            <section id="try-live">
+                <h2>Try Axiom Live</h2>
+                <div id="axiom-client-container">
+                    <input type="text" id="query-input" placeholder="Ask a question..." autocomplete="off">
+                    <button id="search-button" class="button">Search the Ledger</button>
+                    <div id="results-output">
+                        <!-- Results will be displayed here -->
+                        <p>Your results will appear here. The client is currently attempting to connect to a live node.</p>
+                    </div>
+                    <div id="client-status-bar">
+                        <span id="status-light" class="status-light"></span>
+                        <span id="status-text">Disconnected</span>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- The Mission Section -->
+            <section id="mission">
+                <h2>The Mission</h2>
+                <div class="card">
+                    <h3>Rebuilding Reality's Bedrock.</h3>
+                    <p>In an age of misinformation and digital noise, shared truth is decaying. Axiom is a new kind of network—an autonomous, decentralized organism designed to discover, verify, and preserve objective knowledge.</p>
+                    <a href="#" class="button secondary">Read the Whitepaper &rarr;</a>
+                </div>
+            </section>
+
+            <!-- Download Client Section -->
+            <section id="download">
+                <h2>Get the Axiom Client</h2>
+                <div class="card">
+                    <h3>Access the Network.</h3>
+                    <p>The Axiom Client is your secure, private gateway to the network's collective intelligence. Download the desktop application for the full experience.</p>
+                    <div class="download-grid">
+                        <a href="#" class="button">Download for macOS</a>
+                        <a href="#" class="button">Download for Windows</a>
+                        <a href="#" class="button">Download for Linux</a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Run a Node Section -->
+            <section id="run-a-node">
+                <h2>Become a Guardian of Truth</h2>
+                <div class="card">
+                    <h3>Run a Node. Strengthen the Network.</h3>
+                    <p>Axiom is powered by a global community of independent node operators. By running a node, you contribute to a free and permanent public record of truth.</p>
+                    <a href="#" class="button secondary">View on GitHub &rarr;</a>
+                </div>
+            </section>
+
+        </main>
+
+        <footer>
+            <p>The Axiom Protocol is free, open-source software gifted to the world.</p>
+            <p>&copy; 2025 The Axiom Contributors. All rights reserved under the PPL.</p>
+        </footer>
+
+    </div>
+
+    <!-- ============================================= -->
+    <!-- === NEW: JAVASCRIPT LOGIC FOR WEB CLIENT === -->
+    <!-- ============================================= -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // --- CONFIGURATION ---
+            // !!! TODO: Replace this with the URL of a publicly hosted Axiom node for the live website demo.
+            const AXIOM_NODE_URL = 'http://127.0.0.1:8001'; // <-- Works for local development
+
+            // --- UI ELEMENTS ---
+            const queryInput = document.getElementById('query-input');
+            const searchButton = document.getElementById('search-button');
+            const resultsOutput = document.getElementById('results-output');
+            const statusLight = document.getElementById('status-light');
+            const statusText = document.getElementById('status-text');
+
+            // --- CORE FUNCTIONS ---
+
+            const checkNodeStatus = async () => {
+                try {
+                    const response = await fetch(`${AXIOM_NODE_URL}/status`);
+                    if (!response.ok) throw new Error('Network response was not ok.');
+                    
+                    const data = await response.json();
+                    statusLight.classList.add('connected');
+                    statusText.textContent = `Connected | Block: ${data.latest_block_height} | Node: v${data.version}`;
+                } catch (error) {
+                    statusLight.classList.remove('connected');
+                    statusText.textContent = `Error: Could not connect to node at ${AXIOM_NODE_URL}`;
+                    console.error('Status check failed:', error);
+                }
+            };
+
+            const performSearch = async () => {
+                const query = queryInput.value.trim();
+                if (!query) return;
+
+                searchButton.disabled = true;
+                searchButton.textContent = 'Searching...';
+                resultsOutput.innerHTML = '<p>Querying the network...</p>';
+
+                try {
+                    const response = await fetch(`${AXIOM_NODE_URL}/chat`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ query: query })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Server responded with status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    displayResults(data.results);
+
+                } catch (error) {
+                    resultsOutput.innerHTML = `<h4>Error</h4><p>Could not perform search. Please ensure the Axiom node is running and accessible.</p><p><em>${error.message}</em></p>`;
+                    console.error('Search failed:', error);
+                } finally {
+                    searchButton.disabled = false;
+                    searchButton.textContent = 'Search the Ledger';
+                }
+            };
+
+            const displayResults = (results) => {
+                if (!results || results.length === 0) {
+                    resultsOutput.innerHTML = '<h4>No Relevant Facts Found</h4><p>The network searched the ledger but could not find a fact that semantically matched your question.</p>';
+                    return;
+                }
+                
+                // For this demo, we will focus on the top result
+                const topResult = results[0];
+                const content = topResult.content;
+                const similarity = topResult.similarity * 100; // Convert to percentage
+
+                let title = '';
+                let explanation = '';
+
+                if (similarity > 85) {
+                    title = `Direct Answer Found (${similarity.toFixed(1)}% Match)`;
+                    explanation = `The following fact is a high-confidence semantic match to your question:`;
+                } else if (similarity > 65) {
+                    title = `Related Fact Found (${similarity.toFixed(1)}% Match)`;
+                    explanation = `While not a direct answer, the following fact from the ledger is highly related to your query:`;
+                } else {
+                    title = `Possible Hint Found (${similarity.toFixed(1)}% Match)`;
+                    explanation = `I'm not very sure, but this is the most related information I could find in the ledger:`;
+                }
+                
+                // Sanitize content before displaying
+                const sanitizedContent = content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+                resultsOutput.innerHTML = `
+                    <h4>${title}</h4>
+                    <p><em>${explanation}</em></p>
+                    <blockquote>"${sanitizedContent}"</blockquote>
+                `;
+            };
+
+            // --- EVENT LISTENERS ---
+            searchButton.addEventListener('click', performSearch);
+            queryInput.addEventListener('keypress', (event) => {
+                if (event.key === 'Enter') {
+                    performSearch();
+                }
+            });
+
+            // --- INITIALIZATION ---
+            checkNodeStatus(); // Check status on page load
+            setInterval(checkNodeStatus, 60000); // And check every 60 seconds
+        });
+    </script>
+</body>
+</html>
