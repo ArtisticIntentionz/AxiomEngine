@@ -108,7 +108,7 @@ else
     mkdir empty || true
     cd empty
 
-    python -m spacy download en_core_web_sm
+    python -m spacy download en_core_web_lg
 
     echo "::endgroup::"
     echo "::group:: Run Tests"

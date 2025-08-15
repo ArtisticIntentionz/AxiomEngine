@@ -12,6 +12,8 @@
             --primary-color: #00BFFF; /* Deep Sky Blue */
             --secondary-color: #333333;
             --card-color: #1E1E1E;
+            --success-color: #2E7D32;
+            --error-color: #C62828;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -87,6 +89,64 @@
             color: var(--primary-color);
             border: 2px solid var(--primary-color);
         }
+        
+        /* --- NEW STYLES FOR THE WEB CLIENT --- */
+        #axiom-client-container {
+            border: 1px solid var(--secondary-color);
+            border-radius: 8px;
+            padding: 2rem;
+            background-color: var(--card-color);
+        }
+        #query-input {
+            width: 100%;
+            padding: 14px;
+            font-size: 1.1rem;
+            border-radius: 5px;
+            border: 1px solid var(--secondary-color);
+            background-color: #2c2c2c;
+            color: var(--text-color);
+            box-sizing: border-box; /* Important */
+            margin-bottom: 1rem;
+        }
+        #search-button {
+            width: 100%;
+            padding: 14px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #results-output {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            background-color: #121212;
+            border-radius: 5px;
+            min-height: 100px;
+            border: 1px solid var(--secondary-color);
+        }
+        #results-output h4 {
+            margin-top: 0;
+            color: var(--primary-color);
+        }
+        #client-status-bar {
+            margin-top: 1rem;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #888;
+        }
+        .status-light {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+            background-color: var(--error-color); /* Default to red */
+        }
+        .status-light.connected {
+            background-color: var(--success-color);
+        }
+
         .download-grid, .community-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -97,13 +157,6 @@
             padding: 2rem;
             font-size: 0.9rem;
             color: #777777;
-        }
-        footer a {
-            color: #999999;
-            text-decoration: none;
-        }
-        footer a:hover {
-            text-decoration: underline;
         }
     </style>
 </head>
@@ -117,13 +170,31 @@
         </header>
 
         <main>
+            <!-- ============================================= -->
+            <!-- === NEW: AXIOM LIVE WEB CLIENT SECTION === -->
+            <!-- ============================================= -->
+            <section id="try-live">
+                <h2>Try Axiom Live</h2>
+                <div id="axiom-client-container">
+                    <input type="text" id="query-input" placeholder="Ask a question..." autocomplete="off">
+                    <button id="search-button" class="button">Search the Ledger</button>
+                    <div id="results-output">
+                        <!-- Results will be displayed here -->
+                        <p>Your results will appear here. The client is currently attempting to connect to a live node.</p>
+                    </div>
+                    <div id="client-status-bar">
+                        <span id="status-light" class="status-light"></span>
+                        <span id="status-text">Disconnected</span>
+                    </div>
+                </div>
+            </section>
+            
             <!-- The Mission Section -->
             <section id="mission">
                 <h2>The Mission</h2>
                 <div class="card">
                     <h3>Rebuilding Reality's Bedrock.</h3>
                     <p>In an age of misinformation and digital noise, shared truth is decaying. Axiom is a new kind of network—an autonomous, decentralized organism designed to discover, verify, and preserve objective knowledge.</p>
-                    <p>It is not a company, a search engine, or a social media platform. It is a permanent, public utility for truth, owned and operated by its community, and built to be immune to censorship, manipulation, and control.</p>
                     <a href="#" class="button secondary">Read the Whitepaper &rarr;</a>
                 </div>
             </section>
@@ -133,7 +204,7 @@
                 <h2>Get the Axiom Client</h2>
                 <div class="card">
                     <h3>Access the Network.</h3>
-                    <p>The Axiom Client is your secure, private gateway to the network's collective intelligence. Ask any question, and get a clean, verifiable answer sourced from the entire network, not from a single algorithm. Your curiosity is always protected.</p>
+                    <p>The Axiom Client is your secure, private gateway to the network's collective intelligence. Download the desktop application for the full experience.</p>
                     <div class="download-grid">
                         <a href="#" class="button">Download for macOS</a>
                         <a href="#" class="button">Download for Windows</a>
@@ -147,22 +218,8 @@
                 <h2>Become a Guardian of Truth</h2>
                 <div class="card">
                     <h3>Run a Node. Strengthen the Network.</h3>
-                    <p>Axiom is powered by a global community of independent node operators. By running a node, you contribute your computer's idle resources to help the network learn, verify, and share knowledge. You become a crucial part of a new digital commonwealth.</p>
-                    <p>All software is open-source and licensed to protect the network from commercial exploitation. Your contribution directly supports a free and permanent public record of truth.</p>
+                    <p>Axiom is powered by a global community of independent node operators. By running a node, you contribute to a free and permanent public record of truth.</p>
                     <a href="#" class="button secondary">View on GitHub &rarr;</a>
-                </div>
-            </section>
-
-            <!-- Community Section -->
-            <section id="community">
-                <h2>Join the Community</h2>
-                <div class="card">
-                    <h3>The Future is Collaborative.</h3>
-                    <p>The development and governance of the Axiom protocol are managed by its community. Join the discussion, help shape the future of the network, and connect with others dedicated to building a more truthful digital world.</p>
-                    <div class="community-grid">
-                        <a href="#" class="button">Join our Discord</a>
-                        <a href="#" class="button">Join our Reddit</a>
-                    </div>
                 </div>
             </section>
 
@@ -170,15 +227,123 @@
 
         <footer>
             <p>The Axiom Protocol is free, open-source software gifted to the world.</p>
-            <p>
-                <a href="#">Whitepaper</a> |
-                <a href="#">GitHub</a> |
-                <a href="#">DAO Charter</a>
-            </p>
             <p>&copy; 2025 The Axiom Contributors. All rights reserved under the PPL.</p>
         </footer>
 
     </div>
 
+    <!-- ============================================= -->
+    <!-- === NEW: JAVASCRIPT LOGIC FOR WEB CLIENT === -->
+    <!-- ============================================= -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // --- CONFIGURATION ---
+            // !!! TODO: Replace this with the URL of a publicly hosted Axiom node for the live website demo.
+            const AXIOM_NODE_URL = 'http://127.0.0.1:8001'; // <-- Works for local development
+
+            // --- UI ELEMENTS ---
+            const queryInput = document.getElementById('query-input');
+            const searchButton = document.getElementById('search-button');
+            const resultsOutput = document.getElementById('results-output');
+            const statusLight = document.getElementById('status-light');
+            const statusText = document.getElementById('status-text');
+
+            // --- CORE FUNCTIONS ---
+
+            const checkNodeStatus = async () => {
+                try {
+                    const response = await fetch(`${AXIOM_NODE_URL}/status`);
+                    if (!response.ok) throw new Error('Network response was not ok.');
+                    
+                    const data = await response.json();
+                    statusLight.classList.add('connected');
+                    statusText.textContent = `Connected | Block: ${data.latest_block_height} | Node: v${data.version}`;
+                } catch (error) {
+                    statusLight.classList.remove('connected');
+                    statusText.textContent = `Error: Could not connect to node at ${AXIOM_NODE_URL}`;
+                    console.error('Status check failed:', error);
+                }
+            };
+
+            const performSearch = async () => {
+                const query = queryInput.value.trim();
+                if (!query) return;
+
+                searchButton.disabled = true;
+                searchButton.textContent = 'Searching...';
+                resultsOutput.innerHTML = '<p>Querying the network...</p>';
+
+                try {
+                    const response = await fetch(`${AXIOM_NODE_URL}/chat`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ query: query })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Server responded with status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    displayResults(data.results);
+
+                } catch (error) {
+                    resultsOutput.innerHTML = `<h4>Error</h4><p>Could not perform search. Please ensure the Axiom node is running and accessible.</p><p><em>${error.message}</em></p>`;
+                    console.error('Search failed:', error);
+                } finally {
+                    searchButton.disabled = false;
+                    searchButton.textContent = 'Search the Ledger';
+                }
+            };
+
+            const displayResults = (results) => {
+                if (!results || results.length === 0) {
+                    resultsOutput.innerHTML = '<h4>No Relevant Facts Found</h4><p>The network searched the ledger but could not find a fact that semantically matched your question.</p>';
+                    return;
+                }
+                
+                // For this demo, we will focus on the top result
+                const topResult = results[0];
+                const content = topResult.content;
+                const similarity = topResult.similarity * 100; // Convert to percentage
+
+                let title = '';
+                let explanation = '';
+
+                if (similarity > 85) {
+                    title = `Direct Answer Found (${similarity.toFixed(1)}% Match)`;
+                    explanation = `The following fact is a high-confidence semantic match to your question:`;
+                } else if (similarity > 65) {
+                    title = `Related Fact Found (${similarity.toFixed(1)}% Match)`;
+                    explanation = `While not a direct answer, the following fact from the ledger is highly related to your query:`;
+                } else {
+                    title = `Possible Hint Found (${similarity.toFixed(1)}% Match)`;
+                    explanation = `I'm not very sure, but this is the most related information I could find in the ledger:`;
+                }
+                
+                // Sanitize content before displaying
+                const sanitizedContent = content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+                resultsOutput.innerHTML = `
+                    <h4>${title}</h4>
+                    <p><em>${explanation}</em></p>
+                    <blockquote>"${sanitizedContent}"</blockquote>
+                `;
+            };
+
+            // --- EVENT LISTENERS ---
+            searchButton.addEventListener('click', performSearch);
+            queryInput.addEventListener('keypress', (event) => {
+                if (event.key === 'Enter') {
+                    performSearch();
+                }
+            });
+
+            // --- INITIALIZATION ---
+            checkNodeStatus(); // Check status on page load
+            setInterval(checkNodeStatus, 60000); // And check every 60 seconds
+        });
+    </script>
 </body>
 </html>

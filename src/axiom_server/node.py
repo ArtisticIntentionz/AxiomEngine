@@ -12,8 +12,10 @@ import sys
 import threading
 import time
 from urllib.parse import urlparse
+from datetime import datetime
 
 from flask import Flask, Response, jsonify, request
+from flask_cors import CORS 
 
 from axiom_server import (
     crucible,
@@ -116,7 +118,9 @@ class AxiomNode(P2PBaseNode):
             ).start()
 
     def _handle_application_message(
-        self, link: any, content: ApplicationData,
+        self,
+        link: any,
+        content: ApplicationData,
     ) -> None:
         """This method is automatically called by the P2P layer."""
         try:
@@ -157,7 +161,9 @@ class AxiomNode(P2PBaseNode):
                         else:
                             facts_for_sealing: list[Fact] = []
                             adder = crucible.CrucibleFactAdder(
-                                session, fact_indexer, fact_indexer_lock,
+                                session,
+                                fact_indexer,
+                                fact_indexer_lock,
                             )
                             for item in content_list:
                                 domain = urlparse(item["source_url"]).netloc
@@ -237,7 +243,8 @@ class AxiomNode(P2PBaseNode):
                             )
                             for fact in facts_to_verify:
                                 claims = verification_engine.find_corroborating_claims(
-                                    fact, session,
+                                    fact,
+                                    session,
                                 )
                                 if len(claims) >= CORROBORATION_THRESHOLD:
                                     fact.status = "corroborated"
@@ -300,6 +307,7 @@ class AxiomNode(P2PBaseNode):
 
 # --- All Flask API endpoints are UNCHANGED ---
 app = Flask(__name__)
+CORS(app)
 node_instance: AxiomNode
 fact_indexer = FactIndexer()
 
