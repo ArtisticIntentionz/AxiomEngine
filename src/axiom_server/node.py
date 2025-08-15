@@ -68,6 +68,7 @@ db_lock = threading.Lock()
 # This lock ensures only one thread can read from or write to the fact indexer at a time.
 fact_indexer_lock = threading.Lock()
 
+
 # --- NEW: We create a single class that combines Axiom logic and P2P networking ---
 class AxiomNode(P2PBaseNode):
     """A class representing a single Axiom node, inheriting P2P capabilities."""
@@ -114,7 +115,9 @@ class AxiomNode(P2PBaseNode):
                 daemon=True,
             ).start()
 
-    def _handle_application_message(self, link: any, content: ApplicationData) -> None:
+    def _handle_application_message(
+        self, link: any, content: ApplicationData,
+    ) -> None:
         """This method is automatically called by the P2P layer."""
         try:
             message = json.loads(content.data)
@@ -145,17 +148,17 @@ class AxiomNode(P2PBaseNode):
                         topics = zeitgeist_engine.get_trending_topics(top_n=1)
                         content_list = []
                         if topics:
-                            content_list = (
-                                discovery_rss.get_content_from_prioritized_feed()
-                            )
+                            content_list = discovery_rss.get_content_from_prioritized_feed()
 
                         if not content_list:
-                             background_thread_logger.info(
-                                "No new content found. Proceeding to verification phase."
+                            background_thread_logger.info(
+                                "No new content found. Proceeding to verification phase.",
                             )
                         else:
                             facts_for_sealing: list[Fact] = []
-                            adder = crucible.CrucibleFactAdder(session, fact_indexer, fact_indexer_lock)
+                            adder = crucible.CrucibleFactAdder(
+                                session, fact_indexer, fact_indexer_lock,
+                            )
                             for item in content_list:
                                 domain = urlparse(item["source_url"]).netloc
                                 source = session.query(Source).filter(
@@ -194,11 +197,20 @@ class AxiomNode(P2PBaseNode):
                                 background_thread_logger.info(
                                     f"Successfully sealed and added Block #{new_block.height}.",
                                 )
-                                broadcast_data = { "type": "new_block_header", "data": new_block.to_dict() }
-                                self.broadcast_application_message(json.dumps(broadcast_data))
-                                background_thread_logger.info("Broadcasted new block header to network.")
+                                broadcast_data = {
+                                    "type": "new_block_header",
+                                    "data": new_block.to_dict(),
+                                }
+                                self.broadcast_application_message(
+                                    json.dumps(broadcast_data),
+                                )
+                                background_thread_logger.info(
+                                    "Broadcasted new block header to network.",
+                                )
                     except Exception as e:
-                        background_thread_logger.exception(f"Critical error in learning loop: {e}")
+                        background_thread_logger.exception(
+                            f"Critical error in learning loop: {e}",
+                        )
 
             # --- The database lock is now RELEASED. The API is fully responsive. ---
 
@@ -207,27 +219,37 @@ class AxiomNode(P2PBaseNode):
             with db_lock:
                 with SessionMaker() as session:
                     try:
-                        background_thread_logger.info("Starting verification phase...")
+                        background_thread_logger.info(
+                            "Starting verification phase...",
+                        )
                         facts_to_verify = (
                             session.query(Fact)
                             .filter(Fact.status == "ingested")
                             .all()
                         )
                         if not facts_to_verify:
-                            background_thread_logger.info("No new facts to verify.")
+                            background_thread_logger.info(
+                                "No new facts to verify.",
+                            )
                         else:
-                            background_thread_logger.info(f"Found {len(facts_to_verify)} facts to verify.")
+                            background_thread_logger.info(
+                                f"Found {len(facts_to_verify)} facts to verify.",
+                            )
                             for fact in facts_to_verify:
-                                claims = verification_engine.find_corroborating_claims(fact, session)
+                                claims = verification_engine.find_corroborating_claims(
+                                    fact, session,
+                                )
                                 if len(claims) >= CORROBORATION_THRESHOLD:
                                     fact.status = "corroborated"
                                     background_thread_logger.info(
-                                        f"Fact '{fact.hash[:8]}' has been corroborated with {len(claims)} pieces of evidence."
+                                        f"Fact '{fact.hash[:8]}' has been corroborated with {len(claims)} pieces of evidence.",
                                     )
                                     fact.score += 10
                             session.commit()
                     except Exception as e:
-                        background_thread_logger.exception(f"Error during verification phase: {e}")
+                        background_thread_logger.exception(
+                            f"Error during verification phase: {e}",
+                        )
 
             # --- The database lock is RELEASED again. ---
 
@@ -314,7 +336,10 @@ def handle_get_timeline(topic: str) -> Response:
             )
             if not initial_facts:
                 return jsonify(
-                    {"timeline": [], "message": "No facts found for this topic."},
+                    {
+                        "timeline": [],
+                        "message": "No facts found for this topic.",
+                    },
                 )
 
             def get_date_from_fact(fact: Fact) -> datetime:
@@ -334,7 +359,9 @@ def handle_get_chain_height() -> Response:
     with db_lock:
         with SessionMaker() as session:
             latest_block = get_latest_block(session)
-            return jsonify({"height": latest_block.height if latest_block else -1})
+            return jsonify(
+                {"height": latest_block.height if latest_block else -1},
+            )
 
 
 @app.route("/get_blocks", methods=["GET"])
