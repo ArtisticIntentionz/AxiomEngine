@@ -75,7 +75,7 @@ This hybrid Conda/Pip approach is proven to work reliably.
     ```
 3.  **Install the AI Model:**
     ```bash
-    # use this LARGE model insted:
+    # use this LARGE model instead:
     python -m spacy download en_core_web_lg
     # fallback to small model:
     pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl

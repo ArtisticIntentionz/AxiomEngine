@@ -52,17 +52,25 @@ When --default_bootstrap is defined, this process is also used for --addr and --
 )
 
 COMPUTED_BOOTSTRAP_IP_ADDR: Final[str] = os.environ.get(
-    "AXIOM_BOOTSTRAP_IP_ADDR", BOOTSTRAP_IP_ADDR,
+    "AXIOM_BOOTSTRAP_IP_ADDR",
+    BOOTSTRAP_IP_ADDR,
 )
 COMPUTED_BOOTSTRAP_PORT: Final[int] = int(
     os.environ.get("AXIOM_BOOTSTRAP_PORT", BOOTSTRAP_PORT),
 )
 
 parser.add_argument(
-    "-a", "--addr", default="localhost", help="home IP address of the node",
+    "-a",
+    "--addr",
+    default="localhost",
+    help="home IP address of the node",
 )
 parser.add_argument(
-    "-p", "--port", default=0, type=int, help="home port of the node",
+    "-p",
+    "--port",
+    default=0,
+    type=int,
+    help="home port of the node",
 )
 parser.add_argument(
     "--default_bootstrap",
