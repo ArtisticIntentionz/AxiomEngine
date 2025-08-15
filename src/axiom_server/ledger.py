@@ -142,6 +142,17 @@ class Block(Base):
             self.hash = self.calculate_hash()
         logger.info(f"Block sealed! Hash: {self.hash}")
 
+    def to_dict(self) -> dict[str, Any]:
+        """Serializes the Block object to a dictionary for P2P broadcasting."""
+        return {
+            "height": self.height,
+            "hash": self.hash,
+            "previous_hash": self.previous_hash,
+            "merkle_root": self.merkle_root,
+            "timestamp": self.timestamp,
+            "nonce": self.nonce,
+        }
+
 
 class SerializedSemantics(BaseModel):
     """Serialized semantics."""
