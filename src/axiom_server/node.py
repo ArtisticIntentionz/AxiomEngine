@@ -114,10 +114,6 @@ class AxiomNode(P2PBaseNode):
                 daemon=True,
             ).start()
 
-    # --- The rest of the AxiomNode class methods are unchanged ---
-    def _handle_application_message(
-        self, link: any, content: ApplicationData,
-    ) -> None:
     def _handle_application_message(self, link: any, content: ApplicationData) -> None:
         """This method is automatically called by the P2P layer."""
         try:
