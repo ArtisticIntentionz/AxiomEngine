@@ -203,7 +203,7 @@ class AxiomNode(P2PBaseNode):
                                 background_thread_logger.info("Broadcasted new block header to network.")
                     except Exception as e:
                         background_thread_logger.exception(f"Critical error in learning loop: {e}")
-            
+
             # --- The database lock is now RELEASED. The API is fully responsive. ---
 
             # --- PHASE 2: Verification ---
@@ -234,7 +234,7 @@ class AxiomNode(P2PBaseNode):
                         background_thread_logger.exception(f"Error during verification phase: {e}")
 
             # --- The database lock is RELEASED again. ---
-            
+
             background_thread_logger.info("Axiom cycle finished. Sleeping.")
             # The long sleep happens while NO locks are held.
             time.sleep(10800)
@@ -297,10 +297,10 @@ def handle_chat_query():
         return jsonify({"error": "Missing 'query' in request body"}), 400
 
     query = data["query"]
-    
+
     with fact_indexer_lock:
         closest_facts = fact_indexer.find_closest_facts(query)
-    
+
     # Return the results to the client.
     return jsonify({"results": closest_facts})
 

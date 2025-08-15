@@ -79,7 +79,8 @@ def get_nli_classifier() -> NliPipeline:
             "Initializing Hugging Face NLI model for the first time...",
         )
         return pipeline(
-            "zero-shot-classification", model="facebook/bart-large-mnli",
+            "zero-shot-classification",
+            model="facebook/bart-large-mnli",
         )
     except ImportError:
         logger.error(
@@ -175,14 +176,16 @@ SENTENCE_CHECKS: Pipeline[Span] = Pipeline(
     "sentence checks",
     [
         Check(
-            lambda sent: len(sent.text.split()) >= 8, "sentence minimal length",
+            lambda sent: len(sent.text.split()) >= 8,
+            "sentence minimal length",
         ),
         Check(
             lambda sent: len(sent.text.split()) <= 100,
             "sentence maximal length",
         ),
         Check(
-            lambda sent: len(sent.ents) > 0, "sentence must contain entities",
+            lambda sent: len(sent.ents) > 0,
+            "sentence must contain entities",
         ),
         Check(
             lambda sent: not any(
@@ -259,7 +262,11 @@ def extract_facts_from_text(text_content: str) -> list[Fact]:
         ) is not None:
             fact = Fact(content=checked_sentence.text.strip())
             semantics = Semantics(
-                {"doc": checked_sentence.as_doc(), "object": "", "subject": ""},
+                {
+                    "doc": checked_sentence.as_doc(),
+                    "object": "",
+                    "subject": "",
+                },
             )
             if (
                 final_semantics := SEMANTICS_CHECKS.run(semantics)
@@ -404,7 +411,8 @@ class CrucibleFactAdder:
         # For a truly large database, an inverted index on entities would be better.
         # This query is a significant improvement over loading all facts.
         query = self.session.query(Fact).filter(
-            Fact.id != new_fact.id, Fact.disputed == False,
+            Fact.id != new_fact.id,
+            Fact.disputed == False,
         )
         # Add a filter for each entity to find potential matches
         from sqlalchemy import or_
@@ -424,7 +432,9 @@ class CrucibleFactAdder:
 
             if relationship == RelationshipType.CONTRADICTION:
                 mark_fact_objects_as_disputed(
-                    self.session, existing_fact, new_fact,
+                    self.session,
+                    existing_fact,
+                    new_fact,
                 )
                 self.contradiction_count += 1
                 logger.info(
@@ -451,7 +461,11 @@ class CrucibleFactAdder:
                     },
                 )
                 insert_relationship_object(
-                    self.session, new_fact, existing_fact, score, relationship,
+                    self.session,
+                    new_fact,
+                    existing_fact,
+                    score,
+                    relationship,
                 )
 
         return new_fact
