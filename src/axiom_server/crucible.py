@@ -35,9 +35,7 @@ if TYPE_CHECKING:
     from spacy.tokens.doc import Doc
     from spacy.tokens.span import Span
     from sqlalchemy.orm import Session
-
-    # For type hinting the Hugging Face pipeline
-    from transformers.pipelines import Pipeline as NliPipeline
+    from transformers import Pipeline as NliPipeline
 
 
 T = TypeVar("T")
