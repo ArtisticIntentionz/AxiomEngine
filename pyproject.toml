@@ -48,7 +48,6 @@ dependencies = [
     "PyQt6",
     "beautifulsoup4>=4.12.3",
     "transformers",
-    "--extra-index-url https://download.pytorch.org/whl/cpu",
     "torch",
     "scipy",
     "feedparser==6.0.11",
