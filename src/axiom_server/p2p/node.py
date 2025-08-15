@@ -582,7 +582,7 @@ class Node:
         secure_socket = context.wrap_socket(socket, server_hostname=ip_address)
 
         try:
-            secure_socket.connect((ip_address, port))
+            secure_socket.connect((ip_address, port)) 
 
         except (
             OSError,

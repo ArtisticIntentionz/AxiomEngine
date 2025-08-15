@@ -86,7 +86,9 @@ class AxiomNode(P2PBaseNode):
         logger.info(f"Initializing Axiom Node on {host}:{port}")
 
         # 1. We must call the parent constructor from the P2P library first.
-        temp_p2p = P2PBaseNode.start(ip_address=host, port=port)
+        # This allows it to correctly handle both local and public connections.
+        temp_p2p = P2PBaseNode.start(ip_address="0.0.0.0", port=port)
+        
         super().__init__(
             ip_address=temp_p2p.ip_address,
             port=temp_p2p.port,
