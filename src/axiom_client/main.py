@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import sys
-from typing import TypeAlias, TypedDict, cast
+from typing import TypedDict, cast
 
 import requests
 from PyQt6.QtCore import QThread, QTimer, pyqtSignal
@@ -24,6 +24,7 @@ from PyQt6.QtWidgets import (
 # --- MODIFIED: Simplified Data Models for the new /chat endpoint ---
 class ChatResult(TypedDict):
     """Represents a single result from the /chat endpoint."""
+
     content: str
     similarity: float
     fact_id: int
@@ -31,11 +32,13 @@ class ChatResult(TypedDict):
 
 class ChatResponse(TypedDict):
     """The expected JSON response from the /chat endpoint."""
+
     results: list[ChatResult]
 
 
 class ErrorResponse(TypedDict):
     """A response containing an error message."""
+
     error: str
 
 
@@ -57,7 +60,9 @@ class NetworkWorker(QThread):
         """Execute the new chat query logic."""
         try:
             # Step 1: Perform the intelligent chat query.
-            self.progress.emit(f"Querying the Axiom ledger via {self.node_url}...")
+            self.progress.emit(
+                f"Querying the Axiom ledger via {self.node_url}...",
+            )
             response = self._perform_chat_query()
 
             # Step 2: Pass the entire server response to the finished signal.
@@ -69,15 +74,16 @@ class NetworkWorker(QThread):
             self.finished.emit({"error": f"An error occurred: {e}"})
 
     def _perform_chat_query(self) -> ChatResponse | ErrorResponse:
-        """
-        Performs a single POST request to the new /chat endpoint.
+        """Performs a single POST request to the new /chat endpoint.
         """
         response = requests.post(
             f"{self.node_url}/chat",
-            json={"query": self.query_term}, # Send the query in the request body
+            json={
+                "query": self.query_term,
+            },  # Send the query in the request body
             timeout=15,
         )
-        response.raise_for_status() # Raise an exception for bad status codes (like 404 or 500)
+        response.raise_for_status()  # Raise an exception for bad status codes (like 404 or 500)
         return cast("ChatResponse", response.json())
 
     def stop(self) -> None:
@@ -96,13 +102,15 @@ class AxiomClientApp(QWidget):
         self.network_worker: NetworkWorker
 
         # --- MODIFIED: Update the default server URL to use port 8001 ---
-        self.server_url = os.environ.get("AXIOM_API_URL", "http://127.0.0.1:8001")
+        self.server_url = os.environ.get(
+            "AXIOM_API_URL", "http://127.0.0.1:8001",
+        )
         self.setup_ui()
 
         # The status timer logic is excellent and remains unchanged.
         self.status_timer = QTimer(self)
         self.status_timer.timeout.connect(self.update_network_status)
-        self.status_timer.start(270000) # Check every 45 minutes
+        self.status_timer.start(270000)  # Check every 45 minutes
         self.update_network_status()
 
     def setup_ui(self) -> None:
@@ -175,7 +183,9 @@ class AxiomClientApp(QWidget):
         else:
             top_result = results[0]
             content = top_result.get("content", "No content found.")
-            similarity = top_result.get("similarity", 0) * 100  # Convert to percentage
+            similarity = (
+                top_result.get("similarity", 0) * 100
+            )  # Convert to percentage
 
             # This is the same conversational logic from our terminal client, but it builds HTML.
             if similarity > 85:
@@ -190,7 +200,7 @@ class AxiomClientApp(QWidget):
 
             html = f"<h2>{title}</h2>"
             html += f"<p><i>{explanation}</i></p>"
-            html += f"<p style='font-size: 14px;'><b>&ldquo;{content}&rdquo;</b></p>" # Display fact as a quote
+            html += f"<p style='font-size: 14px;'><b>&ldquo;{content}&rdquo;</b></p>"  # Display fact as a quote
 
         self.results_output.setHtml(html)
 
@@ -202,14 +212,18 @@ class AxiomClientApp(QWidget):
             response.raise_for_status()
             data = response.json()
             self.connection_status_label.setText("🟢 Connected")
-            self.block_height_label.setText(f"Block: {data.get('latest_block_height', 'N/A')}")
+            self.block_height_label.setText(
+                f"Block: {data.get('latest_block_height', 'N/A')}",
+            )
             self.version_label.setText(f"Node: v{data.get('version', 'N/A')}")
         except requests.exceptions.RequestException:
             self.set_disconnected_status()
 
     def set_disconnected_status(self):
         """Helper function to set all UI elements to a disconnected state."""
-        self.connection_status_label.setText(f"🔴 Disconnected from {self.server_url}")
+        self.connection_status_label.setText(
+            f"🔴 Disconnected from {self.server_url}",
+        )
         self.block_height_label.setText("Block: N/A")
         self.version_label.setText("Node: N/A")
 

@@ -1,14 +1,16 @@
 # In AxiomEngine/src/axiom_server/hasher.py
 
-import numpy as np
-from sqlalchemy.orm import Session
 import logging
 
-from axiom_server.common import NLP_MODEL # We are using the LARGE model here!
+import numpy as np
+from sqlalchemy.orm import Session
+
+from axiom_server.common import NLP_MODEL  # We are using the LARGE model here!
 from axiom_server.ledger import Fact
 
 # Use the same logger as other parts of the application for consistency
 logger = logging.getLogger("axiom-node.hasher")
+
 
 # A simple class to hold our indexed data.
 class FactIndexer:
@@ -46,18 +48,23 @@ class FactIndexer:
             self.vector_matrix = new_vector_row
         else:
             # Otherwise, stack the new row onto the existing matrix.
-            self.vector_matrix = np.vstack([self.vector_matrix, new_vector_row])
-        
-        logger.info(f"Successfully added Fact ID {fact.id} to the live chat index.")
+            self.vector_matrix = np.vstack(
+                [self.vector_matrix, new_vector_row],
+            )
+
+        logger.info(
+            f"Successfully added Fact ID {fact.id} to the live chat index.",
+        )
 
     def index_facts_from_db(self, session: Session):
-        """
-        Reads all non-disputed facts from the database and builds the index.
+        """Reads all non-disputed facts from the database and builds the index.
         """
         logger.info("Starting to index facts from the ledger...")
-        
+
         # Query the database for all proven, non-disputed facts.
-        facts_to_index = session.query(Fact).filter(Fact.disputed == False).all()
+        facts_to_index = (
+            session.query(Fact).filter(Fact.disputed == False).all()
+        )
 
         if not facts_to_index:
             logger.warning("No facts found in the database to index.")
@@ -66,12 +73,12 @@ class FactIndexer:
         for fact in facts_to_index:
             # Store the fact's text content.
             self.fact_id_to_content[fact.id] = fact.content
-            
+
             # Create a vector for the fact's content using the large spaCy model.
             # The .vector attribute provides the semantic representation of the text.
             doc = NLP_MODEL(fact.content)
             self.fact_id_to_vector[fact.id] = doc.vector
-            
+
             # Keep track of the fact ID.
             self.fact_ids.append(fact.id)
 
@@ -79,18 +86,21 @@ class FactIndexer:
         # NumPy matrix (like a spreadsheet of numbers).
         if self.fact_ids:
             self.vector_matrix = np.vstack(
-                [self.fact_id_to_vector[fid] for fid in self.fact_ids]
+                [self.fact_id_to_vector[fid] for fid in self.fact_ids],
             )
-        
-        logger.info(f"Indexing complete. {len(self.fact_ids)} facts are now searchable.")
 
-    def find_closest_facts(self, query_text: str, top_n: int = 3) -> list[dict]:
-        """
-        Takes a user's question, finds the most similar facts from the index.
+        logger.info(
+            f"Indexing complete. {len(self.fact_ids)} facts are now searchable.",
+        )
+
+    def find_closest_facts(
+        self, query_text: str, top_n: int = 3,
+    ) -> list[dict]:
+        """Takes a user's question, finds the most similar facts from the index.
         """
         if self.vector_matrix is None or len(self.fact_ids) == 0:
             logger.warning("Attempted to search, but the fact index is empty.")
-            return [] # Return empty if the index is not built yet.
+            return []  # Return empty if the index is not built yet.
 
         # 1. Convert the user's query text into a vector.
         query_doc = NLP_MODEL(query_text)
@@ -102,11 +112,11 @@ class FactIndexer:
         dot_products = np.dot(self.vector_matrix, query_vector)
         norm_query = np.linalg.norm(query_vector)
         norm_matrix = np.linalg.norm(self.vector_matrix, axis=1)
-        
+
         # Handle potential division by zero if query or facts have no vector
         if norm_query == 0 or not np.all(norm_matrix):
             return []
-            
+
         similarities = dot_products / (norm_matrix * norm_query)
 
         # 3. Find the indices of the top N highest scores.
@@ -117,10 +127,12 @@ class FactIndexer:
         results = []
         for i in top_indices:
             fact_id = self.fact_ids[i]
-            results.append({
-                "content": self.fact_id_to_content[fact_id],
-                "similarity": float(similarities[i]),
-                "fact_id": fact_id
-            })
-            
+            results.append(
+                {
+                    "content": self.fact_id_to_content[fact_id],
+                    "similarity": float(similarities[i]),
+                    "fact_id": fact_id,
+                },
+            )
+
         return results
