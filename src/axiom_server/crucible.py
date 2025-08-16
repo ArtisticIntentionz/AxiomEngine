@@ -78,7 +78,7 @@ def get_nli_classifier() -> NliPipeline:
         )
         return pipeline(
             "zero-shot-classification",
-            model="facebook/bart-large-mnli",
+            model="typeform/distilbert-base-uncased-mnli",
         )
     except ImportError:
         logger.error(

@@ -416,7 +416,7 @@ def create_genesis_block(session: Session) -> None:
 def add_block_from_peer_data(
     session: Session,
     block_data: dict[str, Any],
-) -> Block:
+) -> Block | None: # --- FIX: The return type is now optional.
     """Validates and adds a new block received from a peer.
 
     This is the core of blockchain synchronization. It ensures that a node
@@ -427,53 +427,56 @@ def add_block_from_peer_data(
         block_data: A dictionary containing the block header data from a peer.
 
     Returns:
-        The newly added Block object.
-
-    Raises:
-        ValueError: If the block is invalid (e.g., wrong height, hash mismatch).
-        KeyError: If the peer data is missing required fields.
+        The newly added Block object on success, or None on failure.
 
     """
     latest_local_block = get_latest_block(session)
     if not latest_local_block:
-        raise LedgerError("Cannot add peer block: Local ledger has no blocks.")
+        logger.error("Cannot add peer block: Local ledger has no blocks.")
+        return None
 
-    # 1. CRITICAL VALIDATION: Is the new block the very next one in the sequence?
-    expected_height = latest_local_block.height + 1
-    if block_data["height"] != expected_height:
-        raise ValueError(
-            f"Block height mismatch. Expected {expected_height}, "
-            f"but peer sent {block_data['height']}. Node may be out of sync.",
+    try:
+        # 1. CRITICAL VALIDATION: Is the new block the very next one in the sequence?
+        expected_height = latest_local_block.height + 1
+        if block_data["height"] != expected_height:
+            logger.error(
+                f"Block height mismatch. Expected {expected_height}, "
+                f"but peer sent {block_data['height']}. Node may be out of sync.",
+            )
+            return None
+
+        # 2. CRITICAL VALIDATION: Does the new block correctly chain to our latest block?
+        if block_data["previous_hash"] != latest_local_block.hash:
+            logger.error(
+                f"Block integrity error: Peer block's previous_hash "
+                f"({block_data['previous_hash']}) does not match local head "
+                f"({latest_local_block.hash}). A fork may have occurred.",
+            )
+            return None
+
+        # 3. If validation passes, create the Block object from the peer data.
+        # We now use the Block.from_dict method to ensure consistency.
+        new_block = Block.from_dict(block_data)
+
+        # 4. Optional but Recommended: Re-verify the block's hash.
+        # This prevents peers from sending blocks with invalid proof-of-work.
+        if new_block.hash != new_block.calculate_hash():
+            logger.error("Invalid hash for received block. Discarding.")
+            return None
+
+        session.add(new_block)
+        session.commit()
+        logger.info(
+            f"Added new block #{new_block.height} from peer to local ledger.",
         )
+        
+        # --- FIX: Return the newly created block object on success.
+        return new_block
 
-    # 2. CRITICAL VALIDATION: Does the new block correctly chain to our latest block?
-    if block_data["previous_hash"] != latest_local_block.hash:
-        raise ValueError(
-            f"Block integrity error: Peer block's previous_hash "
-            f"({block_data['previous_hash']}) does not match local head "
-            f"({latest_local_block.hash}). A fork may have occurred.",
-        )
-
-    # 3. If validation passes, create the Block object from the peer data.
-    # Note: We trust the peer's nonce and hash, but a more secure system
-    # might re-verify the proof-of-work hash here as a defense against spam.
-    # For now, this is efficient.
-    new_block = Block(
-        height=block_data["height"],
-        hash=block_data["hash"],
-        previous_hash=block_data["previous_hash"],
-        merkle_root=block_data["merkle_root"],
-        timestamp=block_data["timestamp"],
-        nonce=block_data.get("nonce", 0),  # Use .get for safety
-        fact_hashes="[]",  # We don't have the full facts yet, just the header.
-    )
-    session.add(new_block)
-    session.commit()
-    logger.info(
-        f"Added new block #{new_block.height} from peer to local ledger.",
-    )
-    return new_block
-
+    except (KeyError, TypeError, ValueError) as e:
+        logger.error(f"Error processing peer block data: {e}. Discarding block.")
+        session.rollback()
+        return None
 
 def get_all_facts_for_analysis(session: Session) -> list[Fact]:
     """Return list of all facts."""
