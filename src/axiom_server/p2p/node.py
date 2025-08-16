@@ -145,10 +145,20 @@ class Message(BaseModel):
             PeersSharing,
         ):
             return True
-        return self.message_type == MessageType.APPLICATION and isinstance(
+        if self.message_type == MessageType.APPLICATION and isinstance(
             self.content,
             ApplicationData,
-        )
+        ):
+            return True
+        
+        if self.message_type == MessageType.GET_CHAIN and isinstance(
+            self.content,
+            MessageContent,
+        ):
+            return True
+
+            
+        return False
 
     @staticmethod
     def peers_request() -> Message:
