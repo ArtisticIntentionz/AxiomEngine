@@ -767,12 +767,7 @@ class Node:
     def _handle_message(self, link: PeerLink, message: Message):
         """Dispatches incoming messages to their appropriate handlers."""
 
-        # --- THIS IS THE FINAL, CORRECTED LOGIC ---
-
         if message.message_type == MessageType.GET_CHAIN:
-            # When we receive a GET_CHAIN request, we need the application layer
-            # (the other node.py file) to give us the chain data to send back.
-            # We will add a callback property to the Node for this.
             if hasattr(self, 'get_chain_callback') and callable(self.get_chain_callback):
                 logger.info(f"Peer {link.fmt_addr()} requested the blockchain. Executing callback...")
                 chain_data_json = self.get_chain_callback()
@@ -783,13 +778,14 @@ class Node:
 
         elif message.message_type == MessageType.APPLICATION:
             assert isinstance(message.content, ApplicationData)
-            # Pass the application message up to the higher-level node to handle.
             self._handle_application_message(link, message.content)
 
         elif message.message_type == MessageType.PEERS_REQUEST:
             self._handle_peers_request(link)
 
-        elif message.message-type == MessageType.PEERS_SHARING:
+        # --- THIS IS THE FINAL FIX ---
+        elif message.message_type == MessageType.PEERS_SHARING: # <-- Changed hyphen to underscore
+        # --- END OF FINAL FIX ---
             assert isinstance(message.content, PeersSharing)
             self._handle_peers_sharing(link, message.content)
 
