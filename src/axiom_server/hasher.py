@@ -1,20 +1,25 @@
-# In AxiomEngine/src/axiom_server/hasher.py
+"""Hasher - Fact hash tools."""
+
+from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
 import numpy as np
-from sqlalchemy.orm import Session
+from sqlalchemy import or_
 
 from axiom_server.common import NLP_MODEL  # We are using the LARGE model here!
 from axiom_server.ledger import Fact
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
 
 # Use the same logger as other parts of the application for consistency
 logger = logging.getLogger("axiom-node.hasher")
 
 
 def _extract_keywords(query_text: str, max_keywords: int = 5) -> list[str]:
-    """Extracts the most important keywords (nouns and proper nouns) from a query.
-    """
+    """Return the most important keywords (nouns and proper nouns) from a query."""
     # Process the query with our powerful NLP model
     doc = NLP_MODEL(query_text.lower())
 
@@ -33,22 +38,23 @@ def _extract_keywords(query_text: str, max_keywords: int = 5) -> list[str]:
     return keywords[:max_keywords]
 
 
-# A simple class to hold our indexed data.
 class FactIndexer:
-    def __init__(self, session: Session):
-        """Initializes the indexer with a database session."""
+    """A simple class to hold our indexed data."""
+
+    def __init__(self, session: Session) -> None:
+        """Initialize the indexer with a database session."""
         self.session = session  # This session will be used for pre-filtering
         # A dictionary to map a unique fact ID to its text content.
-        self.fact_id_to_content = {}
+        self.fact_id_to_content: dict[int, str] = {}
         # A dictionary to map that same fact ID to its numerical vector.
         self.fact_id_to_vector = {}
         # A list to hold all the vectors for fast searching.
         self.vector_matrix = None
         # A list to keep track of the order of fact IDs corresponding to the matrix rows.
-        self.fact_ids = []
+        self.fact_ids: list[int] = []
 
-    def add_fact(self, fact: Fact):
-        """Adds a single, new fact to the live index in memory."""
+    def add_fact(self, fact: Fact) -> None:
+        """Add a single, new fact to the live index in memory."""
         if fact.id in self.fact_ids:
             logger.info(f"Fact {fact.id} is already indexed. Skipping.")
             return
@@ -79,13 +85,13 @@ class FactIndexer:
             f"Successfully added Fact ID {fact.id} to the live chat index.",
         )
 
-    def index_facts_from_db(self):
-        """Reads all non-disputed facts from the database and builds the index."""
+    def index_facts_from_db(self) -> None:
+        """Read all non-disputed facts from the database and builds the index."""
         logger.info("Starting to index facts from the ledger...")
 
         # Query the database for all proven, non-disputed facts.
         facts_to_index = (
-            self.session.query(Fact).filter(Fact.disputed == False).all()
+            self.session.query(Fact).filter(Fact.disputed == False).all()  # noqa: E712
         )
 
         if not facts_to_index:
@@ -116,9 +122,12 @@ class FactIndexer:
         )
 
     def find_closest_facts(
-        self, query_text: str, top_n: int = 3,
+        self,
+        query_text: str,
+        top_n: int = 3,
     ) -> list[dict]:
-        """Performs a HYBRID search:
+        """Perform a HYBRID search.
+
         1. Extracts keywords from the query.
         2. Pre-filters the database for facts containing those keywords.
         3. Performs a vector similarity search ONLY on the pre-filtered results.
@@ -131,9 +140,6 @@ class FactIndexer:
 
         logger.info(f"Extracted keywords for pre-filtering: {keywords}")
 
-        # --- Step 2: Pre-filter the Database for Keywords ---
-        from sqlalchemy import or_
-
         # Build a query that looks for facts containing ANY of the keywords.
         # This is a fast, indexed text search in the database.
         keyword_filters = [Fact.content.ilike(f"%{key}%") for key in keywords]
@@ -142,7 +148,7 @@ class FactIndexer:
         pre_filtered_facts = (
             self.session.query(Fact)
             .filter(or_(*keyword_filters))
-            .filter(Fact.disputed == False)
+            .filter(Fact.disputed == False)  # noqa: E712
             .all()
         )
 

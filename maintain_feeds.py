@@ -16,12 +16,14 @@ Dependencies:
 pip install ddgs beautifulsoup4 requests feedparser lxml
 """
 
+from __future__ import annotations
+
 import os
 import re
 import shutil
 import sys
+import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Dict, List, Set, Tuple
 from urllib.parse import urljoin, urlparse
 
 import feedparser
@@ -36,7 +38,7 @@ BACKUP_FILE_PATH = f"{SOURCE_FILE_PATH}.bak"
 
 
 # --- KNOWLEDGE BASE of manual fixes ---
-KNOWN_REPLACEMENTS: Dict[str, str] = {
+KNOWN_REPLACEMENTS: dict[str, str] = {
     "www.washingtonpost.com": "https://feeds.washingtonpost.com/rss/world",
     "www.wsj.com": "https://feeds.a.dj.com/rss/RSSWorldNews.xml",
     "www.axios.com": "https://api.axios.com/feed/",
@@ -53,23 +55,23 @@ KNOWN_REPLACEMENTS: Dict[str, str] = {
 HEADERS = {"User-Agent": "Axiom-Feed-Maintainer/1.0"}
 
 
-def _verify_url(url: str) -> Tuple[bool, str | None]:
-    """Checks a URL and returns its status and title if valid."""
+def _verify_url(url: str) -> tuple[bool, str | None]:
+    """Check a URL and returns its status and title if valid."""
     try:
         r = requests.get(url, headers=HEADERS, timeout=10)
         r.raise_for_status()
         feed = feedparser.parse(r.content)
         if not feed.bozo and feed.entries:
             return True, feed.feed.get("title")
-    except Exception:
-        pass
+    except Exception as exc:
+        traceback.print_exception(exc)
     return False, None
 
 
 def _find_single_replacement(
     bad_url: str,
     original_site_title: str,
-) -> List[str]:
+) -> list[str]:
     """Worker function to find a replacement for one bad URL with relevance checking."""
     # Strategy 0: Knowledge Base
     for key, replacement in KNOWN_REPLACEMENTS.items():
@@ -94,8 +96,8 @@ def _find_single_replacement(
             # Relevance Check: Does the new feed title seem related to the original?
             if is_valid and original_site_title.lower() in title.lower():
                 verified_replacements.add(url)
-    except Exception:
-        pass
+    except Exception as exc:
+        traceback.print_exception(exc)
 
     if verified_replacements:
         return list(verified_replacements)
@@ -123,16 +125,16 @@ def _find_single_replacement(
                             and original_site_title.lower() in title.lower()
                         ):
                             verified_replacements.add(feed_url)
-                except Exception:
-                    continue
-    except Exception:
-        pass
+                except Exception as exc:
+                    traceback.print_exception(exc)
+    except Exception as exc:
+        traceback.print_exception(exc)
 
     return list(verified_replacements)
 
 
-def read_and_parse_source_file() -> Tuple[List[str], List[str]]:
-    """Reads the source file and extracts URLs using regex."""
+def read_and_parse_source_file() -> tuple[list[str], list[str]]:
+    """Read the source file and extracts URLs using regex."""
     if not os.path.exists(SOURCE_FILE_PATH):
         print(f"❌ ERROR: Source file not found at {SOURCE_FILE_PATH}")
         sys.exit(1)
@@ -148,18 +150,18 @@ def read_and_parse_source_file() -> Tuple[List[str], List[str]]:
     return urls, lines
 
 
-def main():
-    """Runs the full verification, repair, and file update pipeline."""
+def main() -> None:
+    """Run the full verification, repair, and file update pipeline."""
     all_urls, original_lines = read_and_parse_source_file()
-    unique_urls = sorted(list(set(all_urls)))
+    unique_urls = sorted(set(all_urls))
     print(
         f"--- Starting Maintenance for {len(unique_urls)} Unique Feeds ---\n",
     )
 
     # --- Phase 1: Verification ---
     print("--- Phase 1: Verifying all current feeds... ---")
-    good_feeds: Set[str] = set()
-    bad_feeds_map: Dict[str, str] = {}  # {url: site_title}
+    good_feeds: set[str] = set()
+    bad_feeds_map: dict[str, str] = {}  # {url: site_title}
 
     with ThreadPoolExecutor(max_workers=16) as executor:
         future_to_url = {
@@ -192,7 +194,7 @@ def main():
     print(
         f"--- Phase 2: Attempting to find replacements for {len(bad_feeds)} bad feeds... ---",
     )
-    replacement_map: Dict[str, str] = {}
+    replacement_map: dict[str, str] = {}
 
     with ThreadPoolExecutor(max_workers=8) as executor:
         future_to_url = {

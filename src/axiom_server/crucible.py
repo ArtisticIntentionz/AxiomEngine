@@ -19,7 +19,6 @@ from bs4 import BeautifulSoup
 from axiom_server.common import NLP_MODEL, SUBJECTIVITY_INDICATORS
 
 # Local application imports
-from axiom_server.hasher import FactIndexer
 from axiom_server.ledger import (
     Fact,
     RelationshipType,
@@ -36,6 +35,8 @@ if TYPE_CHECKING:
     from spacy.tokens.span import Span
     from sqlalchemy.orm import Session
     from transformers import Pipeline as NliPipeline
+
+    from axiom_server.hasher import FactIndexer
 
 
 T = TypeVar("T")
@@ -67,7 +68,8 @@ METADATA_NOISE_PATTERNS = (
 # --- NEW: Efficiently load and cache the NLI model ---
 @cache
 def get_nli_classifier() -> NliPipeline:
-    """Loads and returns a cached instance of the NLI pipeline.
+    """Load and returns a cached instance of the NLI pipeline.
+
     This prevents reloading the large model from memory on every call.
     """
     try:
@@ -313,7 +315,7 @@ def _extract_dates(text: str) -> list[datetime]:
 
 # --- FIXED: Integrated NLI model for powerful contradiction detection ---
 def _infer_relationship(fact1: Fact, fact2: Fact) -> RelationshipType | None:
-    """Analyzes two facts and infers the nature of their relationship using an NLI model."""
+    """Analyze two facts and infers the nature of their relationship using an NLI model."""
     # 1. Contradiction Check using the powerful NLI Model
     try:
         nli_classifier = get_nli_classifier()
@@ -360,7 +362,7 @@ class CrucibleFactAdder:
     addition_count: int = 0
 
     def add(self, fact: Fact) -> None:
-        """Adds and processes a fact against the database."""
+        """Add and processes a fact against the database."""
         assert fact.id is not None, (
             "Fact must be saved to the DB before processing."
         )
@@ -391,9 +393,7 @@ class CrucibleFactAdder:
         return fact
 
     def _process_relationships_and_corroboration(self, new_fact: Fact) -> Fact:
-        """A single, unified method to efficiently find and process all interactions
-        (contradictions, relationships, corroborations) for a new fact.
-        """
+        """Find and process all interactions (contradictions, relationships, corroborations) for a new fact."""
         new_doc = new_fact.get_semantics().get("doc")
         if not new_doc:
             return new_fact
@@ -410,7 +410,7 @@ class CrucibleFactAdder:
         # This query is a significant improvement over loading all facts.
         query = self.session.query(Fact).filter(
             Fact.id != new_fact.id,
-            Fact.disputed == False,
+            Fact.disputed == False,  # noqa: E712
         )
         # Add a filter for each entity to find potential matches
         from sqlalchemy import or_

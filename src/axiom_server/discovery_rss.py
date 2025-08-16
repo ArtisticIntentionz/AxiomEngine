@@ -11,14 +11,14 @@ from concurrent.futures import (
     ThreadPoolExecutor,
     as_completed,
 )  # <-- NEW IMPORT
-from typing import Dict, Final, List, Tuple
+from typing import Final
 
 import feedparser
 
 logger = logging.getLogger(__name__)
 
 # Your curated and verified list of RSS feeds.
-RSS_FEEDS: Final[Tuple[str, ...]] = (
+RSS_FEEDS: Final[tuple[str, ...]] = (
     # Major Global News
     "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml",
     "https://feeds.bbci.co.uk/news/rss.xml",
@@ -192,8 +192,8 @@ RSS_FEEDS: Final[Tuple[str, ...]] = (
 
 def get_content_from_prioritized_feed(
     max_items: int = 5,
-) -> List[Dict[str, str]]:
-    """Selects and processes a single, valid RSS feed to find new content.
+) -> list[dict[str, str]]:
+    """Select and processes a single, valid RSS feed to find new content.
 
     This function is resilient: it shuffles the feeds and tries them one by
     one until it finds a valid one to process, preventing a single broken
@@ -247,8 +247,9 @@ def get_content_from_prioritized_feed(
 
 
 # --- NEW HELPER FUNCTION for concurrent fetching ---
-def _fetch_one_feed_headlines(feed_url: str) -> List[str]:
+def _fetch_one_feed_headlines(feed_url: str) -> list[str]:
     """Worker function to fetch and parse a single RSS feed.
+
     Designed to be called concurrently. Returns a list of headlines.
     """
     try:
@@ -271,13 +272,14 @@ def _fetch_one_feed_headlines(feed_url: str) -> List[str]:
 
 
 # --- main function to be concurrent ---
-def get_all_headlines_from_feeds() -> List[str]:
-    """Fetches all headlines concurrently from all configured RSS feeds
-    using a thread pool to dramatically speed up the process.
+def get_all_headlines_from_feeds() -> list[str]:
+    """Fetch all headlines concurrently from all configured RSS feeds.
+
+    Uses a thread pool to dramatically speed up the process.
     """
     # Use a set to automatically handle any duplicate URLs in the RSS_FEEDS list
     unique_feed_urls = set(RSS_FEEDS)
-    all_headlines: List[str] = []
+    all_headlines: list[str] = []
 
     logger.info(
         f"Fetching headlines concurrently from {len(unique_feed_urls)} unique RSS feeds...",

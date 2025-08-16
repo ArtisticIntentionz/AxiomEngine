@@ -143,7 +143,7 @@ class Block(Base):
         logger.info(f"Block sealed! Hash: {self.hash}")
 
     def to_dict(self) -> dict[str, Any]:
-        """Serializes the Block object to a dictionary for P2P broadcasting."""
+        """Serialize to a dictionary for P2P broadcasting."""
         return {
             "height": self.height,
             "hash": self.hash,
@@ -399,7 +399,7 @@ def add_block_from_peer_data(
     session: Session,
     block_data: dict[str, Any],
 ) -> Block:
-    """Validates and adds a new block received from a peer.
+    """Validate and add a new block received from a peer.
 
     This is the core of blockchain synchronization. It ensures that a node
     only accepts blocks that correctly extend its own version of the chain.

@@ -88,7 +88,10 @@ class AxiomNode(P2PBaseNode):
 
         # 1. We must call the parent constructor from the P2P library first.
         # This allows it to correctly handle both local and public connections.
-        temp_p2p = P2PBaseNode.start(ip_address="0.0.0.0", port=port)
+        temp_p2p = P2PBaseNode.start(
+            ip_address=host,
+            port=port,
+        )
 
         super().__init__(
             ip_address=temp_p2p.ip_address,
@@ -126,7 +129,7 @@ class AxiomNode(P2PBaseNode):
         link: any,
         content: ApplicationData,
     ) -> None:
-        """This method is automatically called by the P2P layer."""
+        """Handle application data."""
         try:
             message = json.loads(content.data)
             msg_type = message.get("type")
@@ -143,7 +146,7 @@ class AxiomNode(P2PBaseNode):
             )
 
     def _background_work_loop(self) -> None:
-        """The main work cycle for fact-gathering and block-sealing."""
+        """Handle Fact-gathering and block-sealing."""
         background_thread_logger.info("Starting continuous Axiom work cycle.")
         while True:
             background_thread_logger.info("Axiom engine cycle start")
@@ -283,7 +286,8 @@ class AxiomNode(P2PBaseNode):
 
     @classmethod
     def start_node(cls, host: str, port: int, bootstrap: bool) -> AxiomNode:
-        """A factory method to create and initialize a complete AxiomNode.
+        """Create and initialize a complete AxiomNode.
+
         This is the preferred way to instantiate the node.
         """
         # 1. Use the parent's factory to create the low-level P2P components.
@@ -318,7 +322,7 @@ fact_indexer: FactIndexer | None = None
 
 @app.route("/chat", methods=["POST"])
 def handle_chat_query():
-    """Handles natural language queries from the client.
+    """Handle natural language queries from the client.
 
     Finding the most semantically similar facts in the ledger.
     """
@@ -404,7 +408,7 @@ def handle_get_blocks() -> Response:
 
 @app.route("/status", methods=["GET"])
 def handle_get_status() -> Response:
-    """Provides a simple status check for the node."""
+    """Handle status request."""
     with SessionMaker() as session:
         latest_block = get_latest_block(session)
         height = latest_block.height if latest_block else 0
@@ -488,6 +492,7 @@ def handle_get_facts_by_hash() -> Response:
 
 @app.route("/get_merkle_proof", methods=["GET"])
 def handle_get_merkle_proof() -> Response | tuple[Response, int]:
+    """Handle merkle proof request."""
     fact_hash = request.args.get("fact_hash")
     block_height_str = request.args.get("block_height")
     if not fact_hash or not block_height_str:
@@ -532,26 +537,31 @@ def handle_get_merkle_proof() -> Response | tuple[Response, int]:
 
 @app.route("/anonymous_query", methods=["POST"])
 def handle_anonymous_query() -> Response | tuple[Response, int]:
+    """Handle anonymous query request."""
     return jsonify({"error": "Anonymous query not implemented in V4"}), 501
 
 
 @app.route("/dao/proposals", methods=["GET"])
 def handle_get_proposals() -> Response:
+    """Handle dao proposals request."""
     return jsonify({"error": "DAO not implemented in V4"}), 501
 
 
 @app.route("/dao/submit_proposal", methods=["POST"])
 def handle_submit_proposal() -> Response | tuple[Response, int]:
+    """Handle submit proposal request."""
     return jsonify({"error": "DAO not implemented in V4"}), 501
 
 
 @app.route("/dao/submit_vote", methods=["POST"])
 def handle_submit_vote() -> Response | tuple[Response, int]:
+    """Handle submit vote request."""
     return jsonify({"error": "DAO not implemented in V4"}), 501
 
 
 @app.route("/verify_fact", methods=["POST"])
 def handle_verify_fact() -> Response | tuple[Response, int]:
+    """Handle verify fact request."""
     fact_id = (request.json or {}).get("fact_id")
     if not fact_id:
         return jsonify({"error": "fact_id is required"}), 400
@@ -581,6 +591,7 @@ def handle_verify_fact() -> Response | tuple[Response, int]:
 
 @app.route("/get_fact_context/<fact_hash>", methods=["GET"])
 def handle_get_fact_context(fact_hash: str) -> Response | tuple[Response, int]:
+    """Handle get fact content request."""
     with SessionMaker() as session:
         target_fact = (
             session.query(Fact).filter(Fact.hash == fact_hash).one_or_none()
@@ -617,7 +628,7 @@ def handle_get_fact_context(fact_hash: str) -> Response | tuple[Response, int]:
 
 
 def main() -> None:
-    """The main entry point for running an Axiom Node from the command line."""
+    """Handle running an Axiom Node from the command line."""
     global node_instance, fact_indexer
 
     # 1. Setup the argument parser
@@ -683,9 +694,9 @@ def main() -> None:
 
     except KeyboardInterrupt:
         logger.info("Shutdown signal received. Exiting.")
-    except Exception as e:
+    except Exception as exc:
         logger.critical(
-            f"A critical error occurred during node startup: {e}",
+            f"A critical error occurred during node startup: {exc}",
             exc_info=True,
         )
         sys.exit(1)
