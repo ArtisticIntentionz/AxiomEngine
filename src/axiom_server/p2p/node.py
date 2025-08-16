@@ -361,6 +361,7 @@ class Node:
         Args:
             ip_address str: the ip_address to bind to.
             port int: the port to bind to.
+            public_ip str | None: the optional public IP for self-discovery.
 
         """
         context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
@@ -388,6 +389,13 @@ class Node:
         assert isinstance(computed_ip_address, str)
         assert isinstance(computed_port, int)
         logger.info(f"started node on {computed_ip_address}:{computed_port}")
+
+        # --- THIS IS THE MISSING LINE THAT FIXES THE BUG ---
+        # It defines the `final_public_ip` variable before it gets used.
+        # It intelligently decides to use the provided public_ip if available,
+        # otherwise, it falls back to the IP the socket is bound to.
+        final_public_ip = public_ip if public_ip is not None else computed_ip_address
+
         return Node(
             ip_address=computed_ip_address,
             port=computed_port,
