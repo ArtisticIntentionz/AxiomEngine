@@ -706,7 +706,7 @@ def main() -> None:
             public_ip=args.public_ip,
         )
 
-        node_instance.p2p_node.get_chain_callback = node_instance._get_chain_for_peer
+        node_instance.get_chain_callback = node_instance._get_chain_for_peer
 
         logger.info("--- Initializing Fact Indexer for Hybrid Search ---")
         with SessionMaker() as db_session:
