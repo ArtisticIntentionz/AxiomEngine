@@ -687,7 +687,8 @@ class Node:
 
         for serialized_peer in content.peers:
             shared_peer = serialized_peer.to_peer()
-            s_self = False
+            is_self = False
+
             if shared_peer.port == self.port:
                 # Check against all possible addresses that could mean "me"
                 self_ips = {self.ip_address, self.public_ip, "127.0.0.1", "localhost"}
