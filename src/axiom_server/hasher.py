@@ -11,28 +11,33 @@ from axiom_server.ledger import Fact
 # Use the same logger as other parts of the application for consistency
 logger = logging.getLogger("axiom-node.hasher")
 
+
 def _extract_keywords(query_text: str, max_keywords: int = 5) -> list[str]:
-    """
-    Extracts the most important keywords (nouns and proper nouns) from a query.
+    """Extracts the most important keywords (nouns and proper nouns) from a query.
     """
     # Process the query with our powerful NLP model
     doc = NLP_MODEL(query_text.lower())
-    
+
     keywords = []
     # We prioritize proper nouns (like "Trump", "SpaceX") and regular nouns.
     # We ignore stopwords (like "the", "a", "for") and punctuation.
     for token in doc:
-        if not token.is_stop and not token.is_punct and token.pos_ in ["PROPN", "NOUN"]:
-            keywords.append(token.lemma_) # Use the base form of the word
+        if (
+            not token.is_stop
+            and not token.is_punct
+            and token.pos_ in ["PROPN", "NOUN"]
+        ):
+            keywords.append(token.lemma_)  # Use the base form of the word
 
     # Return the most important (first occurring) keywords up to the max limit
     return keywords[:max_keywords]
+
 
 # A simple class to hold our indexed data.
 class FactIndexer:
     def __init__(self, session: Session):
         """Initializes the indexer with a database session."""
-        self.session = session # This session will be used for pre-filtering
+        self.session = session  # This session will be used for pre-filtering
         # A dictionary to map a unique fact ID to its text content.
         self.fact_id_to_content = {}
         # A dictionary to map that same fact ID to its numerical vector.
@@ -110,9 +115,10 @@ class FactIndexer:
             f"Indexing complete. {len(self.fact_ids)} facts are now searchable.",
         )
 
-    def find_closest_facts(self, query_text: str, top_n: int = 3) -> list[dict]:
-        """
-        Performs a HYBRID search:
+    def find_closest_facts(
+        self, query_text: str, top_n: int = 3,
+    ) -> list[dict]:
+        """Performs a HYBRID search:
         1. Extracts keywords from the query.
         2. Pre-filters the database for facts containing those keywords.
         3. Performs a vector similarity search ONLY on the pre-filtered results.
@@ -121,7 +127,7 @@ class FactIndexer:
         keywords = _extract_keywords(query_text)
         if not keywords:
             logger.warning("Could not extract any keywords from the query.")
-            return [] # If no keywords, we can't search.
+            return []  # If no keywords, we can't search.
 
         logger.info(f"Extracted keywords for pre-filtering: {keywords}")
 
@@ -131,7 +137,7 @@ class FactIndexer:
         # Build a query that looks for facts containing ANY of the keywords.
         # This is a fast, indexed text search in the database.
         keyword_filters = [Fact.content.ilike(f"%{key}%") for key in keywords]
-        
+
         # We only want to search through facts that are not disputed.
         pre_filtered_facts = (
             self.session.query(Fact)
@@ -146,19 +152,28 @@ class FactIndexer:
 
         # Create a temporary, smaller index from only the relevant facts.
         candidate_ids = [fact.id for fact in pre_filtered_facts]
-        
+
         # We need to find the positions (indices) of these candidate facts
         # in our main, full vector_matrix.
         try:
-            candidate_indices = [self.fact_ids.index(fid) for fid in candidate_ids]
+            candidate_indices = [
+                self.fact_ids.index(fid) for fid in candidate_ids
+            ]
         except ValueError:
             # This can happen if a fact is in the DB but not yet in the in-memory index.
             # For robustness, we'll just log it and proceed with what we have.
-            logger.warning("Some pre-filtered facts were not found in the live index. The index may be syncing.")
+            logger.warning(
+                "Some pre-filtered facts were not found in the live index. The index may be syncing.",
+            )
             # Filter out the missing IDs
-            valid_candidate_ids = [fid for fid in candidate_ids if fid in self.fact_ids]
-            if not valid_candidate_ids: return []
-            candidate_indices = [self.fact_ids.index(fid) for fid in valid_candidate_ids]
+            valid_candidate_ids = [
+                fid for fid in candidate_ids if fid in self.fact_ids
+            ]
+            if not valid_candidate_ids:
+                return []
+            candidate_indices = [
+                self.fact_ids.index(fid) for fid in valid_candidate_ids
+            ]
 
         # Create a smaller matrix with only the vectors of our candidate facts.
         candidate_matrix = self.vector_matrix[candidate_indices, :]
@@ -171,10 +186,10 @@ class FactIndexer:
         dot_products = np.dot(candidate_matrix, query_vector)
         norm_query = np.linalg.norm(query_vector)
         norm_matrix = np.linalg.norm(candidate_matrix, axis=1)
-        
+
         if norm_query == 0 or not np.all(norm_matrix):
             return []
-            
+
         similarities = dot_products / (norm_matrix * norm_query)
 
         # The indices of the top N scores are relative to our small candidate list.
@@ -187,11 +202,13 @@ class FactIndexer:
             original_index = candidate_indices[i]
             # Use that to find the original fact ID
             fact_id = self.fact_ids[original_index]
-            
-            results.append({
-                "content": self.fact_id_to_content[fact_id],
-                "similarity": float(similarities[i]),
-                "fact_id": fact_id
-            })
-            
+
+            results.append(
+                {
+                    "content": self.fact_id_to_content[fact_id],
+                    "similarity": float(similarities[i]),
+                    "fact_id": fact_id,
+                },
+            )
+
         return results

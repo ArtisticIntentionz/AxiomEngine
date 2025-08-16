@@ -11,11 +11,11 @@ import logging
 import sys
 import threading
 import time
-from urllib.parse import urlparse
 from datetime import datetime
+from urllib.parse import urlparse
 
 from flask import Flask, Response, jsonify, request
-from flask_cors import CORS 
+from flask_cors import CORS
 
 from axiom_server import (
     crucible,
@@ -70,7 +70,8 @@ db_lock = threading.Lock()
 # This lock ensures only one thread can read from or write to the fact indexer at a time.
 fact_indexer_lock = threading.Lock()
 
-fact_indexer: FactIndexer | None = None 
+fact_indexer: FactIndexer | None = None
+
 
 # --- NEW: We create a single class that combines Axiom logic and P2P networking ---
 class AxiomNode(P2PBaseNode):
@@ -88,7 +89,7 @@ class AxiomNode(P2PBaseNode):
         # 1. We must call the parent constructor from the P2P library first.
         # This allows it to correctly handle both local and public connections.
         temp_p2p = P2PBaseNode.start(ip_address="0.0.0.0", port=port)
-        
+
         super().__init__(
             ip_address=temp_p2p.ip_address,
             port=temp_p2p.port,

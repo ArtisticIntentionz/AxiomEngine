@@ -89,7 +89,7 @@
             color: var(--primary-color);
             border: 2px solid var(--primary-color);
         }
-        
+
         /* --- NEW STYLES FOR THE WEB CLIENT --- */
         #axiom-client-container {
             border: 1px solid var(--secondary-color);
@@ -188,7 +188,7 @@
                     </div>
                 </div>
             </section>
-            
+
             <!-- The Mission Section -->
             <section id="mission">
                 <h2>The Mission</h2>
@@ -237,7 +237,7 @@
     <!-- ============================================= -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            
+
             // --- CONFIGURATION ---
             // !!! TODO: Replace this with the URL of a publicly hosted Axiom node for the live website demo.
             const AXIOM_NODE_URL = 'https://axiom-engine.duckdns.org'; // <-- Works for 1 year only!
@@ -255,7 +255,7 @@
                 try {
                     const response = await fetch(`${AXIOM_NODE_URL}/status`);
                     if (!response.ok) throw new Error('Network response was not ok.');
-                    
+
                     const data = await response.json();
                     statusLight.classList.add('connected');
                     statusText.textContent = `Connected | Block: ${data.latest_block_height} | Node: v${data.version}`;
@@ -302,7 +302,7 @@
                     resultsOutput.innerHTML = '<h4>No Relevant Facts Found</h4><p>The network searched the ledger but could not find a fact that semantically matched your question.</p>';
                     return;
                 }
-                
+
                 // For this demo, we will focus on the top result
                 const topResult = results[0];
                 const content = topResult.content;
@@ -321,7 +321,7 @@
                     title = `Possible Hint Found (${similarity.toFixed(1)}% Match)`;
                     explanation = `I'm not very sure, but this is the most related information I could find in the ledger:`;
                 }
-                
+
                 // Sanitize content before displaying
                 const sanitizedContent = content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
