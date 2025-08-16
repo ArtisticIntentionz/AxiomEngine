@@ -90,13 +90,6 @@ axiom_server = "axiom_server.node:cli_run"
 
 [project.gui-scripts]
 axiom_client = "axiom_client.main:cli_run"
-[tool.pytest.ini_options]
-pythonpath = [
-  "src"
-]
-testpaths = [
-  "tests"
-]
 
 [tool.setuptools.package-data]
 axiom_server = ["py.typed", "*.html"]
@@ -181,6 +174,14 @@ extend-ignore = [
     "D100",  # undocumented-public-module
     "D103",  # undocumented-public-function
     "D107",  # undocumented-public-init
+]
+
+[tool.pytest.ini_options]
+pythonpath = [
+  "src"
+]
+testpaths = [
+  "tests"
 ]
 
 [tool.coverage.html]
