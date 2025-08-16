@@ -109,7 +109,7 @@ if __name__ == "__main__":
     )
 
     if arguments.default_bootstrap:
-        CONFIG.host = COMPUTED_BOOTSTRAP_IP_ADDR
+        CONFIG.host = "0.0.0.0"
         CONFIG.port = COMPUTED_BOOTSTRAP_PORT
 
     logger.info(f"running with config {CONFIG}")
