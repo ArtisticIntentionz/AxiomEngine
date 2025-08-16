@@ -1,0 +1,2 @@
+[axiom-p2p-node] 2025-08-16 00:01:38,224 | INFO | run_node.py:133 >>> running with config host='0.0.0.0' port=42180 public_ip='3.16.36.97' bootstrap=False bootstrap_host='localhost' bootstrap_port=42180
+[axiom_server.p2p.node] 2025-08-16 00:01:38,266 | INFO | node.py:391 >>> started node on 0.0.0.0:42180
