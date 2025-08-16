@@ -310,7 +310,9 @@ class AxiomNode(P2PBaseNode):
             target=self._background_work_loop,
             daemon=True,
         )
+        peer_thread = threading.Thread(target=self._peer_management_loop, daemon=True)
         work_thread.start()
+        peer_thread.start()
 
         logger.info("Starting P2P network update loop...")
         while True:
@@ -323,6 +325,19 @@ class AxiomNode(P2PBaseNode):
             chain_dicts = get_chain_as_dicts(session)
             response_data = {"type": "CHAIN_RESPONSE", "chain": chain_dicts}
             return json.dumps(response_data)
+        
+    def _peer_management_loop(self) -> None:
+        """A background thread to maintain and expand the node's peer connections."""
+        logger.info("Starting peer management loop.")
+        while True:
+            # 1. Ask all current peers for their peer lists.
+            logger.info("Broadcasting PEERS_REQUEST to all known peers...")
+            self.broadcast_message(Message.peers_request()) # You'll need a generic broadcast method
+
+            # 2. Prune dead connections (this is already in your `update` loop, which is good)
+
+            # 3. Sleep for a while before the next cycle.
+            time.sleep(300) # e.g., run every 5 minutes
 
     @classmethod
     def start_node(cls, host: str, port: int, bootstrap: bool) -> AxiomNode:
