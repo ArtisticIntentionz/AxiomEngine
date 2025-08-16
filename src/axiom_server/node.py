@@ -101,7 +101,6 @@ class AxiomNode(P2PBaseNode):
             server_socket=temp_p2p.server_socket,
         )
 
-        # A threading.Event is a signal flag. It starts in the "waiting" state.
         self.initial_sync_complete = threading.Event()
         self.bootstrap_peer = bootstrap_peer
         self.new_block_received = threading.Event()
@@ -131,7 +130,6 @@ class AxiomNode(P2PBaseNode):
             message = json.loads(content.data)
             msg_type = message.get("type")
 
-            # --- FIX: Handle the new sync-related messages ---
             if msg_type == "CHAIN_RESPONSE":
                 logger.info("Received full blockchain from peer. Beginning sync process...")
                 chain_data = message.get("chain")
@@ -143,7 +141,6 @@ class AxiomNode(P2PBaseNode):
                     success = replace_chain(session, chain_data)
                     if success:
                         logger.info("Blockchain synchronization successful!")
-                        # This is the crucial signal! It "un-pauses" the work loop.
                         self.initial_sync_complete.set()
                     else:
                         logger.error("Blockchain synchronization failed.")
@@ -152,13 +149,11 @@ class AxiomNode(P2PBaseNode):
                 logger.info(f"Peer {message.get('peer_addr')} requested our blockchain. Sending response...")
                 chain_data_json_str = self._get_chain_for_peer()
                 response_message = Message.application_data(chain_data_json_str)
-                # Use the low-level _send_message to send back to the specific peer.
                 self._send_message(link, response_message)
 
             elif msg_type == "new_block_header":
                 msg_data = message.get("data")
                 with db_lock, SessionMaker() as session:
-                    # add_block_from_peer_data now returns the new block or None
                     new_block = add_block_from_peer_data(session, msg_data)
                     if new_block:
                         self.new_block_received.set()
@@ -168,144 +163,123 @@ class AxiomNode(P2PBaseNode):
                 f"Error processing peer message: {e}",
             )
 
-        def _background_work_loop(self) -> None:
-            """
-            The main work cycle.
-
-            Sessions prevent DetachedInstanceErrors.
-            """
-            # This one-time initial sync check for worker nodes is correct.
-            if self.bootstrap_peer:
-                logger.info("Worker node started. Waiting for initial blockchain sync from bootstrap peer...")
-                synced = self.initial_sync_complete.wait(timeout=60.0)
-                if not synced:
-                    logger.warning("Initial sync timed out after 60 seconds. Proceeding with local chain. The network may be partitioned.")
-                else:
-                    logger.info("Initial sync complete.")
+    # --- THIS IS THE START OF THE CORRECTLY INDENTED SECTION ---
+    def _background_work_loop(self) -> None:
+        """
+        The main work cycle, refactored to be interruptible and to handle database
+        sessions correctly to prevent DetachedInstanceErrors.
+        """
+        if self.bootstrap_peer:
+            logger.info("Worker node started. Waiting for initial blockchain sync from bootstrap peer...")
+            synced = self.initial_sync_complete.wait(timeout=60.0)
+            if not synced:
+                logger.warning("Initial sync timed out after 60 seconds. Proceeding with local chain. The network may be partitioned.")
+            else:
+                logger.info("Initial sync complete.")
+        
+        background_thread_logger.info("Starting continuous Axiom work cycle.")
+        
+        while True:
+            background_thread_logger.info("Axiom engine cycle start: Listening for new content...")
             
-            background_thread_logger.info("Starting continuous Axiom work cycle.")
-            
-            while True:
-                background_thread_logger.info("Axiom engine cycle start: Listening for new content...")
-                
-                # These variables will be populated inside the session, then used outside of it.
-                new_block_candidate = None
-                latest_block_before_mining = None
+            new_block_candidate = None
+            latest_block_before_mining = None
 
-                # --- PHASE 1: Fact Gathering and Block Preparation (All inside one session) ---
-                with db_lock, SessionMaker() as session:
-                    try:
-                        topics = zeitgeist_engine.get_trending_topics(top_n=1)
-                        content_list = []
-                        if topics:
-                            content_list = discovery_rss.get_content_from_prioritized_feed()
+            with db_lock, SessionMaker() as session:
+                try:
+                    topics = zeitgeist_engine.get_trending_topics(top_n=1)
+                    content_list = []
+                    if topics:
+                        content_list = discovery_rss.get_content_from_prioritized_feed()
 
-                        if not content_list:
-                            background_thread_logger.info("No new content found this cycle. Proceeding to verification phase.")
-                        else:
-                            facts_for_sealing: list[Fact] = []
-                            adder = crucible.CrucibleFactAdder(
-                                session,
-                                fact_indexer,
-                                fact_indexer_lock,
-                            )
-                            for item in content_list:
-                                domain = urlparse(item["source_url"]).netloc
-                                source = session.query(Source).filter(
-                                    Source.domain == domain,
-                                ).one_or_none() or Source(domain=domain)
-                                session.add(source)
-
-                                new_facts = crucible.extract_facts_from_text(
-                                    item["content"],
-                                )
-                                for fact in new_facts:
-                                    fact.sources.append(source)
-                                    session.add(fact)
-                                    session.commit()
-                                    adder.add(fact)
-                                    facts_for_sealing.append(fact)
-
-                            if facts_for_sealing:
-                                background_thread_logger.info(f"Preparing to mine a new block with {len(facts_for_sealing)} facts...")
-                                
-                                # --- THIS IS THE FIX FOR DetachedInstanceError ---
-                                # We get the latest block and prepare the new block candidate
-                                # while the database session is still active.
-                                
-                                latest_block_before_mining = get_latest_block(session)
-                                assert latest_block_before_mining is not None
-                                
-                                # This line is now safe because the `Fact` objects are attached to the session.
-                                fact_hashes = sorted([f.hash for f in facts_for_sealing])
-                                
-                                new_block_candidate = Block(
-                                    height=latest_block_before_mining.height + 1,
-                                    previous_hash=latest_block_before_mining.hash,
-                                    fact_hashes=json.dumps(fact_hashes),
-                                    timestamp=time.time(),
-                                )
-                                # --- END OF FIX ---
-                    except Exception as e:
-                        background_thread_logger.exception(f"Error during fact gathering: {e}")
-
-                # --- The database session is now closed. We proceed with the prepared data. ---
-
-                # --- PHASE 2: Proof-of-Work (Slow, interruptible, and outside the DB lock) ---
-                if new_block_candidate:
-                    # Lower the "interrupt" flag before starting the slow work.
-                    self.new_block_received.clear()
-                    
-                    # Call the interruptible sealing method.
-                    was_sealed = self.seal_block_interruptibly(new_block_candidate, difficulty=4)
-                    
-                    if was_sealed:
-                        # We found a block! Do a final check to see if we won the race.
-                        with db_lock, SessionMaker() as session:
-                            current_chain_head = get_latest_block(session)
-                            # Did another node's block get added while we were sealing?
-                            if current_chain_head.height > latest_block_before_mining.height:
-                                background_thread_logger.warning("Mined a block, but the chain grew while we worked. Discarding our block (stale).")
-                            else:
-                                # We won! Add our block to the DB and broadcast it.
-                                session.add(new_block_candidate)
-                                session.commit()
-                                background_thread_logger.info(f"Successfully sealed and added Block #{new_block_candidate.height}.")
-                                broadcast_data = {"type": "new_block_header", "data": new_block_candidate.to_dict()}
-                                self.broadcast_application_message(json.dumps(broadcast_data))
-                                background_thread_logger.info("Broadcasted new block header to network.")
+                    if not content_list:
+                        background_thread_logger.info("No new content found this cycle. Proceeding to verification phase.")
                     else:
-                        background_thread_logger.info("Mining was interrupted by a new block from a peer. Abandoning our work and starting new cycle.")
+                        facts_for_sealing: list[Fact] = []
+                        adder = crucible.CrucibleFactAdder(
+                            session,
+                            fact_indexer,
+                            fact_indexer_lock,
+                        )
+                        for item in content_list:
+                            domain = urlparse(item["source_url"]).netloc
+                            source = session.query(Source).filter(
+                                Source.domain == domain,
+                            ).one_or_none() or Source(domain=domain)
+                            session.add(source)
 
-                # --- PHASE 3: Verification (Unchanged) ---
-                with db_lock, SessionMaker() as session:
-                    try:
-                        background_thread_logger.info("Starting verification phase...")
-                        facts_to_verify = session.query(Fact).filter(Fact.status == "ingested").all()
-                        if not facts_to_verify:
-                            background_thread_logger.info("No new facts to verify.")
+                            new_facts = crucible.extract_facts_from_text(
+                                item["content"],
+                            )
+                            for fact in new_facts:
+                                fact.sources.append(source)
+                                session.add(fact)
+                                session.commit()
+                                adder.add(fact)
+                                facts_for_sealing.append(fact)
+
+                        if facts_for_sealing:
+                            background_thread_logger.info(f"Preparing to mine a new block with {len(facts_for_sealing)} facts...")
+                            
+                            latest_block_before_mining = get_latest_block(session)
+                            assert latest_block_before_mining is not None
+                            
+                            fact_hashes = sorted([f.hash for f in facts_for_sealing])
+                            
+                            new_block_candidate = Block(
+                                height=latest_block_before_mining.height + 1,
+                                previous_hash=latest_block_before_mining.hash,
+                                fact_hashes=json.dumps(fact_hashes),
+                                timestamp=time.time(),
+                            )
+                except Exception as e:
+                    background_thread_logger.exception(f"Error during fact gathering: {e}")
+
+            if new_block_candidate:
+                self.new_block_received.clear()
+                
+                was_sealed = self.seal_block_interruptibly(new_block_candidate, difficulty=4)
+                
+                if was_sealed:
+                    with db_lock, SessionMaker() as session:
+                        current_chain_head = get_latest_block(session)
+                        if current_chain_head.height > latest_block_before_mining.height:
+                            background_thread_logger.warning("Mined a block, but the chain grew while we worked. Discarding our block (stale).")
                         else:
-                            background_thread_logger.info(f"Found {len(facts_to_verify)} facts to verify.")
-                            for fact in facts_to_verify:
-                                claims = verification_engine.find_corroborating_claims(fact, session)
-                                if len(claims) >= CORROBORATION_THRESHOLD:
-                                    fact.status = "corroborated"
-                                    background_thread_logger.info(f"Fact '{fact.hash[:8]}' has been corroborated with {len(claims)} pieces of evidence.")
-                                    fact.score += 10
+                            session.add(new_block_candidate)
                             session.commit()
-                    except Exception as e:
-                        background_thread_logger.exception(f"Error during verification phase: {e}")
+                            background_thread_logger.info(f"Successfully sealed and added Block #{new_block_candidate.height}.")
+                            broadcast_data = {"type": "new_block_header", "data": new_block_candidate.to_dict()}
+                            self.broadcast_application_message(json.dumps(broadcast_data))
+                            background_thread_logger.info("Broadcasted new block header to network.")
+                else:
+                    background_thread_logger.info("Mining was interrupted by a new block from a peer. Abandoning our work and starting new cycle.")
 
-                background_thread_logger.info("Axiom cycle finished. Sleeping.")
-                time.sleep(10800)
+            with db_lock, SessionMaker() as session:
+                try:
+                    background_thread_logger.info("Starting verification phase...")
+                    facts_to_verify = session.query(Fact).filter(Fact.status == "ingested").all()
+                    if not facts_to_verify:
+                        background_thread_logger.info("No new facts to verify.")
+                    else:
+                        background_thread_logger.info(f"Found {len(facts_to_verify)} facts to verify.")
+                        for fact in facts_to_verify:
+                            claims = verification_engine.find_corroborating_claims(fact, session)
+                            if len(claims) >= CORROBORATION_THRESHOLD:
+                                fact.status = "corroborated"
+                                background_thread_logger.info(f"Fact '{fact.hash[:8]}' has been corroborated with {len(claims)} pieces of evidence.")
+                                fact.score += 10
+                        session.commit()
+                except Exception as e:
+                    background_thread_logger.exception(f"Error during verification phase: {e}")
+
+            background_thread_logger.info("Axiom cycle finished. Sleeping.")
+            time.sleep(10800)
+
     def seal_block_interruptibly(self, block: Block, difficulty: int) -> bool:
         """
         Performs Proof of Work for a given block, but frequently checks the
         self.new_block_received event to see if it should abort its work.
-        This is the core of preventing forks from stale mining operations.
-
-        Returns:
-            bool: True if the block was successfully sealed, False if it was interrupted.
         """
         fact_hashes_list = json.loads(block.fact_hashes)
         if fact_hashes_list:
@@ -317,16 +291,14 @@ class AxiomNode(P2PBaseNode):
         target = "0" * difficulty
         
         while True:
-            # We check for an interrupt signal every 1000 hashes.
-            # This is a good balance between responsiveness and performance.
             if block.nonce % 1000 == 0:
                 if self.new_block_received.is_set():
-                    return False  # Abort!
+                    return False
 
             block.hash = block.calculate_hash()
             if block.hash.startswith(target):
                 logger.info(f"Block sealed! Hash: {block.hash}")
-                return True  # Success!
+                return True
 
             block.nonce += 1
 
@@ -356,14 +328,9 @@ class AxiomNode(P2PBaseNode):
         """A background thread to maintain and expand the node's peer connections."""
         logger.info("Starting peer management loop.")
         while True:
-            # 1. Ask all current peers for their peer lists.
             logger.info("Broadcasting PEERS_REQUEST to all known peers...")
-            self.broadcast_message(Message.peers_request()) # You'll need a generic broadcast method
-
-            # 2. Prune dead connections (this is already in your `update` loop, which is good)
-
-            # 3. Sleep for a while before the next cycle.
-            time.sleep(300) # e.g., run every 5 minutes
+            self.broadcast_message(Message.peers_request())
+            time.sleep(300)
 
     @classmethod
     def start_node(cls, host: str, port: int, bootstrap: bool) -> AxiomNode:
