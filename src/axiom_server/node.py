@@ -45,7 +45,7 @@ from axiom_server.p2p.constants import (
     BOOTSTRAP_IP_ADDR,
     BOOTSTRAP_PORT,
 )
-from axiom_server.p2p.node import ApplicationData, Node as P2PBaseNode
+from axiom_server.p2p.node import ApplicationData, Node as P2PBaseNode, Message
 
 __version__ = "3.1.3"
 
@@ -93,7 +93,7 @@ class AxiomNode(P2PBaseNode):
         super().__init__(
             ip_address=temp_p2p.ip_address,
             port=temp_p2p.port,
-            public_ip=temp_p2p.public_ip, # <-- THE FIX IS ADDING THIS LINE
+            public_ip=temp_p2p.public_ip,
             serialized_port=temp_p2p.serialized_port,
             private_key=temp_p2p.private_key,
             public_key=temp_p2p.public_key,
@@ -101,6 +101,10 @@ class AxiomNode(P2PBaseNode):
             peer_links=temp_p2p.peer_links,
             server_socket=temp_p2p.server_socket,
         )
+
+        self.initial_sync_complete = threading.Event()
+        # We store the bootstrap_peer URL to know if this node is a worker or not.
+        self.bootstrap_peer = bootstrap_peer
 
         self.active_proposals: dict[int, Proposal] = {}
         # The unused ThreadPoolExecutor has been correctly removed.
@@ -131,13 +135,39 @@ class AxiomNode(P2PBaseNode):
         try:
             message = json.loads(content.data)
             msg_type = message.get("type")
-            msg_data = message.get("data")
+            
+            # --- FIX 2 of 4: Handle the CHAIN_RESPONSE and GET_CHAIN_REQUEST ---
+            # This is where the node acts on the messages we defined in the P2P layer.
+            
+            if msg_type == "CHAIN_RESPONSE":
+                logger.info("Received full blockchain from peer. Beginning sync process...")
+                chain_data = message.get("chain")
+                with db_lock, SessionMaker() as session:
+                    # We call the `replace_chain` function we added to ledger.py
+                    success = ledger.replace_chain(session, chain_data)
+                    if success:
+                        logger.info("Blockchain synchronization successful!")
+                        # This is the crucial signal! It "un-pauses" the work loop.
+                        self.initial_sync_complete.set()
+                    else:
+                        logger.error("Blockchain synchronization failed. The received chain may be invalid or not longer.")
+            
+            elif msg_type == "GET_CHAIN_REQUEST":
+                logger.info(f"Peer {message.get('peer_addr')} requested our blockchain. Sending...")
+                # The peer is asking for our chain. We'll get it and send it back.
+                chain_data_json = self._get_chain_for_peer()
+                response = Message.application_data(chain_data_json)
+                # Note: We need a way to send back to a specific link. This might require
+                # a small change in the P2P layer to pass the link object.
+                # For now, we assume a method to send to a specific peer exists.
+                self.send_message_to_peer(link, response) # You will need to implement send_message_to_peer
 
-            if msg_type == "new_block_header":
-                # This is a short, thread-safe database operation.
-                with db_lock:
-                    with SessionMaker() as session:
-                        add_block_from_peer_data(session, msg_data)
+            # --- END OF FIX ---
+            
+            elif msg_type == "new_block_header":
+                msg_data = message.get("data")
+                with db_lock, SessionMaker() as session:
+                    add_block_from_peer_data(session, msg_data)
         except Exception as e:
             background_thread_logger.error(
                 f"Error processing peer message: {e}",
@@ -146,6 +176,15 @@ class AxiomNode(P2PBaseNode):
     def _background_work_loop(self) -> None:
         """The main work cycle for fact-gathering and block-sealing."""
         background_thread_logger.info("Starting continuous Axiom work cycle.")
+        if self.bootstrap_peer:
+            logger.info("Worker node started. Waiting for initial blockchain sync from bootstrap peer...")
+            # The thread will pause here until `self.initial_sync_complete.set()` is called,
+            # or until the timeout is reached.
+            synced = self.initial_sync_complete.wait(timeout=60.0)
+            if not synced:
+                logger.warning("Initial sync timed out after 60 seconds. Proceeding with local chain. The network may be partitioned.")
+            else:
+                 logger.info("Initial sync complete. Starting engine cycle.")
         while True:
             background_thread_logger.info("Axiom engine cycle start")
 
@@ -281,6 +320,13 @@ class AxiomNode(P2PBaseNode):
         while True:
             time.sleep(0.1)
             self.update()
+
+    def _get_chain_for_peer(self) -> str:
+        """A thread-safe method to get the entire blockchain as a JSON string."""
+        with db_lock, SessionMaker() as session:
+            chain_dicts = ledger.get_chain_as_dicts(session)
+            response_data = {"type": "CHAIN_RESPONSE", "chain": chain_dicts}
+            return json.dumps(response_data)
 
     @classmethod
     def start_node(cls, host: str, port: int, bootstrap: bool) -> AxiomNode:
@@ -664,6 +710,8 @@ def main() -> None:
             bootstrap_peer=args.bootstrap_peer,
             public_ip=args.public_ip,
         )
+
+        node_instance.p2p_node.get_chain_callback = node_instance._get_chain_for_peer
 
         logger.info("--- Initializing Fact Indexer for Hybrid Search ---")
         with SessionMaker() as db_session:

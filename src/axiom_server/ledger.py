@@ -152,6 +152,23 @@ class Block(Base):
             "timestamp": self.timestamp,
             "nonce": self.nonce,
         }
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Self:
+        """
+        Creates a Block object from a dictionary, typically from P2P data.
+        This is the inverse of the to_dict() method.
+        """
+        # We use .get() for safety to avoid KeyErrors if a field is missing.
+        return cls(
+            height=data.get("height"),
+            hash=data.get("hash"),
+            previous_hash=data.get("previous_hash"),
+            merkle_root=data.get("merkle_root"),
+            timestamp=data.get("timestamp"),
+            nonce=data.get("nonce", 0),
+            # fact_hashes is not part of the header, so we default it.
+            fact_hashes=data.get("fact_hashes", "[]"),
+        )
 
 
 class SerializedSemantics(BaseModel):
@@ -587,3 +604,61 @@ class Proposal(TypedDict):
     text: str
     proposer: str
     votes: dict[str, Votes]
+
+def get_chain_as_dicts(session: Session) -> list[dict]:
+    """
+    Queries the database for all blocks, orders them by height, and serializes
+    them into a list of dictionaries for network transport.
+    """
+    logger.info("Exporting full blockchain from database for peer...")
+    all_blocks = session.query(Block).order_by(Block.height.asc()).all()
+    # This uses the to_dict() method you already have on your Block objects.
+    return [block.to_dict() for block in all_blocks]
+
+
+def replace_chain(session: Session, new_chain_dicts: list[dict]) -> bool:
+    """
+    Performs a full validation of a received blockchain and, if it is valid
+    and longer than the current chain, atomically replaces the local chain.
+    This is the heart of the synchronization process.
+    """
+    logger.info("Attempting to replace local chain with received chain...")
+    current_blocks = session.query(Block).order_by(Block.height.asc()).all()
+
+    # 1. Validation: The new chain must be longer to be considered.
+    if len(new_chain_dicts) <= len(current_blocks):
+        logger.warning("Received chain is not longer than the current one. Aborting sync.")
+        return False
+
+    try:
+        # 2. Cryptographic Validation: Reconstruct the blocks using the new from_dict
+        #    classmethod and verify the entire chain's integrity by checking the
+        #    `previous_hash` links.
+        temp_blocks = [Block.from_dict(b) for b in new_chain_dicts]
+        for i in range(1, len(temp_blocks)):
+            # Ensure the current block's previous_hash matches the actual hash of the previous block.
+            if temp_blocks[i].previous_hash != temp_blocks[i-1].calculate_hash():
+                logger.error(
+                    f"Chain validation failed: Invalid hash link at block index {temp_blocks[i].height}."
+                )
+                return False
+        logger.info("Validation of received chain was successful.")
+
+        # 3. Atomic Replacement: Perform the delete and insert operations within a
+        #    single transaction to prevent database corruption on failure.
+        logger.info(f"Deleting {len(current_blocks)} old blocks from the database.")
+        for block in current_blocks:
+            session.delete(block)
+
+        logger.info(f"Inserting {len(temp_blocks)} new blocks into the database.")
+        session.add_all(temp_blocks)
+
+        session.commit()
+        logger.info("Blockchain successfully synced and replaced in the database!")
+        return True
+
+    except Exception as e:
+        logger.error(f"A critical error occurred during chain replacement: {e}")
+        # IMPORTANT: Roll back any partial changes if an error occurs.
+        session.rollback()
+        return False

@@ -25,6 +25,7 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from pydantic import BaseModel, ValidationError
+from axiom_server.p2p.message import MessageType
 
 from .constants import (
     BOOTSTRAP_IP_ADDR,
@@ -99,6 +100,8 @@ class MessageType(Enum):
     PEERS_REQUEST = 0
     PEERS_SHARING = 1
     APPLICATION = 2
+    GET_CHAIN = 3
+    CHAIN_RESPONSE = 4
 
 
 class Message(BaseModel):
@@ -176,6 +179,16 @@ class Message(BaseModel):
         return Message(
             message_type=MessageType.APPLICATION,
             content=ApplicationData(data=data),
+        )
+    
+    @staticmethod
+    def get_chain_request() -> Message:
+        """Build a get chain request message."""
+        # This message type requires no special content, so we create a
+        # generic MessageContent object.
+        return Message(
+            message_type=MessageType.GET_CHAIN,
+            content=MessageContent(),
         )
 
 
@@ -579,7 +592,9 @@ class Node:
             if link is None:
                 logger.error("failed to bootstrap: can't connect to server")
                 return
-
+            
+            logger.info(f"Connection to {link.fmt_addr()} successful. Requesting blockchain...")
+        self._send_message(link, Message.get_chain_request())
         self._send_message(link, Message.peers_request())
 
     def _connect_to_peer(self, ip_address: str, port: int) -> Socket | None:
@@ -751,16 +766,35 @@ class Node:
         self._handle_message(link, message)
 
     def _handle_message(self, link: PeerLink, message: Message):
-        if message.message_type == MessageType.APPLICATION:
+        """Dispatches incoming messages to their appropriate handlers."""
+
+        # --- THIS IS THE FINAL, CORRECTED LOGIC ---
+
+        if message.message_type == MessageType.GET_CHAIN:
+            # When we receive a GET_CHAIN request, we need the application layer
+            # (the other node.py file) to give us the chain data to send back.
+            # We will add a callback property to the Node for this.
+            if hasattr(self, 'get_chain_callback') and callable(self.get_chain_callback):
+                logger.info(f"Peer {link.fmt_addr()} requested the blockchain. Executing callback...")
+                chain_data_json = self.get_chain_callback()
+                response = Message.application_data(chain_data_json)
+                self._send_message(link, response)
+            else:
+                logger.warning("Received GET_CHAIN request but no handler is registered.")
+
+        elif message.message_type == MessageType.APPLICATION:
             assert isinstance(message.content, ApplicationData)
+            # Pass the application message up to the higher-level node to handle.
             self._handle_application_message(link, message.content)
 
-        if message.message_type == MessageType.PEERS_REQUEST:
+        elif message.message_type == MessageType.PEERS_REQUEST:
             self._handle_peers_request(link)
 
-        if message.message_type == MessageType.PEERS_SHARING:
+        elif message.message-type == MessageType.PEERS_SHARING:
             assert isinstance(message.content, PeersSharing)
             self._handle_peers_sharing(link, message.content)
+
+        
 
     def _handle_application_message(
         self,
