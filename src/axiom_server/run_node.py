@@ -27,11 +27,14 @@ logger.setLevel(logging.INFO)
 logger.propagate = False
 
 
+# The Config class is already correct from your previous version.
+# It includes the necessary `public_ip` field.
 class Config(BaseModel):
     """Used as a checkpoint between user input and software."""
 
     host: str
     port: int
+    public_ip: str | None
     bootstrap: bool
     bootstrap_host: str
     bootstrap_port: int
@@ -72,6 +75,15 @@ parser.add_argument(
     type=int,
     help="home port of the node",
 )
+# --- FIX 1 of 3: Define the new command-line argument ---
+# This allows you to explicitly tell the node its public IP address. This is
+# essential for the node to recognize itself when its address is shared by other
+# peers, preventing the self-connection deadlock.
+parser.add_argument(
+    "--public-ip",
+    default=None,
+    help="The public IP address of this node, crucial for self-discovery in NAT environments.",
+)
 parser.add_argument(
     "--default_bootstrap",
     default=False,
@@ -100,14 +112,20 @@ parser.add_argument(
 if __name__ == "__main__":
     arguments = parser.parse_args()
 
+    # --- FIX 2 of 3: Pass the new argument into the configuration object ---
+    # The `public_ip` value read from the command line is now stored in our
+    # validated `CONFIG` object, making it available to the application logic.
     CONFIG = Config(
         host=arguments.addr,
         port=arguments.port,
+        public_ip=arguments.public_ip,
         bootstrap=arguments.bootstrap,
         bootstrap_host=arguments.boot_addr,
         bootstrap_port=arguments.boot_port,
     )
 
+    # This is the fix from our previous step and remains correct. It ensures
+    # a bootstrap node always listens publicly.
     if arguments.default_bootstrap:
         CONFIG.host = "0.0.0.0"
         CONFIG.port = COMPUTED_BOOTSTRAP_PORT
@@ -115,7 +133,11 @@ if __name__ == "__main__":
     logger.info(f"running with config {CONFIG}")
 
     try:
-        with NodeContextManager(Node.start(CONFIG.host, CONFIG.port)) as node:
+        # --- FIX 3 of 3: Pass the public_ip from the config to the Node ---
+        # This is the final connection. We are now passing the public IP address
+        # into the core P2P Node logic, where it will be used to prevent
+        # the node from trying to connect to itself.
+        with NodeContextManager(Node.start(CONFIG.host, CONFIG.port, CONFIG.public_ip)) as node:
             if CONFIG.bootstrap:
                 node.bootstrap(CONFIG.bootstrap_host, CONFIG.bootstrap_port)
 
@@ -123,4 +145,4 @@ if __name__ == "__main__":
                 node.update()
 
     except KeyboardInterrupt:
-        logger.info("user interrupted the node. goodbye! ^-^")
+        logger.info("user interrupted the node. goodbye! ^--^")

@@ -346,6 +346,7 @@ class Node:
 
     ip_address: str
     port: int
+    public_ip: str | None
     serialized_port: bytes
     private_key: rsa.RSAPrivateKey
     public_key: rsa.RSAPublicKey
@@ -354,7 +355,7 @@ class Node:
     server_socket: Socket
 
     @staticmethod
-    def start(ip_address: str, port: int = 0) -> Node:
+    def start(ip_address: str, port: int = 0, public_ip: str | None = None) -> Node:
         """Create a new Node by generating new public and private keys, binding the home socket to ip_address and port.
 
         Args:
@@ -390,6 +391,7 @@ class Node:
         return Node(
             ip_address=computed_ip_address,
             port=computed_port,
+            public_ip=final_public_ip,
             serialized_port=str(computed_port).encode(ENCODING),
             private_key=private_key,
             public_key=public_key,
@@ -677,10 +679,15 @@ class Node:
 
         for serialized_peer in content.peers:
             shared_peer = serialized_peer.to_peer()
-            if (
-                shared_peer.ip_address == self.ip_address
-                and shared_peer.port == self.port
-            ):
+            s_self = False
+            if shared_peer.port == self.port:
+                # Check against all possible addresses that could mean "me"
+                self_ips = {self.ip_address, self.public_ip, "127.0.0.1", "localhost"}
+                if shared_peer.ip_address in self_ips:
+                    logger.info(f"Ignoring peer {shared_peer.ip_address}:{shared_peer.port} because it is myself.")
+                    is_self = True
+            
+            if is_self:
                 continue
             assert shared_peer.port is not None
             if self.search_link_by_peer(
