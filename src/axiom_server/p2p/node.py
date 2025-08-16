@@ -25,7 +25,6 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from pydantic import BaseModel, ValidationError
-from axiom_server.p2p.message import MessageType
 
 from .constants import (
     BOOTSTRAP_IP_ADDR,
@@ -108,7 +107,7 @@ class Message(BaseModel):
     """A message carrying information."""
 
     message_type: MessageType
-    content: PeersRequest | PeersSharing | ApplicationData
+    content: PeersRequest | PeersSharing | ApplicationData | MessageContent
 
     def _to_bytes(self) -> bytes:
         return self.model_dump_json().encode(ENCODING)

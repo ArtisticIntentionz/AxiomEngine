@@ -9,13 +9,14 @@ import argparse
 import json
 import logging
 import sys
+# --- FIX: Import the 'threading' module for synchronization ---
 import threading
 import time
 from urllib.parse import urlparse
 from datetime import datetime
 
 from flask import Flask, Response, jsonify, request
-from flask_cors import CORS 
+from flask_cors import CORS
 
 from axiom_server import (
     crucible,
@@ -27,6 +28,7 @@ from axiom_server import (
 from axiom_server.api_query import semantic_search_ledger
 from axiom_server.crucible import _extract_dates
 from axiom_server.hasher import FactIndexer
+# --- FIX: Import the new ledger functions ---
 from axiom_server.ledger import (
     ENGINE,
     Block,
@@ -40,12 +42,15 @@ from axiom_server.ledger import (
     create_genesis_block,
     get_latest_block,
     initialize_database,
+    get_chain_as_dicts, # <-- New Import
+    replace_chain,      # <-- New Import
 )
 from axiom_server.p2p.constants import (
     BOOTSTRAP_IP_ADDR,
     BOOTSTRAP_PORT,
 )
-from axiom_server.p2p.node import ApplicationData, Node as P2PBaseNode, Message
+# --- FIX: Import the Message class for creating responses ---
+from axiom_server.p2p.node import ApplicationData, Message, Node as P2PBaseNode
 
 __version__ = "3.1.3"
 
@@ -63,14 +68,9 @@ background_thread_logger = logging.getLogger("axiom-node.background-thread")
 
 
 CORROBORATION_THRESHOLD = 2
-
-# This lock ensures only one thread can access the database at a time.
 db_lock = threading.Lock()
-
-# This lock ensures only one thread can read from or write to the fact indexer at a time.
 fact_indexer_lock = threading.Lock()
-
-fact_indexer: FactIndexer | None = None 
+fact_indexer: FactIndexer | None = None
 
 # --- NEW: We create a single class that combines Axiom logic and P2P networking ---
 class AxiomNode(P2PBaseNode):
@@ -86,8 +86,6 @@ class AxiomNode(P2PBaseNode):
         """Initialize both the P2P layer and the Axiom logic layer."""
         logger.info(f"Initializing Axiom Node on {host}:{port}")
 
-        # 1. We must call the parent constructor from the P2P library first.
-        # This allows it to correctly handle both local and public connections.
         temp_p2p = P2PBaseNode.start(ip_address="0.0.0.0", port=port, public_ip=public_ip)
         
         super().__init__(
@@ -102,24 +100,23 @@ class AxiomNode(P2PBaseNode):
             server_socket=temp_p2p.server_socket,
         )
 
+        # --- FIX: Add the synchronization event and store bootstrap peer info ---
+        # A threading.Event is a signal flag. It starts in the "waiting" state.
         self.initial_sync_complete = threading.Event()
-        # We store the bootstrap_peer URL to know if this node is a worker or not.
+        # We store this to know if this node is a worker that needs to sync.
         self.bootstrap_peer = bootstrap_peer
+        # --- END OF FIX ---
 
         self.active_proposals: dict[int, Proposal] = {}
-        # The unused ThreadPoolExecutor has been correctly removed.
 
-        # 2. Perform Axiom-specific database initialization.
         initialize_database(ENGINE)
         with SessionMaker() as session:
             create_genesis_block(session)
 
-        # 3. If a bootstrap peer URL is provided, connect in the background.
         if bootstrap_peer:
             parsed_url = urlparse(bootstrap_peer)
             bootstrap_host = parsed_url.hostname or BOOTSTRAP_IP_ADDR
             bootstrap_port = parsed_url.port or BOOTSTRAP_PORT
-
             threading.Thread(
                 target=self.bootstrap,
                 args=(bootstrap_host, bootstrap_port),
@@ -128,46 +125,44 @@ class AxiomNode(P2PBaseNode):
 
     def _handle_application_message(
         self,
-        link: any,
+        link: any, # This is a PeerLink object
         content: ApplicationData,
     ) -> None:
-        """This method is automatically called by the P2P layer."""
+        """This method is the central dispatcher for all high-level P2P messages."""
         try:
             message = json.loads(content.data)
             msg_type = message.get("type")
-            
-            # --- FIX 2 of 4: Handle the CHAIN_RESPONSE and GET_CHAIN_REQUEST ---
-            # This is where the node acts on the messages we defined in the P2P layer.
-            
+
+            # --- FIX: Handle the new sync-related messages ---
             if msg_type == "CHAIN_RESPONSE":
                 logger.info("Received full blockchain from peer. Beginning sync process...")
                 chain_data = message.get("chain")
+                if not chain_data:
+                    logger.warning("CHAIN_RESPONSE message received but contained no 'chain' data.")
+                    return
+
                 with db_lock, SessionMaker() as session:
-                    # We call the `replace_chain` function we added to ledger.py
-                    success = ledger.replace_chain(session, chain_data)
+                    success = replace_chain(session, chain_data)
                     if success:
                         logger.info("Blockchain synchronization successful!")
                         # This is the crucial signal! It "un-pauses" the work loop.
                         self.initial_sync_complete.set()
                     else:
-                        logger.error("Blockchain synchronization failed. The received chain may be invalid or not longer.")
-            
-            elif msg_type == "GET_CHAIN_REQUEST":
-                logger.info(f"Peer {message.get('peer_addr')} requested our blockchain. Sending...")
-                # The peer is asking for our chain. We'll get it and send it back.
-                chain_data_json = self._get_chain_for_peer()
-                response = Message.application_data(chain_data_json)
-                # Note: We need a way to send back to a specific link. This might require
-                # a small change in the P2P layer to pass the link object.
-                # For now, we assume a method to send to a specific peer exists.
-                self.send_message_to_peer(link, response) # You will need to implement send_message_to_peer
+                        logger.error("Blockchain synchronization failed.")
 
-            # --- END OF FIX ---
-            
+            elif msg_type == "GET_CHAIN_REQUEST":
+                logger.info(f"Peer {message.get('peer_addr')} requested our blockchain. Sending response...")
+                chain_data_json_str = self._get_chain_for_peer()
+                response_message = Message.application_data(chain_data_json_str)
+                # Use the low-level _send_message to send back to the specific peer.
+                self._send_message(link, response_message)
+
             elif msg_type == "new_block_header":
                 msg_data = message.get("data")
                 with db_lock, SessionMaker() as session:
                     add_block_from_peer_data(session, msg_data)
+            # --- END OF FIX ---
+
         except Exception as e:
             background_thread_logger.error(
                 f"Error processing peer message: {e}",
@@ -176,137 +171,138 @@ class AxiomNode(P2PBaseNode):
     def _background_work_loop(self) -> None:
         """The main work cycle for fact-gathering and block-sealing."""
         background_thread_logger.info("Starting continuous Axiom work cycle.")
-        if self.bootstrap_peer:
-            logger.info("Worker node started. Waiting for initial blockchain sync from bootstrap peer...")
-            # The thread will pause here until `self.initial_sync_complete.set()` is called,
-            # or until the timeout is reached.
-            synced = self.initial_sync_complete.wait(timeout=60.0)
-            if not synced:
-                logger.warning("Initial sync timed out after 60 seconds. Proceeding with local chain. The network may be partitioned.")
-            else:
-                 logger.info("Initial sync complete. Starting engine cycle.")
         while True:
-            background_thread_logger.info("Axiom engine cycle start")
+            if self.bootstrap_peer:
+                logger.info("Worker node started. Waiting for initial blockchain sync from bootstrap peer...")
+                # The thread will pause here until `self.initial_sync_complete.set()` is called,
+                # or until the timeout is reached.
+                synced = self.initial_sync_complete.wait(timeout=60.0)
+                if not synced:
+                    logger.warning("Initial sync timed out after 60 seconds. Proceeding with local chain. The network may be partitioned.")
+                else:
+                    logger.info("Initial sync complete. Starting engine cycle.")
+            while True:
+                background_thread_logger.info("Axiom engine cycle start")
 
-            # --- PHASE 1: Fact Gathering & Sealing ---
-            # Acquire the lock only for the duration of this phase.
-            with db_lock:
-                with SessionMaker() as session:
-                    try:
-                        topics = zeitgeist_engine.get_trending_topics(top_n=1)
-                        content_list = []
-                        if topics:
-                            content_list = discovery_rss.get_content_from_prioritized_feed()
+                # --- PHASE 1: Fact Gathering & Sealing ---
+                # Acquire the lock only for the duration of this phase.
+                with db_lock:
+                    with SessionMaker() as session:
+                        try:
+                            topics = zeitgeist_engine.get_trending_topics(top_n=1)
+                            content_list = []
+                            if topics:
+                                content_list = discovery_rss.get_content_from_prioritized_feed()
 
-                        if not content_list:
-                            background_thread_logger.info(
-                                "No new content found. Proceeding to verification phase.",
-                            )
-                        else:
-                            facts_for_sealing: list[Fact] = []
-                            adder = crucible.CrucibleFactAdder(
-                                session,
-                                fact_indexer,
-                                fact_indexer_lock,
-                            )
-                            for item in content_list:
-                                domain = urlparse(item["source_url"]).netloc
-                                source = session.query(Source).filter(
-                                    Source.domain == domain,
-                                ).one_or_none() or Source(domain=domain)
-                                session.add(source)
-
-                                new_facts = crucible.extract_facts_from_text(
-                                    item["content"],
-                                )
-                                for fact in new_facts:
-                                    fact.sources.append(source)
-                                    session.add(fact)
-                                    session.commit()
-                                    adder.add(fact)
-                                    facts_for_sealing.append(fact)
-
-                            if facts_for_sealing:
+                            if not content_list:
                                 background_thread_logger.info(
-                                    f"Preparing to seal {len(facts_for_sealing)} new facts into a block...",
+                                    "No new content found. Proceeding to verification phase.",
                                 )
-                                latest_block = get_latest_block(session)
-                                assert latest_block is not None
-                                fact_hashes = sorted(
-                                    [f.hash for f in facts_for_sealing],
-                                )
-                                new_block = Block(
-                                    height=latest_block.height + 1,
-                                    previous_hash=latest_block.hash,
-                                    fact_hashes=json.dumps(fact_hashes),
-                                    timestamp=time.time(),
-                                )
-                                new_block.seal_block(difficulty=4)
-                                session.add(new_block)
-                                session.commit()
-                                background_thread_logger.info(
-                                    f"Successfully sealed and added Block #{new_block.height}.",
-                                )
-                                broadcast_data = {
-                                    "type": "new_block_header",
-                                    "data": new_block.to_dict(),
-                                }
-                                self.broadcast_application_message(
-                                    json.dumps(broadcast_data),
-                                )
-                                background_thread_logger.info(
-                                    "Broadcasted new block header to network.",
-                                )
-                    except Exception as e:
-                        background_thread_logger.exception(
-                            f"Critical error in learning loop: {e}",
-                        )
-
-            # --- The database lock is now RELEASED. The API is fully responsive. ---
-
-            # --- PHASE 2: Verification ---
-            # Acquire the lock again for this separate database transaction.
-            with db_lock:
-                with SessionMaker() as session:
-                    try:
-                        background_thread_logger.info(
-                            "Starting verification phase...",
-                        )
-                        facts_to_verify = (
-                            session.query(Fact)
-                            .filter(Fact.status == "ingested")
-                            .all()
-                        )
-                        if not facts_to_verify:
-                            background_thread_logger.info(
-                                "No new facts to verify.",
-                            )
-                        else:
-                            background_thread_logger.info(
-                                f"Found {len(facts_to_verify)} facts to verify.",
-                            )
-                            for fact in facts_to_verify:
-                                claims = verification_engine.find_corroborating_claims(
-                                    fact,
+                            else:
+                                facts_for_sealing: list[Fact] = []
+                                adder = crucible.CrucibleFactAdder(
                                     session,
+                                    fact_indexer,
+                                    fact_indexer_lock,
                                 )
-                                if len(claims) >= CORROBORATION_THRESHOLD:
-                                    fact.status = "corroborated"
-                                    background_thread_logger.info(
-                                        f"Fact '{fact.hash[:8]}' has been corroborated with {len(claims)} pieces of evidence.",
+                                for item in content_list:
+                                    domain = urlparse(item["source_url"]).netloc
+                                    source = session.query(Source).filter(
+                                        Source.domain == domain,
+                                    ).one_or_none() or Source(domain=domain)
+                                    session.add(source)
+
+                                    new_facts = crucible.extract_facts_from_text(
+                                        item["content"],
                                     )
-                                    fact.score += 10
-                            session.commit()
-                    except Exception as e:
-                        background_thread_logger.exception(
-                            f"Error during verification phase: {e}",
-                        )
+                                    for fact in new_facts:
+                                        fact.sources.append(source)
+                                        session.add(fact)
+                                        session.commit()
+                                        adder.add(fact)
+                                        facts_for_sealing.append(fact)
 
-            # --- The database lock is RELEASED again. ---
+                                if facts_for_sealing:
+                                    background_thread_logger.info(
+                                        f"Preparing to seal {len(facts_for_sealing)} new facts into a block...",
+                                    )
+                                    latest_block = get_latest_block(session)
+                                    assert latest_block is not None
+                                    fact_hashes = sorted(
+                                        [f.hash for f in facts_for_sealing],
+                                    )
+                                    new_block = Block(
+                                        height=latest_block.height + 1,
+                                        previous_hash=latest_block.hash,
+                                        fact_hashes=json.dumps(fact_hashes),
+                                        timestamp=time.time(),
+                                    )
+                                    new_block.seal_block(difficulty=4)
+                                    session.add(new_block)
+                                    session.commit()
+                                    background_thread_logger.info(
+                                        f"Successfully sealed and added Block #{new_block.height}.",
+                                    )
+                                    broadcast_data = {
+                                        "type": "new_block_header",
+                                        "data": new_block.to_dict(),
+                                    }
+                                    self.broadcast_application_message(
+                                        json.dumps(broadcast_data),
+                                    )
+                                    background_thread_logger.info(
+                                        "Broadcasted new block header to network.",
+                                    )
+                        except Exception as e:
+                            background_thread_logger.exception(
+                                f"Critical error in learning loop: {e}",
+                            )
 
-            background_thread_logger.info("Axiom cycle finished. Sleeping.")
-            # The long sleep happens while NO locks are held.
-            time.sleep(10800)
+                # --- The database lock is now RELEASED. The API is fully responsive. ---
+
+                # --- PHASE 2: Verification ---
+                # Acquire the lock again for this separate database transaction.
+                with db_lock:
+                    with SessionMaker() as session:
+                        try:
+                            background_thread_logger.info(
+                                "Starting verification phase...",
+                            )
+                            facts_to_verify = (
+                                session.query(Fact)
+                                .filter(Fact.status == "ingested")
+                                .all()
+                            )
+                            if not facts_to_verify:
+                                background_thread_logger.info(
+                                    "No new facts to verify.",
+                                )
+                            else:
+                                background_thread_logger.info(
+                                    f"Found {len(facts_to_verify)} facts to verify.",
+                                )
+                                for fact in facts_to_verify:
+                                    claims = verification_engine.find_corroborating_claims(
+                                        fact,
+                                        session,
+                                    )
+                                    if len(claims) >= CORROBORATION_THRESHOLD:
+                                        fact.status = "corroborated"
+                                        background_thread_logger.info(
+                                            f"Fact '{fact.hash[:8]}' has been corroborated with {len(claims)} pieces of evidence.",
+                                        )
+                                        fact.score += 10
+                                session.commit()
+                        except Exception as e:
+                            background_thread_logger.exception(
+                                f"Error during verification phase: {e}",
+                            )
+
+                # --- The database lock is RELEASED again. ---
+
+                background_thread_logger.info("Axiom cycle finished. Sleeping.")
+                # The long sleep happens while NO locks are held.
+                time.sleep(10800)
 
     def start(self) -> None:
         """Start all background tasks and the main P2P loop."""
@@ -324,7 +320,7 @@ class AxiomNode(P2PBaseNode):
     def _get_chain_for_peer(self) -> str:
         """A thread-safe method to get the entire blockchain as a JSON string."""
         with db_lock, SessionMaker() as session:
-            chain_dicts = ledger.get_chain_as_dicts(session)
+            chain_dicts = get_chain_as_dicts(session)
             response_data = {"type": "CHAIN_RESPONSE", "chain": chain_dicts}
             return json.dumps(response_data)
 
@@ -699,7 +695,6 @@ def main() -> None:
         default=None,
         help="The public IP address of this node for self-discovery.",
     )
-    # --- END OF FIX ---
     args = parser.parse_args()
 
     try:
