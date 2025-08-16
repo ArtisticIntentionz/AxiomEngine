@@ -81,17 +81,19 @@ class AxiomNode(P2PBaseNode):
         host: str,
         port: int,
         bootstrap_peer: str | None,
+        public_ip: str | None,
     ) -> None:
         """Initialize both the P2P layer and the Axiom logic layer."""
         logger.info(f"Initializing Axiom Node on {host}:{port}")
 
         # 1. We must call the parent constructor from the P2P library first.
         # This allows it to correctly handle both local and public connections.
-        temp_p2p = P2PBaseNode.start(ip_address="0.0.0.0", port=port)
+        temp_p2p = P2PBaseNode.start(ip_address="0.0.0.0", port=port, public_ip=public_ip)
         
         super().__init__(
             ip_address=temp_p2p.ip_address,
             port=temp_p2p.port,
+            public_ip=temp_p2p.public_ip, # <-- THE FIX IS ADDING THIS LINE
             serialized_port=temp_p2p.serialized_port,
             private_key=temp_p2p.private_key,
             public_key=temp_p2p.public_key,
@@ -645,6 +647,13 @@ def main() -> None:
         default=None,
         help="Full URL of a peer to connect to for bootstrapping (e.g., http://host:port).",
     )
+    parser.add_argument(
+        "--public-ip",
+        type=str,
+        default=None,
+        help="The public IP address of this node for self-discovery.",
+    )
+    # --- END OF FIX ---
     args = parser.parse_args()
 
     try:
@@ -653,6 +662,7 @@ def main() -> None:
             host=args.host,
             port=args.p2p_port,
             bootstrap_peer=args.bootstrap_peer,
+            public_ip=args.public_ip,
         )
 
         logger.info("--- Initializing Fact Indexer for Hybrid Search ---")
