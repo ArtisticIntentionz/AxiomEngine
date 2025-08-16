@@ -70,8 +70,6 @@ db_lock = threading.Lock()
 # This lock ensures only one thread can read from or write to the fact indexer at a time.
 fact_indexer_lock = threading.Lock()
 
-fact_indexer: FactIndexer | None = None
-
 
 # --- NEW: We create a single class that combines Axiom logic and P2P networking ---
 class AxiomNode(P2PBaseNode):
@@ -126,7 +124,7 @@ class AxiomNode(P2PBaseNode):
 
     def _handle_application_message(
         self,
-        link: any,
+        _link: str,
         content: ApplicationData,
     ) -> None:
         """Handle application data."""
@@ -140,9 +138,9 @@ class AxiomNode(P2PBaseNode):
                 with db_lock:
                     with SessionMaker() as session:
                         add_block_from_peer_data(session, msg_data)
-        except Exception as e:
+        except Exception as exc:
             background_thread_logger.error(
-                f"Error processing peer message: {e}",
+                f"Error processing peer message: {exc}",
             )
 
     def _background_work_loop(self) -> None:
@@ -220,9 +218,9 @@ class AxiomNode(P2PBaseNode):
                                 background_thread_logger.info(
                                     "Broadcasted new block header to network.",
                                 )
-                    except Exception as e:
+                    except Exception as exc:
                         background_thread_logger.exception(
-                            f"Critical error in learning loop: {e}",
+                            f"Critical error in learning loop: {exc}",
                         )
 
             # --- The database lock is now RELEASED. The API is fully responsive. ---
@@ -260,9 +258,9 @@ class AxiomNode(P2PBaseNode):
                                     )
                                     fact.score += 10
                             session.commit()
-                    except Exception as e:
+                    except Exception as exc:
                         background_thread_logger.exception(
-                            f"Error during verification phase: {e}",
+                            f"Error during verification phase: {exc}",
                         )
 
             # --- The database lock is RELEASED again. ---
@@ -285,7 +283,12 @@ class AxiomNode(P2PBaseNode):
             self.update()
 
     @classmethod
-    def start_node(cls, host: str, port: int, bootstrap: bool) -> AxiomNode:
+    def start_node(
+        cls,
+        host: str,
+        port: int,
+        bootstrap_peer: str | None,
+    ) -> AxiomNode:
         """Create and initialize a complete AxiomNode.
 
         This is the preferred way to instantiate the node.
@@ -297,7 +300,7 @@ class AxiomNode(P2PBaseNode):
         axiom_instance = cls(
             host=p2p_instance.ip_address,
             port=p2p_instance.port,
-            bootstrap=bootstrap,
+            bootstrap_peer=bootstrap_peer,
         )
 
         # 3. Transfer the initialized P2P components to our instance.
@@ -317,7 +320,7 @@ class AxiomNode(P2PBaseNode):
 app = Flask(__name__)
 CORS(app)
 node_instance: AxiomNode
-fact_indexer: FactIndexer | None = None
+fact_indexer: FactIndexer
 
 
 @app.route("/chat", methods=["POST"])
@@ -437,7 +440,7 @@ def handle_local_query() -> Response:
 def handle_get_peers() -> Response:
     """Handle get peers request."""
     known_peers = []
-    if node_instance:
+    if node_instance is not None:
         known_peers = [link.fmt_addr() for link in node_instance.iter_links()]
     return jsonify({"peers": known_peers})
 
@@ -522,8 +525,8 @@ def handle_get_merkle_proof() -> Response | tuple[Response, int]:
         try:
             fact_index = fact_hashes_in_block.index(fact_hash)
             proof = merkle_tree.get_proof(fact_index)
-        except (ValueError, IndexError) as e:
-            logger.error(f"Error generating Merkle proof: {e}")
+        except (ValueError, IndexError) as exc:
+            logger.error(f"Error generating Merkle proof: {exc}")
             return jsonify({"error": "Failed to generate Merkle proof"}), 500
         return jsonify(
             {

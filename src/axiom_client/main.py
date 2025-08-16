@@ -200,12 +200,13 @@ class AxiomClientApp(QWidget):
 
             html = f"<h2>{title}</h2>"
             html += f"<p><i>{explanation}</i></p>"
-            html += f"<p style='font-size: 14px;'><b>&ldquo;{content}&rdquo;</b></p>"  # Display fact as a quote
+            # Display fact as a quote
+            html += f"<p style='font-size: 14px;'><b>&ldquo;{content}&rdquo;</b></p>"
 
         self.results_output.setHtml(html)
 
     # The status bar logic is perfect and does not need to be changed.
-    def update_network_status(self):
+    def update_network_status(self) -> None:
         """Periodically called by a QTimer to update the status bar."""
         try:
             response = requests.get(f"{self.server_url}/status", timeout=2)
@@ -219,7 +220,7 @@ class AxiomClientApp(QWidget):
         except requests.exceptions.RequestException:
             self.set_disconnected_status()
 
-    def set_disconnected_status(self):
+    def set_disconnected_status(self) -> None:
         """Set all UI elements to a disconnected state."""
         self.connection_status_label.setText(
             f"🔴 Disconnected from {self.server_url}",

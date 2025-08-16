@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, Any, Callable, Literal
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
+    from types import TracebackType
 
 import cryptography
 import cryptography.exceptions
@@ -26,7 +27,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from pydantic import BaseModel, ValidationError
 
-from .constants import (
+from axiom_server.p2p.constants import (
     BOOTSTRAP_IP_ADDR,
     BOOTSTRAP_PORT,
     ENCODING,
@@ -277,7 +278,7 @@ def _generate_key_pair() -> tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
     return private_key, public_key
 
 
-def _sign(message: bytes, private_key: rsa.RSAPrivateKey):
+def _sign(message: bytes, private_key: rsa.RSAPrivateKey) -> bytes:
     return private_key.sign(
         message,
         padding.PSS(
@@ -288,7 +289,11 @@ def _sign(message: bytes, private_key: rsa.RSAPrivateKey):
     )
 
 
-def _verify(signature: bytes, message: bytes, public_key: rsa.RSAPublicKey):
+def _verify(
+    signature: bytes,
+    message: bytes,
+    public_key: rsa.RSAPublicKey,
+) -> bool:
     try:
         public_key.verify(
             signature,
@@ -328,7 +333,12 @@ class NodeContextManager:
         """Return the node."""
         return self.node
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         """Handle stopping the node."""
         self.node.stop()
 
@@ -398,7 +408,7 @@ class Node:
             server_socket=secure_server_socket,
         )
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop the node by closing all active peer connections and the server socket.
 
         This method iterates through all peer links, closes the socket for each active link,
@@ -411,7 +421,7 @@ class Node:
         self.server_socket.close()
         logger.info("closed server socket")
 
-    def update(self):
+    def update(self) -> None:
         """Handle incoming and outgoing network events for the node.
 
         This method performs the following tasks:
@@ -526,7 +536,7 @@ class Node:
             if fun(link):
                 yield link
 
-    def broadcast_application_message(self, data: str):
+    def broadcast_application_message(self, data: str) -> None:
         """Broadcast an application-level message to all connected peers.
 
         This method wraps the provided data in an application-specific message format
@@ -543,7 +553,7 @@ class Node:
         self,
         ip_addr: str = BOOTSTRAP_IP_ADDR,
         port: int = BOOTSTRAP_PORT,
-    ):
+    ) -> bool:
         """Attempt to connect this node to a target peer in the network.
 
         This method searches for an existing link to the specified peer using its IP address and port.
@@ -602,7 +612,7 @@ class Node:
 
         return secure_socket
 
-    def _declare_to_peer(self, link: PeerLink):
+    def _declare_to_peer(self, link: PeerLink) -> None:
         self._send(link, self.serialized_public_key)
         self._send(link, self.serialized_port)
 
@@ -610,7 +620,7 @@ class Node:
         self,
         socket: Socket,
         addr: socket_lib._RetAddress,
-    ):
+    ) -> None:
         if socket.family != socket_lib.AF_INET:
             logger.info(f"{addr} ignoring non INET socket: {socket.family}")
             return
@@ -662,7 +672,7 @@ class Node:
 
         return False
 
-    def _handle_peers_request(self, link: PeerLink):
+    def _handle_peers_request(self, link: PeerLink) -> None:
         peers = [
             link.peer for link in self.peer_links if link.peer.can_be_shared()
         ]
@@ -672,7 +682,11 @@ class Node:
 
         self._send_message(link, Message.peers_sharing(peers))
 
-    def _handle_peers_sharing(self, link: PeerLink, content: PeersSharing):
+    def _handle_peers_sharing(
+        self,
+        link: PeerLink,
+        content: PeersSharing,
+    ) -> None:
         logger.info(f"{link.fmt_addr()} shared {len(content.peers)} peers")
 
         for serialized_peer in content.peers:
@@ -707,7 +721,7 @@ class Node:
 
         return None
 
-    def _handle_buffer_readable(self, link: PeerLink):
+    def _handle_buffer_readable(self, link: PeerLink) -> None:
         if self._handle_public_key_declaration(link):
             return
         assert link.peer.public_key is not None
@@ -734,7 +748,7 @@ class Node:
         logger.info(f"{link.fmt_addr()} received {message.message_type}")
         self._handle_message(link, message)
 
-    def _handle_message(self, link: PeerLink, message: Message):
+    def _handle_message(self, link: PeerLink, message: Message) -> None:
         if message.message_type == MessageType.APPLICATION:
             assert isinstance(message.content, ApplicationData)
             self._handle_application_message(link, message.content)
@@ -750,34 +764,34 @@ class Node:
         self,
         link: PeerLink,
         content: ApplicationData,
-    ):
+    ) -> None:
         logger.info(f"application data: {content.data}")
 
-    def _send_message(self, link: PeerLink, message: Message):
+    def _send_message(self, link: PeerLink, message: Message) -> None:
         raw_message = message.to_raw(self.private_key)
         data = raw_message.to_bytes()
         logger.info(f"sending {message.message_type} to {link.fmt_addr()}")
         self._send(link, data)
 
-    def _send_message_to_peers(self, message: Message):
+    def _send_message_to_peers(self, message: Message) -> None:
         raw_message = message.to_raw(self.private_key)
         data = raw_message.to_bytes()
         logger.info(f"sending {message.message_type} to peers")
         self._send_to_peers(data)
 
-    def _send_to_peers(self, data: bytes):
+    def _send_to_peers(self, data: bytes) -> None:
         for link in self.peer_links:
             self._send(link, data)
 
-    def _send(self, link: PeerLink, data: bytes):
+    def _send(self, link: PeerLink, data: bytes) -> None:
         if SEPARATOR in data:
-            message = f"found separator {SEPARATOR} in data to send, which is not permitted"
+            message = f"found separator {SEPARATOR!r} in data to send, which is not permitted"
             logger.error(message)
             raise P2PRuntimeError(message)
 
         link.socket.sendall(data + SEPARATOR)
 
-    def _recv(self, link: PeerLink):
+    def _recv(self, link: PeerLink) -> None:
         chunk = link.socket.recv(NODE_CHUNK_SIZE)
 
         if not chunk:
