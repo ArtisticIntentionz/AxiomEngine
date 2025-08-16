@@ -151,6 +151,7 @@ class Block(Base):
             "merkle_root": self.merkle_root,
             "timestamp": self.timestamp,
             "nonce": self.nonce,
+            "fact_hashes": self.fact_hashes,
         }
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Self:
