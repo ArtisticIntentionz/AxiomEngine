@@ -578,9 +578,10 @@ class Node:
 
             if link is None:
                 logger.error("failed to bootstrap: can't connect to server")
-                return
+                return False
 
         self._send_message(link, Message.peers_request())
+        return True
 
     def _connect_to_peer(self, ip_address: str, port: int) -> Socket | None:
         context = ssl.create_default_context()
@@ -697,10 +698,19 @@ class Node:
             ):
                 continue
             assert shared_peer.port is not None
+
+            def check_peer_eq(
+                peer: Peer,
+                shared_peer: Peer = shared_peer,
+            ) -> bool:
+                """Return if peers are equivalent."""
+                return (
+                    peer.ip_address == shared_peer.ip_address
+                    and peer.port == shared_peer.port
+                )
+
             if self.search_link_by_peer(
-                lambda peer, shared_peer=shared_peer: peer.ip_address
-                == shared_peer.ip_address
-                and peer.port == shared_peer.port,
+                check_peer_eq,
             ):
                 continue
             self._create_link(shared_peer.ip_address, shared_peer.port)
@@ -729,15 +739,15 @@ class Node:
             return
         assert link.peer.port is not None
 
-        message = RawMessage.from_bytes(link.buffer)
+        raw_message = RawMessage.from_bytes(link.buffer)
 
-        if not message.check_signature(link.peer.public_key):
+        if not raw_message.check_signature(link.peer.public_key):
             logger.error(
                 f"{link.fmt_addr()} ignoring message because the signature doesn't match content",
             )
             return
 
-        message = Message.from_raw(message)
+        message = Message.from_raw(raw_message)
 
         if not message.check_content():
             logger.error(

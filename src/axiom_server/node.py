@@ -45,7 +45,11 @@ from axiom_server.p2p.constants import (
     BOOTSTRAP_IP_ADDR,
     BOOTSTRAP_PORT,
 )
-from axiom_server.p2p.node import ApplicationData, Node as P2PBaseNode
+from axiom_server.p2p.node import (
+    ApplicationData,
+    Node as P2PBaseNode,
+    PeerLink,
+)
 
 __version__ = "3.1.3"
 
@@ -124,7 +128,7 @@ class AxiomNode(P2PBaseNode):
 
     def _handle_application_message(
         self,
-        _link: str,
+        _link: PeerLink,
         content: ApplicationData,
     ) -> None:
         """Handle application data."""
@@ -168,7 +172,6 @@ class AxiomNode(P2PBaseNode):
                             adder = crucible.CrucibleFactAdder(
                                 session,
                                 fact_indexer,
-                                fact_indexer_lock,
                             )
                             for item in content_list:
                                 domain = urlparse(item["source_url"]).netloc
@@ -184,7 +187,8 @@ class AxiomNode(P2PBaseNode):
                                     fact.sources.append(source)
                                     session.add(fact)
                                     session.commit()
-                                    adder.add(fact)
+                                    with fact_indexer_lock:
+                                        adder.add(fact)
                                     facts_for_sealing.append(fact)
 
                             if facts_for_sealing:
@@ -269,7 +273,7 @@ class AxiomNode(P2PBaseNode):
             # The long sleep happens while NO locks are held.
             time.sleep(10800)
 
-    def start(self) -> None:
+    def start(self) -> None:  # type: ignore[override]
         """Start all background tasks and the main P2P loop."""
         work_thread = threading.Thread(
             target=self._background_work_loop,
@@ -324,7 +328,7 @@ fact_indexer: FactIndexer
 
 
 @app.route("/chat", methods=["POST"])
-def handle_chat_query():
+def handle_chat_query() -> Response | tuple[Response, int]:
     """Handle natural language queries from the client.
 
     Finding the most semantically similar facts in the ledger.
@@ -545,7 +549,7 @@ def handle_anonymous_query() -> Response | tuple[Response, int]:
 
 
 @app.route("/dao/proposals", methods=["GET"])
-def handle_get_proposals() -> Response:
+def handle_get_proposals() -> tuple[Response, int]:
     """Handle dao proposals request."""
     return jsonify({"error": "DAO not implemented in V4"}), 501
 
