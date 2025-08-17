@@ -275,7 +275,8 @@ class AxiomNode(P2PBaseNode):
                 self.new_block_received.clear()
 
                 was_sealed = self.seal_block_interruptibly(
-                    new_block_candidate, difficulty=4,
+                    new_block_candidate,
+                    difficulty=4,
                 )
 
                 if was_sealed:
@@ -344,7 +345,8 @@ class AxiomNode(P2PBaseNode):
                         for fact in facts_to_verify:
                             claims = (
                                 verification_engine.find_corroborating_claims(
-                                    fact, session,
+                                    fact,
+                                    session,
                                 )
                             )
                             if len(claims) >= CORROBORATION_THRESHOLD:
@@ -394,7 +396,8 @@ class AxiomNode(P2PBaseNode):
             daemon=True,
         )
         peer_thread = threading.Thread(
-            target=self._peer_management_loop, daemon=True,
+            target=self._peer_management_loop,
+            daemon=True,
         )
         work_thread.start()
         peer_thread.start()

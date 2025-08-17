@@ -450,7 +450,9 @@ class CrucibleFactAdder:
                         f"NLI CONTRADICTION DETECTED between new Fact ID {new_fact.id} and existing Fact ID {existing_fact.id}! Marking as disputed.",
                     )
                     mark_fact_objects_as_disputed(
-                        self.session, existing_fact, new_fact,
+                        self.session,
+                        existing_fact,
+                        new_fact,
                     )
                     self.contradiction_count += 1
                     self.session.commit()

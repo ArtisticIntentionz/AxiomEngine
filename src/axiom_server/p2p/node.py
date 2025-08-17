@@ -387,7 +387,9 @@ class Node:
 
     @staticmethod
     def start(
-        ip_address: str, port: int = 0, public_ip: str | None = None,
+        ip_address: str,
+        port: int = 0,
+        public_ip: str | None = None,
     ) -> Node:
         """Create a new Node by generating new public and private keys, binding the home socket to ip_address and port.
 

@@ -223,7 +223,10 @@ class Fact(Base):
         nullable=False,
     )
     hash: Mapped[str] = mapped_column(
-        String, default="", nullable=False, unique=True,
+        String,
+        default="",
+        nullable=False,
+        unique=True,
     )
     last_checked: Mapped[str] = mapped_column(
         String,
