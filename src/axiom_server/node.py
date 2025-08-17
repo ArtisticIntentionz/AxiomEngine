@@ -11,9 +11,9 @@ import logging
 import sys
 import threading
 import time
+from datetime import datetime
 import hashlib
 from urllib.parse import urlparse
-from datetime import datetime
 
 from flask import Flask, Response, jsonify, request
 from flask_cors import CORS
@@ -48,8 +48,12 @@ from axiom_server.p2p.constants import (
     BOOTSTRAP_IP_ADDR,
     BOOTSTRAP_PORT,
 )
-# --- Import the Message class for creating responses ---
-from axiom_server.p2p.node import ApplicationData, Message, Node as P2PBaseNode
+from axiom_server.p2p.node import (
+    ApplicationData,
+    Message,
+    Node as P2PBaseNode,
+    PeerLink,
+)
 
 __version__ = "3.1.3"
 
@@ -85,8 +89,13 @@ class AxiomNode(P2PBaseNode):
         """Initialize both the P2P layer and the Axiom logic layer."""
         logger.info(f"Initializing Axiom Node on {host}:{port}")
 
-        temp_p2p = P2PBaseNode.start(ip_address="0.0.0.0", port=port, public_ip=public_ip)
-        
+        # 1. We must call the parent constructor from the P2P library first.
+        # This allows it to correctly handle both local and public connections.
+        temp_p2p = P2PBaseNode.start(
+            ip_address=host,
+            port=port,
+        )
+
         super().__init__(
             ip_address=temp_p2p.ip_address,
             port=temp_p2p.port,
@@ -120,7 +129,7 @@ class AxiomNode(P2PBaseNode):
 
     def _handle_application_message(
         self,
-        link: any, # This is a PeerLink object
+        _link: PeerLink,
         content: ApplicationData,
     ) -> None:
         """This method is the central dispatcher for all high-level P2P messages."""
@@ -158,7 +167,7 @@ class AxiomNode(P2PBaseNode):
 
         except Exception as e:
             background_thread_logger.error(
-                f"Error processing peer message: {e}",
+                f"Error processing peer message: {exc}",
             )
 
     def _background_work_loop(self) -> None:
@@ -190,31 +199,33 @@ class AxiomNode(P2PBaseNode):
                     if topics:
                         content_list = discovery_rss.get_content_from_prioritized_feed()
 
-                    if not content_list:
-                        background_thread_logger.info("No new content found this cycle. Proceeding to verification phase.")
-                    else:
-                        facts_for_sealing: list[Fact] = []
-                        adder = crucible.CrucibleFactAdder(
-                            session,
-                            fact_indexer,
-                            fact_indexer_lock,
-                        )
-                        for item in content_list:
-                            domain = urlparse(item["source_url"]).netloc
-                            source = session.query(Source).filter(
-                                Source.domain == domain,
-                            ).one_or_none() or Source(domain=domain)
-                            session.add(source)
-
-                            new_facts = crucible.extract_facts_from_text(
-                                item["content"],
+                        if not content_list:
+                            background_thread_logger.info(
+                                "No new content found. Proceeding to verification phase.",
                             )
-                            for fact in new_facts:
-                                fact.sources.append(source)
-                                session.add(fact)
-                                session.commit()
-                                adder.add(fact)
-                                facts_for_sealing.append(fact)
+                        else:
+                            facts_for_sealing: list[Fact] = []
+                            adder = crucible.CrucibleFactAdder(
+                                session,
+                                fact_indexer,
+                            )
+                            for item in content_list:
+                                domain = urlparse(item["source_url"]).netloc
+                                source = session.query(Source).filter(
+                                    Source.domain == domain,
+                                ).one_or_none() or Source(domain=domain)
+                                session.add(source)
+
+                                new_facts = crucible.extract_facts_from_text(
+                                    item["content"],
+                                )
+                                for fact in new_facts:
+                                    fact.sources.append(source)
+                                    session.add(fact)
+                                    session.commit()
+                                    with fact_indexer_lock:
+                                        adder.add(fact)
+                                    facts_for_sealing.append(fact)
 
                         if facts_for_sealing:
                             background_thread_logger.info(f"Preparing to mine a new block with {len(facts_for_sealing)} facts...")
@@ -351,8 +362,14 @@ class AxiomNode(P2PBaseNode):
             time.sleep(300) # e.g., run every 5 minutes
 
     @classmethod
-    def start_node(cls, host: str, port: int, bootstrap: bool) -> AxiomNode:
-        """A factory method to create and initialize a complete AxiomNode.
+    def start_node(
+        cls,
+        host: str,
+        port: int,
+        bootstrap_peer: str | None,
+    ) -> AxiomNode:
+        """Create and initialize a complete AxiomNode.
+
         This is the preferred way to instantiate the node.
         """
         # 1. Use the parent's factory to create the low-level P2P components.
@@ -362,7 +379,7 @@ class AxiomNode(P2PBaseNode):
         axiom_instance = cls(
             host=p2p_instance.ip_address,
             port=p2p_instance.port,
-            bootstrap=bootstrap,
+            bootstrap_peer=bootstrap_peer,
         )
 
         # 3. Transfer the initialized P2P components to our instance.
@@ -382,12 +399,12 @@ class AxiomNode(P2PBaseNode):
 app = Flask(__name__)
 CORS(app)
 node_instance: AxiomNode
-fact_indexer: FactIndexer | None = None
+fact_indexer: FactIndexer
 
 
 @app.route("/chat", methods=["POST"])
-def handle_chat_query():
-    """Handles natural language queries from the client.
+def handle_chat_query() -> Response | tuple[Response, int]:
+    """Handle natural language queries from the client.
 
     Finding the most semantically similar facts in the ledger.
     """
@@ -473,7 +490,7 @@ def handle_get_blocks() -> Response:
 
 @app.route("/status", methods=["GET"])
 def handle_get_status() -> Response:
-    """Provides a simple status check for the node."""
+    """Handle status request."""
     with SessionMaker() as session:
         latest_block = get_latest_block(session)
         height = latest_block.height if latest_block else 0
@@ -502,7 +519,7 @@ def handle_local_query() -> Response:
 def handle_get_peers() -> Response:
     """Handle get peers request."""
     known_peers = []
-    if node_instance:
+    if node_instance is not None:
         known_peers = [link.fmt_addr() for link in node_instance.iter_links()]
     return jsonify({"peers": known_peers})
 
@@ -557,6 +574,7 @@ def handle_get_facts_by_hash() -> Response:
 
 @app.route("/get_merkle_proof", methods=["GET"])
 def handle_get_merkle_proof() -> Response | tuple[Response, int]:
+    """Handle merkle proof request."""
     fact_hash = request.args.get("fact_hash")
     block_height_str = request.args.get("block_height")
     if not fact_hash or not block_height_str:
@@ -586,8 +604,8 @@ def handle_get_merkle_proof() -> Response | tuple[Response, int]:
         try:
             fact_index = fact_hashes_in_block.index(fact_hash)
             proof = merkle_tree.get_proof(fact_index)
-        except (ValueError, IndexError) as e:
-            logger.error(f"Error generating Merkle proof: {e}")
+        except (ValueError, IndexError) as exc:
+            logger.error(f"Error generating Merkle proof: {exc}")
             return jsonify({"error": "Failed to generate Merkle proof"}), 500
         return jsonify(
             {
@@ -601,26 +619,31 @@ def handle_get_merkle_proof() -> Response | tuple[Response, int]:
 
 @app.route("/anonymous_query", methods=["POST"])
 def handle_anonymous_query() -> Response | tuple[Response, int]:
+    """Handle anonymous query request."""
     return jsonify({"error": "Anonymous query not implemented in V4"}), 501
 
 
 @app.route("/dao/proposals", methods=["GET"])
-def handle_get_proposals() -> Response:
+def handle_get_proposals() -> tuple[Response, int]:
+    """Handle dao proposals request."""
     return jsonify({"error": "DAO not implemented in V4"}), 501
 
 
 @app.route("/dao/submit_proposal", methods=["POST"])
 def handle_submit_proposal() -> Response | tuple[Response, int]:
+    """Handle submit proposal request."""
     return jsonify({"error": "DAO not implemented in V4"}), 501
 
 
 @app.route("/dao/submit_vote", methods=["POST"])
 def handle_submit_vote() -> Response | tuple[Response, int]:
+    """Handle submit vote request."""
     return jsonify({"error": "DAO not implemented in V4"}), 501
 
 
 @app.route("/verify_fact", methods=["POST"])
 def handle_verify_fact() -> Response | tuple[Response, int]:
+    """Handle verify fact request."""
     fact_id = (request.json or {}).get("fact_id")
     if not fact_id:
         return jsonify({"error": "fact_id is required"}), 400
@@ -650,6 +673,7 @@ def handle_verify_fact() -> Response | tuple[Response, int]:
 
 @app.route("/get_fact_context/<fact_hash>", methods=["GET"])
 def handle_get_fact_context(fact_hash: str) -> Response | tuple[Response, int]:
+    """Handle get fact content request."""
     with SessionMaker() as session:
         target_fact = (
             session.query(Fact).filter(Fact.hash == fact_hash).one_or_none()
@@ -686,7 +710,7 @@ def handle_get_fact_context(fact_hash: str) -> Response | tuple[Response, int]:
 
 
 def main() -> None:
-    """The main entry point for running an Axiom Node from the command line."""
+    """Handle running an Axiom Node from the command line."""
     global node_instance, fact_indexer
 
     # 1. Setup the argument parser
@@ -761,9 +785,9 @@ def main() -> None:
 
     except KeyboardInterrupt:
         logger.info("Shutdown signal received. Exiting.")
-    except Exception as e:
+    except Exception as exc:
         logger.critical(
-            f"A critical error occurred during node startup: {e}",
+            f"A critical error occurred during node startup: {exc}",
             exc_info=True,
         )
         sys.exit(1)

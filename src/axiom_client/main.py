@@ -74,7 +74,7 @@ class NetworkWorker(QThread):
             self.finished.emit({"error": f"An error occurred: {e}"})
 
     def _perform_chat_query(self) -> ChatResponse | ErrorResponse:
-        """Performs a single POST request to the new /chat endpoint."""
+        """Perform a single POST request to the new /chat endpoint."""
         response = requests.post(
             f"{self.node_url}/chat",
             json={
@@ -114,7 +114,7 @@ class AxiomClientApp(QWidget):
         self.update_network_status()
 
     def setup_ui(self) -> None:
-        """Initialize user interface. (This is unchanged)"""
+        """Initialize user interface. (This is unchanged)."""
         # --- Layout and Widgets ---
         self.qv_box_layout = QVBoxLayout()
         self.setLayout(self.qv_box_layout)
@@ -147,7 +147,7 @@ class AxiomClientApp(QWidget):
         self.status_bar.addPermanentWidget(self.version_label)
 
     def start_search(self) -> None:
-        """Handle when the user clicks 'Search' or presses Enter. (Unchanged)"""
+        """Handle when the user clicks 'Search' or presses Enter. (Unchanged)."""
         query = self.query_input.text()
         if not query:
             return
@@ -159,7 +159,7 @@ class AxiomClientApp(QWidget):
         self.network_worker.start()
 
     def update_status(self, message: str) -> None:
-        """Update the status label. (Unchanged)"""
+        """Update the status label. (Unchanged)."""
         self.status_label.setText(f"Status: {message}")
 
     # --- MODIFIED: The display logic is completely replaced with our conversational logic ---
@@ -200,12 +200,13 @@ class AxiomClientApp(QWidget):
 
             html = f"<h2>{title}</h2>"
             html += f"<p><i>{explanation}</i></p>"
-            html += f"<p style='font-size: 14px;'><b>&ldquo;{content}&rdquo;</b></p>"  # Display fact as a quote
+            # Display fact as a quote
+            html += f"<p style='font-size: 14px;'><b>&ldquo;{content}&rdquo;</b></p>"
 
         self.results_output.setHtml(html)
 
     # The status bar logic is perfect and does not need to be changed.
-    def update_network_status(self):
+    def update_network_status(self) -> None:
         """Periodically called by a QTimer to update the status bar."""
         try:
             response = requests.get(f"{self.server_url}/status", timeout=2)
@@ -219,8 +220,8 @@ class AxiomClientApp(QWidget):
         except requests.exceptions.RequestException:
             self.set_disconnected_status()
 
-    def set_disconnected_status(self):
-        """Helper function to set all UI elements to a disconnected state."""
+    def set_disconnected_status(self) -> None:
+        """Set all UI elements to a disconnected state."""
         self.connection_status_label.setText(
             f"🔴 Disconnected from {self.server_url}",
         )

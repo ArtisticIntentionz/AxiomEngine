@@ -19,7 +19,6 @@ from bs4 import BeautifulSoup
 from axiom_server.common import NLP_MODEL, SUBJECTIVITY_INDICATORS
 
 # Local application imports
-from axiom_server.hasher import FactIndexer
 from axiom_server.ledger import (
     Fact,
     RelationshipType,
@@ -36,6 +35,8 @@ if TYPE_CHECKING:
     from spacy.tokens.span import Span
     from sqlalchemy.orm import Session
     from transformers import Pipeline as NliPipeline
+
+    from axiom_server.hasher import FactIndexer
 
 
 T = TypeVar("T")
@@ -289,7 +290,7 @@ def _extract_dates(text: str) -> list[datetime]:
 
 # --- FIXED: Integrated NLI model for powerful contradiction detection ---
 def _infer_relationship(fact1: Fact, fact2: Fact) -> RelationshipType | None:
-    """Analyzes two facts and infers the nature of their relationship using an NLI model."""
+    """Analyze two facts and infers the nature of their relationship using an NLI model."""
     # 1. Contradiction Check using the powerful NLI Model
     try:
         nli_classifier = get_nli_classifier()
