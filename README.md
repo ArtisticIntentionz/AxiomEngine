@@ -1,5 +1,7 @@
 # Axiom: A Decentralized Network for Verifiable Truth - A Grounding Engine
 
+[![Hugging Face Spaces](https://img.shields.io/badge/Hugging%20Face-Spaces-blueviolet?logo=huggingface&style=flat-square)](https://huggingface.co/spaces/AllIntentionz/Axiom_P2P_Network)
+
 ![Axiom Logo](https://raw.githubusercontent.com/ArtisticIntentionz/AxiomEngine/main/main/Axiom_logo.PNG)
 
 **Axiom is a decentralized, P2P knowledge engine designed to create a permanent and verifiable public record of objective facts. It is not just another search engine; it is a new, foundational layer for knowledge, built from the ground up to be immune to censorship, manipulation, and corporate control.**
@@ -15,6 +17,117 @@ Our digital world is in crisis. We are drowning in information, yet the bedrock 
 Axiom was born from a simple need: a tool that could filter the signal from this noise. A tool that could provide clean, objective, and verifiable information without the cryptic articles, paranoia-inducing ads, and emotional manipulation of the modern web.
 
 This project is a statement: **objective reality matters, and access to it should belong to everyone.** We are building a public utility—a digital commonwealth—that serves as a permanent, incorruptible, and safe harbor for human knowledge.
+
+## Table of Contents
+- [How It Works: An Autonomous Knowledge Organism](#how-it-works-an-autonomous-knowledge-organism)
+  - [Phase 1: Learning](#phase-1-learning)
+  - [Phase 2: Verification (The Crucible)](#phase-2-verification-the-crucible)
+  - [Phase 3: Understanding (The Synthesizer)](#phase-3-understanding-the-synthesizer)
+  - [Phase 4: Memory & Sharing](#phase-4-memory--sharing)
+- [Core Architecture & Technical Principles](#core-architecture--technical-principles)
+- [The Axiom Ethos: Our Core Philosophies](#the-axiom-ethos-our-core-philosophies)
+- [Comparison to Existing Alternatives](#comparison-to-existing-alternatives)
+- [The Roadmap: From Prototype to Protocol](#the-roadmap-from-prototype-to-protocol)
+- [Current Status: Genesis Stage](#current-status-genesis-stage)
+- [How to Contribute](#how-to-contribute)
+- [License](#license)
+
+---
+
+## How It Works: An Autonomous Knowledge Organism
+
+Axiom is not a static database; it is a living, learning network of independent nodes. Each node executes a continuous, autonomous cycle.
+
+### Phase 1: Learning
+The engine begins by asking, "What is important to learn?" It uses a **Discovery Engine** to monitor high-quality sources (like news feeds) and identify emerging topics and new information.
+
+### Phase 2: Verification (The Crucible)
+This is where **The Crucible**, Axiom's AI brain, takes over.
+
+- **It is NOT a generative LLM.** The Crucible uses powerful **Analytical AI models (spaCy and Hugging Face Transformers)** for precise Natural Language Processing. It cannot "hallucinate" or invent facts.
+
+- **It surgically extracts objective statements** while discarding opinions, speculation, and biased language using an advanced subjectivity filter.
+
+- **The Corroboration Rule:** A fact is **never** trusted on first sight. It is stored as `ingested`. Only when another, independent source makes the same claim does its status become `corroborated`.
+
+- **It detects contradictions with NLI.** If two sources make opposing claims, The Crucible uses a **Natural Language Inference (NLI)** model to confirm the contradiction, then flags both facts as `disputed`, removing them from the pool of trusted knowledge.
+
+### Phase 3: Understanding (The Synthesizer)
+Axiom doesn't just collect facts; it understands their relationships.
+
+- **The Knowledge Graph:** After facts are created, **The Synthesizer** analyzes them. It identifies shared entities (people, places, organizations) and infers the nature of their relationship (e.g., Causation, Chronology).
+
+- **Relationship Linking:** This transforms the ledger from a simple list into a rich **Knowledge Graph**, allowing the network to understand context.
+
+### Phase 4: Memory & Sharing
+- **The Immutable Ledger:** Every fact is cryptographically hashed and stored in a local SQLite ledger, which is then sealed into a blockchain.
+
+- **P2P Synchronization:** Nodes constantly "gossip" and share newly sealed blocks, allowing the entire network to converge on a shared, verified history.
+
+### Phase 5: Inference (The HashNLP Engine)
+This is the new, high-speed conversational layer.
+
+- **Real-Time Vector Indexing:** As each fact is verified, it is instantly converted into a numerical representation (a vector) and stored in a fast, in-memory index.
+
+- **High-Speed Similarity Search:** When a user asks a question, their query is also converted into a vector. The engine then performs a sub-second search to find the fact vectors with the closest mathematical similarity, returning the most relevant information from the entire ledger instantly.
+
+---
+
+## Core Architecture & Technical Principles
+
+- **Backend:** A multi-threaded, **thread-safe** Python application built on a Flask server for API communication.
+- **Database:** A simple, robust **SQLite** database on each node creates a distributed, redundant ledger.
+- **AI:** Advanced **spaCy (`en_core_web_lg`)** models for core NLP, supplemented by **Hugging Face Transformers (NLI)** for sophisticated contradiction detection. All models run efficiently on standard CPU hardware.
+- **Anonymity (Vision):** The architecture is designed to eventually protect end-user queries with a **Tor-style anonymous circuit**, ensuring the freedom to be curious without surveillance.
+- **Governance (Vision):** The network is designed to be governed by a **DAO (Decentralized Autonomous Organization)**, where voting power is tied to a node's proven reputation, not its wealth.
+
+---
+
+## The Axiom Ethos: Our Core Philosophies
+
+- **Default to Skepticism:** The network's primary state is one of disbelief. We would rather provide no answer than a wrong one.
+- **Show, Don't Tell:** We do not ask for your trust; we provide the tools for your verification. Every trusted fact is traceable back to its sources.
+- **Radical Transparency:** The entire codebase, the governance process, and the logic of the AI are open-source.
+- **Resilience over Speed:** The network is a patient, long-term historian, not a high-frequency news ticker.
+- **Empower the Individual:** This is a tool to give any individual the ability to check a fact against the collective, verified knowledge of a global community, privately and without fear.
+
+---
+
+## Comparison to Existing Alternatives
+
+|                   | **Axiom**                 | **Search Engines (Google)** | **Encyclopedias (Wikipedia)** | **Blockchains (Bitcoin/IPFS)** |
+| :---------------- | :-----------------------: | :-------------------------: | :---------------------------: | :----------------------------: |
+| **Unit of Value** |   Contextualized Facts    |         Links / Ads         |       Curated Articles        |        Data / Currency         |
+| **Governed By**   |      Community (DAO)      |         Corporation         |    Foundation (Centralized)   |        Miners / Wealth         |
+| **Truth Model**   |   Autonomous Consensus    |      Secret Algorithm       |        Human Consensus        |        "Dumb" Storage          |
+| **Anonymity**     |    Default for Users      |    Actively Tracks Users    |       Tracks Editors          |          Pseudonymous          |
+| **Censorship**    |   Censorship-Resistant    |          Censorable         |           Censorable          |      Censorship-Resistant      |
+
+---
+
+## The Roadmap: From Prototype to Protocol
+
+This project is ambitious, and we are just getting started. For a detailed, up-to-date plan, please see our official **[ROADMAP.md](ROADMAP.md)** file.
+
+---
+
+## Current Status: Alpha Stage
+
+**The Axiom Network is LIVE and fully functional.**
+
+The backend engine is stable, and the core P2P network is successfully synchronizing blocks between peers. The latest version includes the new **HashNLP inference engine**, allowing for high-speed conversational queries against the fact ledger.
+
+A functional **Axiom Client** (GUI and Terminal) now exists, demonstrating the complete end-to-end workflow: learning from sources, sealing facts into the blockchain, sharing them with peers, and answering user questions in real-time. The next major phase is to continue scaling the network and hardening the existing feature set.
+
+---
+
+## How to Contribute
+
+This is a ground-floor opportunity to shape a new digital commonwealth. We are actively seeking contributors.
+
+1.  **Read the [CONTRIBUTING.md](CONTRIBUTING.md)** for the full step-by-step guide to setting up your environment.
+2.  **Join the conversation** on our official [Discord server](Your Discord Invite Link) and our [Subreddit](Your Subreddit Link).
+3.  **Check out the open "Issues"** on the repository to see where you can help.
 
 ## 🚀 Getting Started: Developer Setup
 
@@ -150,117 +263,6 @@ Before committing code, run these checks to ensure it meets project standards.
 You are now fully equipped to run, test, and develop on the Axiom Engine!
 
 ---
-
-## Table of Contents
-- [How It Works: An Autonomous Knowledge Organism](#how-it-works-an-autonomous-knowledge-organism)
-  - [Phase 1: Learning](#phase-1-learning)
-  - [Phase 2: Verification (The Crucible)](#phase-2-verification-the-crucible)
-  - [Phase 3: Understanding (The Synthesizer)](#phase-3-understanding-the-synthesizer)
-  - [Phase 4: Memory & Sharing](#phase-4-memory--sharing)
-- [Core Architecture & Technical Principles](#core-architecture--technical-principles)
-- [The Axiom Ethos: Our Core Philosophies](#the-axiom-ethos-our-core-philosophies)
-- [Comparison to Existing Alternatives](#comparison-to-existing-alternatives)
-- [The Roadmap: From Prototype to Protocol](#the-roadmap-from-prototype-to-protocol)
-- [Current Status: Genesis Stage](#current-status-genesis-stage)
-- [How to Contribute](#how-to-contribute)
-- [License](#license)
-
----
-
-## How It Works: An Autonomous Knowledge Organism
-
-Axiom is not a static database; it is a living, learning network of independent nodes. Each node executes a continuous, autonomous cycle.
-
-### Phase 1: Learning
-The engine begins by asking, "What is important to learn?" It uses a **Discovery Engine** to monitor high-quality sources (like news feeds) and identify emerging topics and new information.
-
-### Phase 2: Verification (The Crucible)
-This is where **The Crucible**, Axiom's AI brain, takes over.
-
-- **It is NOT a generative LLM.** The Crucible uses powerful **Analytical AI models (spaCy and Hugging Face Transformers)** for precise Natural Language Processing. It cannot "hallucinate" or invent facts.
-
-- **It surgically extracts objective statements** while discarding opinions, speculation, and biased language using an advanced subjectivity filter.
-
-- **The Corroboration Rule:** A fact is **never** trusted on first sight. It is stored as `ingested`. Only when another, independent source makes the same claim does its status become `corroborated`.
-
-- **It detects contradictions with NLI.** If two sources make opposing claims, The Crucible uses a **Natural Language Inference (NLI)** model to confirm the contradiction, then flags both facts as `disputed`, removing them from the pool of trusted knowledge.
-
-### Phase 3: Understanding (The Synthesizer)
-Axiom doesn't just collect facts; it understands their relationships.
-
-- **The Knowledge Graph:** After facts are created, **The Synthesizer** analyzes them. It identifies shared entities (people, places, organizations) and infers the nature of their relationship (e.g., Causation, Chronology).
-
-- **Relationship Linking:** This transforms the ledger from a simple list into a rich **Knowledge Graph**, allowing the network to understand context.
-
-### Phase 4: Memory & Sharing
-- **The Immutable Ledger:** Every fact is cryptographically hashed and stored in a local SQLite ledger, which is then sealed into a blockchain.
-
-- **P2P Synchronization:** Nodes constantly "gossip" and share newly sealed blocks, allowing the entire network to converge on a shared, verified history.
-
-### Phase 5: Inference (The HashNLP Engine)
-This is the new, high-speed conversational layer.
-
-- **Real-Time Vector Indexing:** As each fact is verified, it is instantly converted into a numerical representation (a vector) and stored in a fast, in-memory index.
-
-- **High-Speed Similarity Search:** When a user asks a question, their query is also converted into a vector. The engine then performs a sub-second search to find the fact vectors with the closest mathematical similarity, returning the most relevant information from the entire ledger instantly.
-
----
-
-## Core Architecture & Technical Principles
-
-- **Backend:** A multi-threaded, **thread-safe** Python application built on a Flask server for API communication.
-- **Database:** A simple, robust **SQLite** database on each node creates a distributed, redundant ledger.
-- **AI:** Advanced **spaCy (`en_core_web_lg`)** models for core NLP, supplemented by **Hugging Face Transformers (NLI)** for sophisticated contradiction detection. All models run efficiently on standard CPU hardware.
-- **Anonymity (Vision):** The architecture is designed to eventually protect end-user queries with a **Tor-style anonymous circuit**, ensuring the freedom to be curious without surveillance.
-- **Governance (Vision):** The network is designed to be governed by a **DAO (Decentralized Autonomous Organization)**, where voting power is tied to a node's proven reputation, not its wealth.
-
----
-
-## The Axiom Ethos: Our Core Philosophies
-
-- **Default to Skepticism:** The network's primary state is one of disbelief. We would rather provide no answer than a wrong one.
-- **Show, Don't Tell:** We do not ask for your trust; we provide the tools for your verification. Every trusted fact is traceable back to its sources.
-- **Radical Transparency:** The entire codebase, the governance process, and the logic of the AI are open-source.
-- **Resilience over Speed:** The network is a patient, long-term historian, not a high-frequency news ticker.
-- **Empower the Individual:** This is a tool to give any individual the ability to check a fact against the collective, verified knowledge of a global community, privately and without fear.
-
----
-
-## Comparison to Existing Alternatives
-
-|                   | **Axiom**                 | **Search Engines (Google)** | **Encyclopedias (Wikipedia)** | **Blockchains (Bitcoin/IPFS)** |
-| :---------------- | :-----------------------: | :-------------------------: | :---------------------------: | :----------------------------: |
-| **Unit of Value** |   Contextualized Facts    |         Links / Ads         |       Curated Articles        |        Data / Currency         |
-| **Governed By**   |      Community (DAO)      |         Corporation         |    Foundation (Centralized)   |        Miners / Wealth         |
-| **Truth Model**   |   Autonomous Consensus    |      Secret Algorithm       |        Human Consensus        |        "Dumb" Storage          |
-| **Anonymity**     |    Default for Users      |    Actively Tracks Users    |       Tracks Editors          |          Pseudonymous          |
-| **Censorship**    |   Censorship-Resistant    |          Censorable         |           Censorable          |      Censorship-Resistant      |
-
----
-
-## The Roadmap: From Prototype to Protocol
-
-This project is ambitious, and we are just getting started. For a detailed, up-to-date plan, please see our official **[ROADMAP.md](ROADMAP.md)** file.
-
----
-
-## Current Status: Alpha Stage
-
-**The Axiom Network is LIVE and fully functional.**
-
-The backend engine is stable, and the core P2P network is successfully synchronizing blocks between peers. The latest version includes the new **HashNLP inference engine**, allowing for high-speed conversational queries against the fact ledger.
-
-A functional **Axiom Client** (GUI and Terminal) now exists, demonstrating the complete end-to-end workflow: learning from sources, sealing facts into the blockchain, sharing them with peers, and answering user questions in real-time. The next major phase is to continue scaling the network and hardening the existing feature set.
-
----
-
-## How to Contribute
-
-This is a ground-floor opportunity to shape a new digital commonwealth. We are actively seeking contributors.
-
-1.  **Read the [CONTRIBUTING.md](CONTRIBUTING.md)** for the full step-by-step guide to setting up your environment.
-2.  **Join the conversation** on our official [Discord server](Your Discord Invite Link) and our [Subreddit](Your Subreddit Link).
-3.  **Check out the open "Issues"** on the repository to see where you can help.
 
 ## License
 
