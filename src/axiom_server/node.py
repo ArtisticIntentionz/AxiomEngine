@@ -167,7 +167,8 @@ class AxiomNode(P2PBaseNode):
                 )
                 # Use the 'peer_link' argument which represents the connection to the peer
                 self._send_message(
-                    peer_link, response_message,
+                    peer_link,
+                    response_message,
                 )  # Changed 'link' to 'peer_link'
 
             elif msg_type == "new_block_header":

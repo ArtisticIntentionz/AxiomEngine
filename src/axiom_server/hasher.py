@@ -137,7 +137,9 @@ class FactIndexer:
         vector search against the entire index.
         """
         if self.vector_matrix is None or len(self.fact_ids) == 0:
-            logger.warning("Fact index is not available. Cannot perform search.")
+            logger.warning(
+                "Fact index is not available. Cannot perform search.",
+            )
             return []
 
         # --- Step 1: Extract Keywords ---
@@ -147,7 +149,9 @@ class FactIndexer:
         if keywords:
             logger.info(f"Extracted keywords for pre-filtering: {keywords}")
             # --- Step 2: Pre-filter the Database for Keywords ---
-            keyword_filters = [Fact.content.ilike(f"%{key}%") for key in keywords]
+            keyword_filters = [
+                Fact.content.ilike(f"%{key}%") for key in keywords
+            ]
             pre_filtered_facts = (
                 self.session.query(Fact)
                 .filter(or_(*keyword_filters))
@@ -158,29 +162,36 @@ class FactIndexer:
         # --- NEW: FALLBACK LOGIC ---
         if not pre_filtered_facts:
             logger.warning(
-                "Keyword pre-filter found no candidates. Falling back to full semantic search."
+                "Keyword pre-filter found no candidates. Falling back to full semantic search.",
             )
             # If the fast filter fails, we search against everything.
             candidate_indices = list(range(len(self.fact_ids)))
             candidate_matrix = self.vector_matrix
         else:
-            logger.info(f"Pre-filtering found {len(pre_filtered_facts)} candidate facts.")
+            logger.info(
+                f"Pre-filtering found {len(pre_filtered_facts)} candidate facts.",
+            )
             # If the fast filter succeeds, we limit our search to the candidates.
             candidate_ids = {fact.id for fact in pre_filtered_facts}
             # Find the indices in our master list that correspond to the candidate IDs
             candidate_indices = [
-                i for i, fact_id in enumerate(self.fact_ids) if fact_id in candidate_ids
+                i
+                for i, fact_id in enumerate(self.fact_ids)
+                if fact_id in candidate_ids
             ]
             if not candidate_indices:
-                return [] # No valid candidates found in the live index
+                return []  # No valid candidates found in the live index
             candidate_matrix = self.vector_matrix[candidate_indices, :]
 
         # --- Step 3 & 4: Vectorize Query and Compare (this part is mostly unchanged) ---
         query_doc = NLP_MODEL(query_text)
-        query_vector = query_doc.vector.reshape(1, -1) # Ensure query_vector is 2D
+        query_vector = query_doc.vector.reshape(
+            1, -1,
+        )  # Ensure query_vector is 2D
 
         # Using cosine_similarity is more stable and standard than manual calculation
         from sklearn.metrics.pairwise import cosine_similarity
+
         similarities = cosine_similarity(query_vector, candidate_matrix)[0]
 
         # Get the top N indices from the candidates
