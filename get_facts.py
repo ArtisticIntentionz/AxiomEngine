@@ -44,7 +44,10 @@ def fetch_facts_from_api(hashes):
     print(f"Sending request to {API_URL}...")
     try:
         response = requests.post(
-            API_URL, headers=headers, json=payload, timeout=60,
+            API_URL,
+            headers=headers,
+            json=payload,
+            timeout=60,
         )
         response.raise_for_status()
         print("Successfully received a response from the API.")
@@ -124,7 +127,8 @@ def process_and_save_facts(api_data):
             # Write each section to the file using the helper
             write_section("All Facts", all_facts)
             write_section(
-                "Verified or Corroborated Facts (Score > 0)", verified_facts,
+                "Verified or Corroborated Facts (Score > 0)",
+                verified_facts,
             )
             write_section("Disputed Facts", disputed_facts)
             write_section("Contradicted Facts (Score < 0)", contradicted_facts)

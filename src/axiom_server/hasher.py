@@ -186,7 +186,8 @@ class FactIndexer:
         # --- Step 3 & 4: Vectorize Query and Compare (this part is mostly unchanged) ---
         query_doc = NLP_MODEL(query_text)
         query_vector = query_doc.vector.reshape(
-            1, -1,
+            1,
+            -1,
         )  # Ensure query_vector is 2D
 
         # Using cosine_similarity is more stable and standard than manual calculation

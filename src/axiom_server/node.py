@@ -243,11 +243,15 @@ class AxiomNode(P2PBaseNode):
                                 for fact in new_facts:
                                     # --- THIS IS THE FIX ---
                                     # Calculate the SHA256 hash of the fact's content.
-                                    fact.hash = hashlib.sha256(fact.content.encode("utf-8")).hexdigest()
+                                    fact.hash = hashlib.sha256(
+                                        fact.content.encode("utf-8"),
+                                    ).hexdigest()
                                     # --- END OF FIX ---
 
                                     fact.sources.append(source)
-                                    session.add(fact) # Add the fact with its new hash to the session.
+                                    session.add(
+                                        fact,
+                                    )  # Add the fact with its new hash to the session.
                                     facts_for_sealing.append(fact)
 
                                 # Bonus Performance Improvement: Commit once after processing all new facts from the item.
