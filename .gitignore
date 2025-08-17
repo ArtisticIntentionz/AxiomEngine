@@ -4,6 +4,9 @@
 axiom_ledger.db
 *.db
 
+# --- Python specific Temp Test files ---
+get_facts.py
+
 # Temp file during Mypy processing
 mypy_annotate.dat
 test-results.xml

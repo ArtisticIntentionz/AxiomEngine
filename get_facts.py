@@ -4,7 +4,7 @@ import requests
 
 # --- Configuration ---
 # The URL of your API endpoint
-API_URL = "http://0.0.0.0:8002/get_facts_by_hash"
+API_URL = "https://0.0.0.0:8002/get_facts_by_hash"
 
 # The FULL path to your input file containing the hashes
 INPUT_HASH_FILE = (

@@ -6,6 +6,7 @@ from __future__ import annotations
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.
 import argparse
+import random
 import hashlib
 import json
 import logging
@@ -430,20 +431,35 @@ class AxiomNode(P2PBaseNode):
             response_data = {"type": "CHAIN_RESPONSE", "chain": chain_dicts}
             return json.dumps(response_data)
 
+    
     def _peer_management_loop(self) -> None:
         """Maintain and expand the node's peer connections in a background thread."""
         logger.info("Starting peer management loop.")
         while True:
-            # 1. Ask all current peers for their peer lists.
-            logger.info("Broadcasting PEERS_REQUEST to all known peers...")
+            try:
+                # --- THIS IS THE NEW, SMARTER LOGIC ---
+                with self.peer_links_lock:
+                    if not self.peer_links:
+                        # If we don't know any peers, wait a bit before checking again.
+                        time.sleep(60)
+                        continue
 
-            # --- THIS IS THE FIX ---
-            # Call the correct, existing method for broadcasting.
-            self._send_message_to_peers(Message.peers_request())
-            # --- END OF FIX ---
+                    # Choose up to 3 random peers to ask.
+                    # This prevents spamming the whole network and breaks simple loops.
+                    num_to_ask = min(3, len(self.peer_links))
+                    peers_to_ask = random.sample(list(self.peer_links.values()), num_to_ask)
 
-            # 2. Sleep for a while before the next cycle.
-            time.sleep(300)  # e.g., run every 5 minutes
+                logger.info(f"Asking {len(peers_to_ask)} peer(s) for their peer lists...")
+
+                for peer_link in peers_to_ask:
+                    self._send_message(peer_link, Message.peers_request())
+
+                # Sleep for a while before the next cycle.
+                time.sleep(300)  # e.g., run every 5 minutes
+
+            except Exception as e:
+                logger.error(f"Error in peer management loop: {e}", exc_info=True)
+                time.sleep(60) # Wait a minute before retrying if an error occurs
 
     @classmethod
     def start_node(
