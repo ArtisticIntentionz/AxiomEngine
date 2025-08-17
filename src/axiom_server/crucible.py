@@ -66,73 +66,52 @@ METADATA_NOISE_PATTERNS = (
 
 # --- NEW: Efficiently load and cache the NLI model ---
 @cache
-def get_nli_classifier() -> NliPipeline:
-    """Loads and returns a cached instance of the NLI pipeline.
-    This prevents reloading the large model from memory on every call.
-    """
+def get_nli_classifier() -> NliPipeline | None:
+    """Loads and returns a cached instance of the NLI pipeline."""
     try:
-        from transformers import pipeline
-
-        logger.info(
-            "Initializing Hugging Face NLI model for the first time...",
-        )
+        logger.info("Initializing Hugging Face NLI model for the first time...")
+        # We use a lightweight model to save resources and improve speed.
         return pipeline(
             "zero-shot-classification",
             model="typeform/distilbert-base-uncased-mnli",
         )
-    except ImportError:
-        logger.error(
-            "The 'transformers' and 'torch' libraries are required for contradiction detection.",
-        )
-        raise
-
+    except Exception as e:
+        logger.error(f"CRITICAL: Failed to initialize NLI model. Contradiction checks will be disabled. Error: {e}")
+        return None
 
 class CrucibleError(Exception):
     """Crucible Error Exception."""
-
     __slots__ = ()
 
-
-# --- Dataclasses (preserved from your original file) ---
 @dataclass
 class Check(Generic[T]):
     """Check dataclass."""
-
     run: Callable[[T], bool]
     description: str
-
 
 @dataclass
 class Transformation(Generic[T]):
     """Transformation dataclass."""
-
     run: Callable[[T], T | None]
     description: str
-
 
 @dataclass
 class Pipeline(Generic[T]):
     """Pipeline dataclass."""
-
     name: str
     steps: list[Check[T] | Transformation[T]]
 
     def run(self, value: T) -> T | None:
         """Run pipeline."""
-        # Using a slice to prevent huge objects from filling the logs
         logger.info(f"running pipeline '{self.name}' on '%.200s'", value)
         current_value: T | None = value
         for step in self.steps:
             if current_value is None:
-                logger.info(
-                    f"pipeline '{self.name}' halted as value became None.",
-                )
+                logger.info(f"pipeline '{self.name}' halted as value became None.")
                 break
             if isinstance(step, Check):
                 if not step.run(current_value):
-                    logger.info(
-                        f"pipeline '{self.name}' stopped by check: {step.description}",
-                    )
+                    logger.info(f"pipeline '{self.name}' stopped by check: {step.description}")
                     return None
             elif isinstance(step, Transformation):
                 try:
@@ -141,10 +120,7 @@ class Pipeline(Generic[T]):
                     error_string = f"transformation error in '{self.name}' on step '{step.description}' ({exc})"
                     logger.exception(error_string)
                     raise CrucibleError(error_string) from exc
-        logger.info(
-            f"pipeline '{self.name}' finished, returning '%.200s'",
-            current_value,
-        )
+        logger.info(f"pipeline '{self.name}' finished, returning '%.200s'", current_value)
         return current_value
 
 
@@ -359,111 +335,94 @@ class CrucibleFactAdder:
     corroboration_count: int = 0
     addition_count: int = 0
 
-    def add(self, fact: Fact) -> None:
-        """Adds and processes a fact against the database."""
-        assert fact.id is not None, (
-            "Fact must be saved to the DB before processing."
-        )
+    def add(self, fact: Fact):
+        """
+        Adds and processes a fact against the database, now with robust,
+        database-level duplicate handling.
+        """
+        from sqlalchemy.exc import IntegrityError # Import the specific exception
 
-        assert fact.id is not None, (
-            "Fact must be saved to the DB before processing."
-        )
-
-        pipeline: Pipeline[Fact] = Pipeline(
-            "Crucible Fact Addition",
-            [
-                Transformation(self._set_hash, "Computing hash"),
-                Transformation(
-                    self._process_relationships_and_corroboration,
-                    "Process Relationships and Corroboration",
-                ),
-            ],
-        )
-        if pipeline.run(fact):
-            # --- MODIFICATION 2: If pipeline succeeds, add to index ---
-            self.fact_indexer.add_fact(fact)
-        self.session.commit()
-
-    @staticmethod
-    def _set_hash(fact: Fact) -> Fact:
-        """Set Fact object's `hash` attribute."""
+        assert fact.sources, "Fact must have a source before being added."
+        primary_source = fact.sources[0]
+        
         fact.set_hash()
-        return fact
 
-    def _process_relationships_and_corroboration(self, new_fact: Fact) -> Fact:
-        """A single, unified method to efficiently find and process all interactions
-        (contradictions, relationships, corroborations) for a new fact.
+        try:
+            # We attempt to add the new fact and commit it immediately.
+            self.session.add(fact)
+            self.session.commit()
+            self.addition_count += 1
+            
+            # If the commit succeeds, it was a unique fact. We can now process it.
+            self._process_relationships(fact)
+            self.fact_indexer.add_fact(fact)
+            self.session.commit()
+
+        except IntegrityError:
+            # If the commit fails with an IntegrityError, it means the database's
+            # `unique=True` constraint was violated. The fact already exists.
+            
+            # We must rollback the failed session to a clean state.
+            self.session.rollback()
+            
+            # Now, we find the existing fact and corroborate it with the new source.
+            existing_fact = self.session.query(Fact).filter(Fact.hash == fact.hash).one()
+            logger.info(f"Duplicate fact detected by database (hash: {fact.hash[:8]}). Corroborating with new source: {primary_source.domain}")
+            add_fact_object_corroboration(existing_fact, primary_source)
+            self.session.commit()
+
+    def _process_relationships(self, new_fact: Fact):
+        """
+        Finds potentially related facts and checks for contradictions, corroborations,
+        and other relationships.
         """
         new_doc = new_fact.get_semantics().get("doc")
-        if not new_doc:
-            return new_fact
+        nli_classifier = get_nli_classifier()
+        if not new_doc or not nli_classifier:
+            return
 
-        # SCALABILITY FIX: Query only for facts sharing at least one entity.
-        # This avoids loading the entire database into memory.
-        new_entities = {
-            ent.text.lower() for ent in new_doc.ents if len(ent.text) > 2
-        }
+        # Your entity-based query to find related facts is excellent for performance.
+        new_entities = {ent.text.lower() for ent in new_doc.ents if len(ent.text) > 2}
         if not new_entities:
-            return new_fact
+            return
 
-        # For a truly large database, an inverted index on entities would be better.
-        # This query is a significant improvement over loading all facts.
+        from sqlalchemy import or_
+        entity_filters = [Fact.content.ilike(f"%{entity}%") for entity in new_entities]
         query = self.session.query(Fact).filter(
             Fact.id != new_fact.id,
             Fact.disputed == False,
+            or_(*entity_filters)
         )
-        # Add a filter for each entity to find potential matches
-        from sqlalchemy import or_
+        potentially_related_facts = query.all()
 
-        entity_filters = [
-            Fact.content.ilike(f"%{entity}%") for entity in new_entities
-        ]
-        potentially_related_facts = query.filter(or_(*entity_filters)).all()
-
-        logger.info(
-            f"Found {len(potentially_related_facts)} potentially related facts for Fact ID {new_fact.id}.",
-        )
+        logger.info(f"Found {len(potentially_related_facts)} potentially related facts for Fact ID {new_fact.id}.")
 
         for existing_fact in potentially_related_facts:
-            # 1. INFER RELATIONSHIP (Contradiction, Chronology, etc.)
-            relationship = _infer_relationship(new_fact, existing_fact)
+            # --- FIX 2 of 3: CONTRADICTION DETECTION ---
+            premise = existing_fact.content
+            hypothesis = new_fact.content
+            
+            try:
+                result = nli_classifier(hypothesis, candidate_labels=["contradiction", "entailment", "neutral"])
+                top_label = result["labels"][0]
+                top_score = result["scores"][0]
 
-            if relationship == RelationshipType.CONTRADICTION:
-                mark_fact_objects_as_disputed(
-                    self.session,
-                    existing_fact,
-                    new_fact,
-                )
-                self.contradiction_count += 1
-                logger.info(
-                    f"NLI Contradiction found between new fact {new_fact.id} and existing fact {existing_fact.id}",
-                )
-                # Commit immediately to lock the disputed status
-                self.session.commit()
-                # Once contradicted, we don't need to process other relationships
-                continue
-
-            # 2. CHECK CORROBORATION
+                if top_label == 'contradiction' and top_score > 0.90:
+                    logger.warning(
+                        f"NLI CONTRADICTION DETECTED between new Fact ID {new_fact.id} and existing Fact ID {existing_fact.id}! Marking as disputed."
+                    )
+                    mark_fact_objects_as_disputed(self.session, existing_fact, new_fact)
+                    self.contradiction_count += 1
+                    self.session.commit()
+                    # Once contradicted, we stop processing this fact further.
+                    return
+            except Exception as e:
+                logger.error(f"Error during NLI check between facts {new_fact.id} and {existing_fact.id}: {e}")
+            
+            # --- FIX 3 of 3: ENTITY RESOLUTION (Simplified) ---
+            # Your check_corroboration is a simple form of entity resolution.
+            # We can keep it to strengthen relationships.
             if check_corroboration(new_fact, existing_fact):
                 self.corroboration_count += 1
                 for source in new_fact.sources:
                     add_fact_object_corroboration(existing_fact, source)
-
-            # 3. STORE OTHER RELATIONSHIPS (Chronology, Causation)
-            if relationship:
-                score = len(
-                    new_entities
-                    & {
-                        ent.text.lower()
-                        for ent in existing_fact.get_semantics()["doc"].ents
-                    },
-                )
-                insert_relationship_object(
-                    self.session,
-                    new_fact,
-                    existing_fact,
-                    score,
-                    relationship,
-                )
-
-        return new_fact

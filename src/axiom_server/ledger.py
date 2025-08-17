@@ -222,7 +222,7 @@ class Fact(Base):
         default=False,
         nullable=False,
     )
-    hash: Mapped[str] = mapped_column(String, default="", nullable=False)
+    hash: Mapped[str] = mapped_column(String, default="", nullable=False, unique=True)
     last_checked: Mapped[str] = mapped_column(
         String,
         default=lambda: datetime.datetime.now(
