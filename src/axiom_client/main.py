@@ -103,7 +103,7 @@ class AxiomClientApp(QWidget):
         # --- MODIFIED: Update the default server URL to use port 8001 ---
         self.server_url = os.environ.get(
             "AXIOM_API_URL",
-            "http://127.0.0.1:8001",
+            "https://127.0.0.1:8001",
         )
         self.setup_ui()
 
