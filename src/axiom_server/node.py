@@ -9,7 +9,6 @@ import argparse
 import json
 import logging
 import sys
-# --- FIX: Import the 'threading' module for synchronization ---
 import threading
 import time
 import hashlib
@@ -29,7 +28,6 @@ from axiom_server import (
 from axiom_server.api_query import semantic_search_ledger
 from axiom_server.crucible import _extract_dates
 from axiom_server.hasher import FactIndexer
-# --- FIX: Import the new ledger functions ---
 from axiom_server.ledger import (
     ENGINE,
     Block,
@@ -43,14 +41,14 @@ from axiom_server.ledger import (
     create_genesis_block,
     get_latest_block,
     initialize_database,
-    get_chain_as_dicts, # <-- New Import
-    replace_chain,      # <-- New Import
+    get_chain_as_dicts,
+    replace_chain,
 )
 from axiom_server.p2p.constants import (
     BOOTSTRAP_IP_ADDR,
     BOOTSTRAP_PORT,
 )
-# --- FIX: Import the Message class for creating responses ---
+# --- Import the Message class for creating responses ---
 from axiom_server.p2p.node import ApplicationData, Message, Node as P2PBaseNode
 
 __version__ = "3.1.3"
@@ -73,7 +71,7 @@ db_lock = threading.Lock()
 fact_indexer_lock = threading.Lock()
 fact_indexer: FactIndexer | None = None
 
-# --- NEW: We create a single class that combines Axiom logic and P2P networking ---
+# --- We create a single class that combines Axiom logic and P2P networking ---
 class AxiomNode(P2PBaseNode):
     """A class representing a single Axiom node, inheriting P2P capabilities."""
 
@@ -163,11 +161,10 @@ class AxiomNode(P2PBaseNode):
                 f"Error processing peer message: {e}",
             )
 
-    # --- THIS IS THE START OF THE CORRECTLY INDENTED SECTION ---
     def _background_work_loop(self) -> None:
         """
-        The main work cycle, refactored to be interruptible and to handle database
-        sessions correctly to prevent DetachedInstanceErrors.
+        The main work cycle, refactored to be interruptible, handle database
+        sessions correctly, and update the search index.
         """
         if self.bootstrap_peer:
             logger.info("Worker node started. Waiting for initial blockchain sync from bootstrap peer...")
@@ -184,6 +181,7 @@ class AxiomNode(P2PBaseNode):
             
             new_block_candidate = None
             latest_block_before_mining = None
+            facts_sealed_in_block: list[Fact] = []
 
             with db_lock, SessionMaker() as session:
                 try:
@@ -232,6 +230,9 @@ class AxiomNode(P2PBaseNode):
                                 fact_hashes=json.dumps(fact_hashes),
                                 timestamp=time.time(),
                             )
+                            # --- Store the actual fact objects for later indexing ---
+                            facts_sealed_in_block = facts_for_sealing
+
                 except Exception as e:
                     background_thread_logger.exception(f"Error during fact gathering: {e}")
 
@@ -252,6 +253,16 @@ class AxiomNode(P2PBaseNode):
                             broadcast_data = {"type": "new_block_header", "data": new_block_candidate.to_dict()}
                             self.broadcast_application_message(json.dumps(broadcast_data))
                             background_thread_logger.info("Broadcasted new block header to network.")
+                            
+                            if facts_sealed_in_block:
+                                background_thread_logger.info(
+                                    f"Updating search index with {len(facts_sealed_in_block)} new facts from the sealed block..."
+                                )
+                                with fact_indexer_lock:
+                                    # Ensure your FactIndexer has an `add_facts` method.
+                                    fact_indexer.add_facts(facts_sealed_in_block)
+                                background_thread_logger.info("Search index update complete.")
+
                 else:
                     background_thread_logger.info("Mining was interrupted by a new block from a peer. Abandoning our work and starting new cycle.")
 

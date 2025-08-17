@@ -26,7 +26,6 @@ RSS_FEEDS: Final[Tuple[str, ...]] = (
     # "https://web.archive.org/web/20120506093420/https://twitter.com/statuses/user_timeline/2467791.rss",
     "https://www.theguardian.com/world/rss",
     "https://www.aljazeera.com/xml/rss/all.xml",
-    "https://www.lemonde.fr/rss/une.xml",
     "https://www.npr.org/rss/rss.php?id=1001",
     "https://rss.dw.com/rdf/rss-en-all",
     "https://foreignpolicy.com/feed/",
@@ -35,7 +34,6 @@ RSS_FEEDS: Final[Tuple[str, ...]] = (
     # # "https://www.cbc.ca/rss/world",                        # CBC (Canada) - World News
     "https://www.abc.net.au/news/feed/51120/rss.xml",  # ABC (Australia) - Top Stories
     "https://www.spiegel.de/international/index.rss",  # Der Spiegel (Germany) - International
-    "https://www.lemonde.fr/rss/une.xml",  # Le Monde (France) - English Edition
     "https://www.japantimes.co.jp/feed",  # The Japan Times
     "https://timesofindia.indiatimes.com/rssfeedstopstories.cms",  # The Times of India
     # US Focused
