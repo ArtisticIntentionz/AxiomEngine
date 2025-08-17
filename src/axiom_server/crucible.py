@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Generic, TypeVar
 
 # Third-party imports for HTML parsing
 from bs4 import BeautifulSoup
+from transformers import pipeline
 
 from axiom_server.common import NLP_MODEL, SUBJECTIVITY_INDICATORS
 
@@ -72,7 +73,7 @@ def get_nli_classifier() -> NliPipeline | None:
         logger.info(
             "Initializing Hugging Face NLI model for the first time...",
         )
-        # We use a lightweight model to save resources and improve speed.
+        # Now, Python knows what 'pipeline' is because we imported it at the top.
         return pipeline(
             "zero-shot-classification",
             model="typeform/distilbert-base-uncased-mnli",
