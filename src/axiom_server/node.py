@@ -449,10 +449,7 @@ class AxiomNode(P2PBaseNode):
                     # Choose up to 3 random peers to ask.
                     # This prevents spamming the whole network and breaks simple loops.
                     num_to_ask = min(3, len(self.peer_links))
-                    peers_to_ask = random.sample(
-                        list(self.peer_links.values()),
-                        num_to_ask,
-                    )
+                    peers_to_ask = random.sample(self.peer_links, num_to_ask)
 
                 logger.info(
                     f"Asking {len(peers_to_ask)} peer(s) for their peer lists...",
