@@ -153,10 +153,10 @@ class Block(Base):
             "nonce": self.nonce,
             "fact_hashes": self.fact_hashes,
         }
+
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Self:
-        """
-        Creates a Block object from a dictionary, typically from P2P data.
+        """Creates a Block object from a dictionary, typically from P2P data.
         This is the inverse of the to_dict() method.
         """
         # We use .get() for safety to avoid KeyErrors if a field is missing.
@@ -222,7 +222,9 @@ class Fact(Base):
         default=False,
         nullable=False,
     )
-    hash: Mapped[str] = mapped_column(String, default="", nullable=False, unique=True)
+    hash: Mapped[str] = mapped_column(
+        String, default="", nullable=False, unique=True,
+    )
     last_checked: Mapped[str] = mapped_column(
         String,
         default=lambda: datetime.datetime.now(
@@ -469,14 +471,17 @@ def add_block_from_peer_data(
         logger.info(
             f"Added new block #{new_block.height} from peer to local ledger.",
         )
-        
+
         # --- FIX: Return the newly created block object on success.
         return new_block
 
     except (KeyError, TypeError, ValueError) as e:
-        logger.error(f"Error processing peer block data: {e}. Discarding block.")
+        logger.error(
+            f"Error processing peer block data: {e}. Discarding block.",
+        )
         session.rollback()
         return None
+
 
 def get_all_facts_for_analysis(session: Session) -> list[Fact]:
     """Return list of all facts."""
@@ -609,9 +614,9 @@ class Proposal(TypedDict):
     proposer: str
     votes: dict[str, Votes]
 
+
 def get_chain_as_dicts(session: Session) -> list[dict]:
-    """
-    Queries the database for all blocks, orders them by height, and serializes
+    """Queries the database for all blocks, orders them by height, and serializes
     them into a list of dictionaries for network transport.
     """
     logger.info("Exporting full blockchain from database for peer...")
@@ -621,8 +626,7 @@ def get_chain_as_dicts(session: Session) -> list[dict]:
 
 
 def replace_chain(session: Session, new_chain_dicts: list[dict]) -> bool:
-    """
-    Performs a full validation of a received blockchain and, if it is valid
+    """Performs a full validation of a received blockchain and, if it is valid
     and longer than the current chain, atomically replaces the local chain.
     This is the heart of the synchronization process.
     """
@@ -631,7 +635,9 @@ def replace_chain(session: Session, new_chain_dicts: list[dict]) -> bool:
 
     # 1. Validation: The new chain must be longer to be considered.
     if len(new_chain_dicts) <= len(current_blocks):
-        logger.warning("Received chain is not longer than the current one. Aborting sync.")
+        logger.warning(
+            "Received chain is not longer than the current one. Aborting sync.",
+        )
         return False
 
     try:
@@ -641,28 +647,39 @@ def replace_chain(session: Session, new_chain_dicts: list[dict]) -> bool:
         temp_blocks = [Block.from_dict(b) for b in new_chain_dicts]
         for i in range(1, len(temp_blocks)):
             # Ensure the current block's previous_hash matches the actual hash of the previous block.
-            if temp_blocks[i].previous_hash != temp_blocks[i-1].calculate_hash():
+            if (
+                temp_blocks[i].previous_hash
+                != temp_blocks[i - 1].calculate_hash()
+            ):
                 logger.error(
-                    f"Chain validation failed: Invalid hash link at block index {temp_blocks[i].height}."
+                    f"Chain validation failed: Invalid hash link at block index {temp_blocks[i].height}.",
                 )
                 return False
         logger.info("Validation of received chain was successful.")
 
         # 3. Atomic Replacement: Perform the delete and insert operations within a
         #    single transaction to prevent database corruption on failure.
-        logger.info(f"Deleting {len(current_blocks)} old blocks from the database.")
+        logger.info(
+            f"Deleting {len(current_blocks)} old blocks from the database.",
+        )
         for block in current_blocks:
             session.delete(block)
 
-        logger.info(f"Inserting {len(temp_blocks)} new blocks into the database.")
+        logger.info(
+            f"Inserting {len(temp_blocks)} new blocks into the database.",
+        )
         session.add_all(temp_blocks)
 
         session.commit()
-        logger.info("Blockchain successfully synced and replaced in the database!")
+        logger.info(
+            "Blockchain successfully synced and replaced in the database!",
+        )
         return True
 
     except Exception as e:
-        logger.error(f"A critical error occurred during chain replacement: {e}")
+        logger.error(
+            f"A critical error occurred during chain replacement: {e}",
+        )
         # IMPORTANT: Roll back any partial changes if an error occurs.
         session.rollback()
         return False

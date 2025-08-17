@@ -24,7 +24,6 @@ from axiom_server.ledger import (
     RelationshipType,
     Semantics,
     add_fact_object_corroboration,
-    insert_relationship_object,
     mark_fact_objects_as_disputed,
 )
 
@@ -70,35 +69,47 @@ METADATA_NOISE_PATTERNS = (
 def get_nli_classifier() -> NliPipeline | None:
     """Loads and returns a cached instance of the NLI pipeline."""
     try:
-        logger.info("Initializing Hugging Face NLI model for the first time...")
+        logger.info(
+            "Initializing Hugging Face NLI model for the first time...",
+        )
         # We use a lightweight model to save resources and improve speed.
         return pipeline(
             "zero-shot-classification",
             model="typeform/distilbert-base-uncased-mnli",
         )
     except Exception as e:
-        logger.error(f"CRITICAL: Failed to initialize NLI model. Contradiction checks will be disabled. Error: {e}")
+        logger.error(
+            f"CRITICAL: Failed to initialize NLI model. Contradiction checks will be disabled. Error: {e}",
+        )
         return None
+
 
 class CrucibleError(Exception):
     """Crucible Error Exception."""
+
     __slots__ = ()
+
 
 @dataclass
 class Check(Generic[T]):
     """Check dataclass."""
+
     run: Callable[[T], bool]
     description: str
+
 
 @dataclass
 class Transformation(Generic[T]):
     """Transformation dataclass."""
+
     run: Callable[[T], T | None]
     description: str
+
 
 @dataclass
 class Pipeline(Generic[T]):
     """Pipeline dataclass."""
+
     name: str
     steps: list[Check[T] | Transformation[T]]
 
@@ -108,11 +119,15 @@ class Pipeline(Generic[T]):
         current_value: T | None = value
         for step in self.steps:
             if current_value is None:
-                logger.info(f"pipeline '{self.name}' halted as value became None.")
+                logger.info(
+                    f"pipeline '{self.name}' halted as value became None.",
+                )
                 break
             if isinstance(step, Check):
                 if not step.run(current_value):
-                    logger.info(f"pipeline '{self.name}' stopped by check: {step.description}")
+                    logger.info(
+                        f"pipeline '{self.name}' stopped by check: {step.description}",
+                    )
                     return None
             elif isinstance(step, Transformation):
                 try:
@@ -121,7 +136,10 @@ class Pipeline(Generic[T]):
                     error_string = f"transformation error in '{self.name}' on step '{step.description}' ({exc})"
                     logger.exception(error_string)
                     raise CrucibleError(error_string) from exc
-        logger.info(f"pipeline '{self.name}' finished, returning '%.200s'", current_value)
+        logger.info(
+            f"pipeline '{self.name}' finished, returning '%.200s'",
+            current_value,
+        )
         return current_value
 
 
@@ -337,15 +355,16 @@ class CrucibleFactAdder:
     addition_count: int = 0
 
     def add(self, fact: Fact):
-        """
-        Adds and processes a fact against the database, now with robust,
+        """Adds and processes a fact against the database, now with robust,
         database-level duplicate handling.
         """
-        from sqlalchemy.exc import IntegrityError # Import the specific exception
+        from sqlalchemy.exc import (
+            IntegrityError,
+        )  # Import the specific exception
 
         assert fact.sources, "Fact must have a source before being added."
         primary_source = fact.sources[0]
-        
+
         fact.set_hash()
 
         try:
@@ -353,7 +372,7 @@ class CrucibleFactAdder:
             self.session.add(fact)
             self.session.commit()
             self.addition_count += 1
-            
+
             # If the commit succeeds, it was a unique fact. We can now process it.
             self._process_relationships(fact)
             self.fact_indexer.add_fact(fact)
@@ -362,19 +381,22 @@ class CrucibleFactAdder:
         except IntegrityError:
             # If the commit fails with an IntegrityError, it means the database's
             # `unique=True` constraint was violated. The fact already exists.
-            
+
             # We must rollback the failed session to a clean state.
             self.session.rollback()
-            
+
             # Now, we find the existing fact and corroborate it with the new source.
-            existing_fact = self.session.query(Fact).filter(Fact.hash == fact.hash).one()
-            logger.info(f"Duplicate fact detected by database (hash: {fact.hash[:8]}). Corroborating with new source: {primary_source.domain}")
+            existing_fact = (
+                self.session.query(Fact).filter(Fact.hash == fact.hash).one()
+            )
+            logger.info(
+                f"Duplicate fact detected by database (hash: {fact.hash[:8]}). Corroborating with new source: {primary_source.domain}",
+            )
             add_fact_object_corroboration(existing_fact, primary_source)
             self.session.commit()
 
     def _process_relationships(self, new_fact: Fact):
-        """
-        Finds potentially related facts and checks for contradictions, corroborations,
+        """Finds potentially related facts and checks for contradictions, corroborations,
         and other relationships.
         """
         new_doc = new_fact.get_semantics().get("doc")
@@ -383,43 +405,61 @@ class CrucibleFactAdder:
             return
 
         # Your entity-based query to find related facts is excellent for performance.
-        new_entities = {ent.text.lower() for ent in new_doc.ents if len(ent.text) > 2}
+        new_entities = {
+            ent.text.lower() for ent in new_doc.ents if len(ent.text) > 2
+        }
         if not new_entities:
             return
 
         from sqlalchemy import or_
-        entity_filters = [Fact.content.ilike(f"%{entity}%") for entity in new_entities]
+
+        entity_filters = [
+            Fact.content.ilike(f"%{entity}%") for entity in new_entities
+        ]
         query = self.session.query(Fact).filter(
             Fact.id != new_fact.id,
             Fact.disputed == False,
-            or_(*entity_filters)
+            or_(*entity_filters),
         )
         potentially_related_facts = query.all()
 
-        logger.info(f"Found {len(potentially_related_facts)} potentially related facts for Fact ID {new_fact.id}.")
+        logger.info(
+            f"Found {len(potentially_related_facts)} potentially related facts for Fact ID {new_fact.id}.",
+        )
 
         for existing_fact in potentially_related_facts:
             # --- FIX 2 of 3: CONTRADICTION DETECTION ---
             premise = existing_fact.content
             hypothesis = new_fact.content
-            
+
             try:
-                result = nli_classifier(hypothesis, candidate_labels=["contradiction", "entailment", "neutral"])
+                result = nli_classifier(
+                    hypothesis,
+                    candidate_labels=[
+                        "contradiction",
+                        "entailment",
+                        "neutral",
+                    ],
+                )
                 top_label = result["labels"][0]
                 top_score = result["scores"][0]
 
-                if top_label == 'contradiction' and top_score > 0.90:
+                if top_label == "contradiction" and top_score > 0.90:
                     logger.warning(
-                        f"NLI CONTRADICTION DETECTED between new Fact ID {new_fact.id} and existing Fact ID {existing_fact.id}! Marking as disputed."
+                        f"NLI CONTRADICTION DETECTED between new Fact ID {new_fact.id} and existing Fact ID {existing_fact.id}! Marking as disputed.",
                     )
-                    mark_fact_objects_as_disputed(self.session, existing_fact, new_fact)
+                    mark_fact_objects_as_disputed(
+                        self.session, existing_fact, new_fact,
+                    )
                     self.contradiction_count += 1
                     self.session.commit()
                     # Once contradicted, we stop processing this fact further.
                     return
             except Exception as e:
-                logger.error(f"Error during NLI check between facts {new_fact.id} and {existing_fact.id}: {e}")
-            
+                logger.error(
+                    f"Error during NLI check between facts {new_fact.id} and {existing_fact.id}: {e}",
+                )
+
             # --- FIX 3 of 3: ENTITY RESOLUTION (Simplified) ---
             # Your check_corroboration is a simple form of entity resolution.
             # We can keep it to strengthen relationships.

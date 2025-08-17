@@ -58,18 +58,20 @@ class FactIndexer:
         self.add_facts([fact])
 
     def add_facts(self, facts_to_add: list[Fact]):
-        """
-        Adds a list of new Fact objects to the live in-memory search index
+        """Adds a list of new Fact objects to the live in-memory search index
         efficiently in a single batch operation.
 
         Args:
             facts_to_add: A list of SQLAlchemy Fact objects to be indexed.
+
         """
         if not facts_to_add:
             return
 
         # Filter out any facts that might already be in the index
-        new_facts = [fact for fact in facts_to_add if fact.id not in self.fact_ids]
+        new_facts = [
+            fact for fact in facts_to_add if fact.id not in self.fact_ids
+        ]
         if not new_facts:
             logger.info("All provided facts are already indexed. Skipping.")
             return
@@ -81,7 +83,7 @@ class FactIndexer:
         # Use the NLP model to get all vectors in one go. This is very efficient.
         # We need to process each content string with the NLP model individually to get its vector.
         new_vectors = [NLP_MODEL(content).vector for content in new_contents]
-        
+
         # --- Update the in-memory stores ---
         for i, fact in enumerate(new_facts):
             self.fact_id_to_content[fact.id] = new_contents[i]
@@ -100,8 +102,10 @@ class FactIndexer:
             self.vector_matrix = np.vstack(
                 [self.vector_matrix, new_vectors_matrix],
             )
-        
-        logger.info(f"Successfully added {len(new_facts)} new facts to the search index.")
+
+        logger.info(
+            f"Successfully added {len(new_facts)} new facts to the search index.",
+        )
 
     def index_facts_from_db(self) -> None:
         """Read all non-disputed facts from the database and builds the index."""
@@ -112,7 +116,7 @@ class FactIndexer:
         if not facts_to_index:
             logger.warning("No facts found in the database to index.")
             return
-        
+
         # We can now reuse our efficient batch-processing method!
         self.add_facts(facts_to_index)
 
@@ -140,7 +144,6 @@ class FactIndexer:
         logger.info(f"Extracted keywords for pre-filtering: {keywords}")
 
         # --- Step 2: Pre-filter the Database for Keywords ---
-        from sqlalchemy import or_
 
         # Build a query that looks for facts containing ANY of the keywords.
         # This is a fast, indexed text search in the database.
@@ -183,7 +186,9 @@ class FactIndexer:
             ]
 
         except ValueError:
-            logger.warning("A race condition occurred where a fact was un-indexed during a search. Returning no results.")
+            logger.warning(
+                "A race condition occurred where a fact was un-indexed during a search. Returning no results.",
+            )
             return []
 
         if self.vector_matrix is None or len(candidate_indices) == 0:

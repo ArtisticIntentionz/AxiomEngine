@@ -1,6 +1,4 @@
-
-"""
-Docstring for axiom_server.run_node.
+"""Docstring for axiom_server.run_node.
 
 This script is the official command-line launcher for a full Axiom Node.
 It parses high-level user arguments and then calls the main application logic
@@ -51,20 +49,30 @@ if __name__ == "__main__":
     sys.argv = ["axiom_server/node.py"]
 
     if args.default_bootstrap:
-        logger.info("Default bootstrap flag detected. Configuring as a public node.")
+        logger.info(
+            "Default bootstrap flag detected. Configuring as a public node.",
+        )
         # We need to get the public IP. For a server, this is usually a known value.
         # A robust way is to use an environment variable.
         public_ip = os.environ.get("AXIOM_PUBLIC_IP")
         if not public_ip:
-            logger.critical("CRITICAL: --default_bootstrap requires AXIOM_PUBLIC_IP environment variable to be set.")
+            logger.critical(
+                "CRITICAL: --default_bootstrap requires AXIOM_PUBLIC_IP environment variable to be set.",
+            )
             sys.exit(1)
 
-        sys.argv.extend([
-            "--host", "0.0.0.0",
-            "--p2p-port", os.environ.get("AXIOM_BOOTSTRAP_PORT", "5000"),
-            "--api-port", os.environ.get("AXIOM_API_PORT", "8000"),
-            "--public-ip", public_ip, # <-- THE FIX IS ADDING THIS LINE
-        ])
+        sys.argv.extend(
+            [
+                "--host",
+                "0.0.0.0",
+                "--p2p-port",
+                os.environ.get("AXIOM_BOOTSTRAP_PORT", "5000"),
+                "--api-port",
+                os.environ.get("AXIOM_API_PORT", "8000"),
+                "--public-ip",
+                public_ip,  # <-- THE FIX IS ADDING THIS LINE
+            ],
+        )
     else:
         # If not a default bootstrap, we just pass all other user-provided
         # arguments directly to the main script.

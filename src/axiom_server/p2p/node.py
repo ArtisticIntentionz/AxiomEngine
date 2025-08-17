@@ -151,14 +151,13 @@ class Message(BaseModel):
             ApplicationData,
         ):
             return True
-        
+
         if self.message_type == MessageType.GET_CHAIN and isinstance(
             self.content,
             MessageContent,
         ):
             return True
 
-            
         return False
 
     @staticmethod
@@ -190,7 +189,7 @@ class Message(BaseModel):
             message_type=MessageType.APPLICATION,
             content=ApplicationData(data=data),
         )
-    
+
     @staticmethod
     def get_chain_request() -> Message:
         """Build a get chain request message."""
@@ -387,7 +386,9 @@ class Node:
     server_socket: Socket
 
     @staticmethod
-    def start(ip_address: str, port: int = 0, public_ip: str | None = None) -> Node:
+    def start(
+        ip_address: str, port: int = 0, public_ip: str | None = None,
+    ) -> Node:
         """Create a new Node by generating new public and private keys, binding the home socket to ip_address and port.
 
         Args:
@@ -426,7 +427,9 @@ class Node:
         # It defines the `final_public_ip` variable before it gets used.
         # It intelligently decides to use the provided public_ip if available,
         # otherwise, it falls back to the IP the socket is bound to.
-        final_public_ip = public_ip if public_ip is not None else computed_ip_address
+        final_public_ip = (
+            public_ip if public_ip is not None else computed_ip_address
+        )
 
         return Node(
             ip_address=computed_ip_address,
@@ -610,9 +613,11 @@ class Node:
 
             if link is None:
                 logger.error("failed to bootstrap: can't connect to server")
-                return
-            
-            logger.info(f"Connection to {link.fmt_addr()} successful. Requesting blockchain...")
+                return None
+
+            logger.info(
+                f"Connection to {link.fmt_addr()} successful. Requesting blockchain...",
+            )
         self._send_message(link, Message.get_chain_request())
         self._send_message(link, Message.peers_request())
         return True
@@ -730,11 +735,18 @@ class Node:
 
             if shared_peer.port == self.port:
                 # Check against all possible addresses that could mean "me"
-                self_ips = {self.ip_address, self.public_ip, "127.0.0.1", "localhost"}
+                self_ips = {
+                    self.ip_address,
+                    self.public_ip,
+                    "127.0.0.1",
+                    "localhost",
+                }
                 if shared_peer.ip_address in self_ips:
-                    logger.info(f"Ignoring peer {shared_peer.ip_address}:{shared_peer.port} because it is myself.")
+                    logger.info(
+                        f"Ignoring peer {shared_peer.ip_address}:{shared_peer.port} because it is myself.",
+                    )
                     is_self = True
-            
+
             if is_self:
                 continue
             assert shared_peer.port is not None
@@ -800,15 +812,20 @@ class Node:
 
     def _handle_message(self, link: PeerLink, message: Message):
         """Dispatches incoming messages to their appropriate handlers."""
-
         if message.message_type == MessageType.GET_CHAIN:
-            if hasattr(self, 'get_chain_callback') and callable(self.get_chain_callback):
-                logger.info(f"Peer {link.fmt_addr()} requested the blockchain. Executing callback...")
+            if hasattr(self, "get_chain_callback") and callable(
+                self.get_chain_callback,
+            ):
+                logger.info(
+                    f"Peer {link.fmt_addr()} requested the blockchain. Executing callback...",
+                )
                 chain_data_json = self.get_chain_callback()
                 response = Message.application_data(chain_data_json)
                 self._send_message(link, response)
             else:
-                logger.warning("Received GET_CHAIN request but no handler is registered.")
+                logger.warning(
+                    "Received GET_CHAIN request but no handler is registered.",
+                )
 
         elif message.message_type == MessageType.APPLICATION:
             assert isinstance(message.content, ApplicationData)
@@ -818,12 +835,12 @@ class Node:
             self._handle_peers_request(link)
 
         # --- THIS IS THE FINAL FIX ---
-        elif message.message_type == MessageType.PEERS_SHARING: # <-- Changed hyphen to underscore
-        # --- END OF FINAL FIX ---
+        elif (
+            message.message_type == MessageType.PEERS_SHARING
+        ):  # <-- Changed hyphen to underscore
+            # --- END OF FINAL FIX ---
             assert isinstance(message.content, PeersSharing)
             self._handle_peers_sharing(link, message.content)
-
-        
 
     def _handle_application_message(
         self,
