@@ -108,7 +108,9 @@ class AxiomNode(P2PBaseNode):
             serialized_public_key=temp_p2p.serialized_public_key,
             peer_links=temp_p2p.peer_links,
             server_socket=temp_p2p.server_socket,
+            
         )
+        self.peer_links_lock = threading.Lock()
 
         self.initial_sync_complete = threading.Event()
         self.bootstrap_peer = bootstrap_peer
