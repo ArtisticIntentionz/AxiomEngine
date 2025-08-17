@@ -6,10 +6,10 @@ from __future__ import annotations
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.
 import argparse
-import random
 import hashlib
 import json
 import logging
+import random
 import sys
 import threading
 import time
@@ -431,7 +431,6 @@ class AxiomNode(P2PBaseNode):
             response_data = {"type": "CHAIN_RESPONSE", "chain": chain_dicts}
             return json.dumps(response_data)
 
-    
     def _peer_management_loop(self) -> None:
         """Maintain and expand the node's peer connections in a background thread."""
         logger.info("Starting peer management loop.")
@@ -447,9 +446,13 @@ class AxiomNode(P2PBaseNode):
                     # Choose up to 3 random peers to ask.
                     # This prevents spamming the whole network and breaks simple loops.
                     num_to_ask = min(3, len(self.peer_links))
-                    peers_to_ask = random.sample(list(self.peer_links.values()), num_to_ask)
+                    peers_to_ask = random.sample(
+                        list(self.peer_links.values()), num_to_ask,
+                    )
 
-                logger.info(f"Asking {len(peers_to_ask)} peer(s) for their peer lists...")
+                logger.info(
+                    f"Asking {len(peers_to_ask)} peer(s) for their peer lists...",
+                )
 
                 for peer_link in peers_to_ask:
                     self._send_message(peer_link, Message.peers_request())
@@ -458,8 +461,12 @@ class AxiomNode(P2PBaseNode):
                 time.sleep(300)  # e.g., run every 5 minutes
 
             except Exception as e:
-                logger.error(f"Error in peer management loop: {e}", exc_info=True)
-                time.sleep(60) # Wait a minute before retrying if an error occurs
+                logger.error(
+                    f"Error in peer management loop: {e}", exc_info=True,
+                )
+                time.sleep(
+                    60,
+                )  # Wait a minute before retrying if an error occurs
 
     @classmethod
     def start_node(
