@@ -136,29 +136,24 @@ class Message(BaseModel):
 
     def check_content(self) -> bool:
         """Check the pertinence of message_type and the actual type of content."""
-        if self.message_type == MessageType.PEERS_REQUEST and isinstance(
-            self.content,
-            PeersRequest,
-        ):
-            return True
-        if self.message_type == MessageType.PEERS_SHARING and isinstance(
-            self.content,
-            PeersSharing,
-        ):
-            return True
-        if self.message_type == MessageType.APPLICATION and isinstance(
-            self.content,
-            ApplicationData,
-        ):
-            return True
-
-        if self.message_type == MessageType.GET_CHAIN and isinstance(
-            self.content,
-            MessageContent,
-        ):
-            return True
-
-        return False
+        return (
+            (
+                self.message_type == MessageType.PEERS_REQUEST
+                and isinstance(self.content, PeersRequest)
+            )
+            or (
+                self.message_type == MessageType.PEERS_SHARING
+                and isinstance(self.content, PeersSharing)
+            )
+            or (
+                self.message_type == MessageType.APPLICATION
+                and isinstance(self.content, ApplicationData)
+            )
+            or (
+                self.message_type == MessageType.GET_CHAIN
+                and isinstance(self.content, MessageContent)
+            )
+        )
 
     @staticmethod
     def peers_request() -> Message:

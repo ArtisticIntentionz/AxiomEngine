@@ -68,7 +68,7 @@ METADATA_NOISE_PATTERNS = (
 # --- NEW: Efficiently load and cache the NLI model ---
 @cache
 def get_nli_classifier() -> NliPipeline | None:
-    """Loads and returns a cached instance of the NLI pipeline."""
+    """Load and return a cached instance of the NLI pipeline."""
     try:
         logger.info(
             "Initializing Hugging Face NLI model for the first time...",
@@ -356,7 +356,8 @@ class CrucibleFactAdder:
     addition_count: int = 0
 
     def add(self, fact: Fact):
-        """Adds and processes a fact against the database, now with robust,
+        """Add and process a fact against the database, now with robust, database-level duplicate handling.
+
         database-level duplicate handling.
         """
         from sqlalchemy.exc import (
@@ -397,9 +398,7 @@ class CrucibleFactAdder:
             self.session.commit()
 
     def _process_relationships(self, new_fact: Fact):
-        """Finds potentially related facts and checks for contradictions, corroborations,
-        and other relationships.
-        """
+        """Find potentially related facts and check for contradictions, corroborations, and other relationships."""
         new_doc = new_fact.get_semantics().get("doc")
         nli_classifier = get_nli_classifier()
         if not new_doc or not nli_classifier:
@@ -419,7 +418,7 @@ class CrucibleFactAdder:
         ]
         query = self.session.query(Fact).filter(
             Fact.id != new_fact.id,
-            Fact.disputed == False,
+            not Fact.disputed,
             or_(*entity_filters),
         )
         potentially_related_facts = query.all()
@@ -430,7 +429,7 @@ class CrucibleFactAdder:
 
         for existing_fact in potentially_related_facts:
             # --- FIX 2 of 3: CONTRADICTION DETECTION ---
-            premise = existing_fact.content
+            # premise = existing_fact.content # Removed since it's not used
             hypothesis = new_fact.content
 
             try:

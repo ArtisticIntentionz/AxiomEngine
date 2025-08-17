@@ -156,9 +156,7 @@ class Block(Base):
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Self:
-        """Creates a Block object from a dictionary, typically from P2P data.
-        This is the inverse of the to_dict() method.
-        """
+        """Create a Block object from a dictionary, typically from P2P data. This is the inverse of the to_dict() method."""
         # We use .get() for safety to avoid KeyErrors if a field is missing.
         return cls(
             height=data.get("height"),
@@ -619,9 +617,7 @@ class Proposal(TypedDict):
 
 
 def get_chain_as_dicts(session: Session) -> list[dict]:
-    """Queries the database for all blocks, orders them by height, and serializes
-    them into a list of dictionaries for network transport.
-    """
+    """Query the database for all blocks, order them by height, and serialize them into a list of dictionaries for network transport."""
     logger.info("Exporting full blockchain from database for peer...")
     all_blocks = session.query(Block).order_by(Block.height.asc()).all()
     # This uses the to_dict() method you already have on your Block objects.
@@ -629,8 +625,8 @@ def get_chain_as_dicts(session: Session) -> list[dict]:
 
 
 def replace_chain(session: Session, new_chain_dicts: list[dict]) -> bool:
-    """Performs a full validation of a received blockchain and, if it is valid
-    and longer than the current chain, atomically replaces the local chain.
+    """Perform a full validation of a received blockchain and, if it is valid and longer than the current chain, atomically replace the local chain.
+
     This is the heart of the synchronization process.
     """
     logger.info("Attempting to replace local chain with received chain...")

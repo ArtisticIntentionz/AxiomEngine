@@ -130,10 +130,10 @@ class AxiomNode(P2PBaseNode):
 
     def _handle_application_message(
         self,
-        _link: PeerLink,
+        peer_link: PeerLink,  # Renamed _link to peer_link for clarity and usage
         content: ApplicationData,
     ) -> None:
-        """This method is the central dispatcher for all high-level P2P messages."""
+        """Dispatch all high-level P2P messages."""
         try:
             message = json.loads(content.data)
             msg_type = message.get("type")
@@ -165,7 +165,10 @@ class AxiomNode(P2PBaseNode):
                 response_message = Message.application_data(
                     chain_data_json_str,
                 )
-                self._send_message(link, response_message)
+                # Use the 'peer_link' argument which represents the connection to the peer
+                self._send_message(
+                    peer_link, response_message,
+                )  # Changed 'link' to 'peer_link'
 
             elif msg_type == "new_block_header":
                 msg_data = message.get("data")
@@ -174,14 +177,15 @@ class AxiomNode(P2PBaseNode):
                     if new_block:
                         self.new_block_received.set()
 
-        except Exception:
+        except Exception as e:
             background_thread_logger.error(
-                f"Error processing peer message: {exc}",
+                f"Error processing peer message: {e}",
             )
 
     def _background_work_loop(self) -> None:
-        """The main work cycle, refactored to be interruptible, handle database
-        sessions correctly, and update the search index.
+        """Refactor the main work cycle to be interruptible.
+
+        handle database sessions correctly, and update the search index.
         """
         if self.bootstrap_peer:
             logger.info(
@@ -365,9 +369,7 @@ class AxiomNode(P2PBaseNode):
             time.sleep(10800)
 
     def seal_block_interruptibly(self, block: Block, difficulty: int) -> bool:
-        """Performs Proof of Work for a given block, but frequently checks the
-        self.new_block_received event to see if it should abort its work.
-        """
+        """Perform Proof of Work for a given block, but frequently check the self.new_block_received event to see if work should be aborted."""
         fact_hashes_list = json.loads(block.fact_hashes)
         if fact_hashes_list:
             merkle_tree = merkle.MerkleTree(fact_hashes_list)
@@ -378,9 +380,8 @@ class AxiomNode(P2PBaseNode):
         target = "0" * difficulty
 
         while True:
-            if block.nonce % 1000 == 0:
-                if self.new_block_received.is_set():
-                    return False
+            if block.nonce % 1000 == 0 and self.new_block_received.is_set():
+                return False
 
             block.hash = block.calculate_hash()
             if block.hash.startswith(target):
@@ -408,14 +409,14 @@ class AxiomNode(P2PBaseNode):
             self.update()
 
     def _get_chain_for_peer(self) -> str:
-        """A thread-safe method to get the entire blockchain as a JSON string."""
+        """Get the entire blockchain as a JSON string using a thread-safe method."""
         with db_lock, SessionMaker() as session:
             chain_dicts = get_chain_as_dicts(session)
             response_data = {"type": "CHAIN_RESPONSE", "chain": chain_dicts}
             return json.dumps(response_data)
 
     def _peer_management_loop(self) -> None:
-        """A background thread to maintain and expand the node's peer connections."""
+        """Maintain and expand the node's peer connections in a background thread."""
         logger.info("Starting peer management loop.")
         while True:
             # 1. Ask all current peers for their peer lists.

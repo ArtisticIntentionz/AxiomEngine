@@ -53,13 +53,12 @@ class FactIndexer:
         self.fact_ids: list[int] = []
 
     def add_fact(self, fact: Fact):
-        """Adds a single, new fact to the live index in memory."""
+        """Add a single, new fact to the live index in memory."""
         # This is a convenience method that calls the more efficient batch method.
         self.add_facts([fact])
 
     def add_facts(self, facts_to_add: list[Fact]):
-        """Adds a list of new Fact objects to the live in-memory search index
-        efficiently in a single batch operation.
+        """Add a list of new Fact objects to the live in-memory search index efficiently in a single batch operation.
 
         Args:
             facts_to_add: A list of SQLAlchemy Fact objects to be indexed.
@@ -78,7 +77,7 @@ class FactIndexer:
 
         # --- Batch process all new facts ---
         new_contents = [fact.content for fact in new_facts]
-        new_ids = [fact.id for fact in new_facts]
+        # new_ids = [fact.id for fact in new_facts]
 
         # Use the NLP model to get all vectors in one go. This is very efficient.
         # We need to process each content string with the NLP model individually to get its vector.
@@ -129,99 +128,84 @@ class FactIndexer:
         query_text: str,
         top_n: int = 3,
     ) -> list[dict]:
-        """Perform a HYBRID search.
+        """Perform a HYBRID search with a full semantic fallback.
 
         1. Extracts keywords from the query.
         2. Pre-filters the database for facts containing those keywords.
         3. Performs a vector similarity search ONLY on the pre-filtered results.
+        4. If pre-filtering yields no results, it falls back to a full
+        vector search against the entire index.
         """
+        if self.vector_matrix is None or len(self.fact_ids) == 0:
+            logger.warning("Fact index is not available. Cannot perform search.")
+            return []
+
         # --- Step 1: Extract Keywords ---
         keywords = _extract_keywords(query_text)
-        if not keywords:
-            logger.warning("Could not extract any keywords from the query.")
-            return []  # If no keywords, we can't search.
+        pre_filtered_facts = []
 
-        logger.info(f"Extracted keywords for pre-filtering: {keywords}")
+        if keywords:
+            logger.info(f"Extracted keywords for pre-filtering: {keywords}")
+            # --- Step 2: Pre-filter the Database for Keywords ---
+            keyword_filters = [Fact.content.ilike(f"%{key}%") for key in keywords]
+            pre_filtered_facts = (
+                self.session.query(Fact)
+                .filter(or_(*keyword_filters))
+                .filter(Fact.disputed == False)
+                .all()
+            )
 
-        # --- Step 2: Pre-filter the Database for Keywords ---
-
-        # Build a query that looks for facts containing ANY of the keywords.
-        # This is a fast, indexed text search in the database.
-        keyword_filters = [Fact.content.ilike(f"%{key}%") for key in keywords]
-
-        # We only want to search through facts that are not disputed.
-        pre_filtered_facts = (
-            self.session.query(Fact)
-            .filter(or_(*keyword_filters))
-            .filter(Fact.disputed == False)  # noqa: E712
-            .all()
-        )
-
+        # --- NEW: FALLBACK LOGIC ---
         if not pre_filtered_facts:
-            logger.info("Pre-filtering found no facts matching the keywords.")
-            return []
-
-        candidate_ids = [fact.id for fact in pre_filtered_facts]
-
-        # We need to find the positions (indices) of these candidate facts
-        # in our main, full vector_matrix.
-        try:
-            candidate_indices = [
-                self.fact_ids.index(fid) for fid in candidate_ids
-            ]
-        except ValueError:
-            # This can happen if a fact is in the DB but not yet in the in-memory index.
-            # For robustness, we'll just log it and proceed with what we have.
             logger.warning(
-                "Some pre-filtered facts were not found in the live index. The index may be syncing.",
+                "Keyword pre-filter found no candidates. Falling back to full semantic search."
             )
-            # Filter out the missing IDs
-            valid_candidate_ids = [
-                fid for fid in candidate_ids if fid in self.fact_ids
-            ]
-            if not valid_candidate_ids:
-                return []
+            # If the fast filter fails, we search against everything.
+            candidate_indices = list(range(len(self.fact_ids)))
+            candidate_matrix = self.vector_matrix
+        else:
+            logger.info(f"Pre-filtering found {len(pre_filtered_facts)} candidate facts.")
+            # If the fast filter succeeds, we limit our search to the candidates.
+            candidate_ids = {fact.id for fact in pre_filtered_facts}
+            # Find the indices in our master list that correspond to the candidate IDs
             candidate_indices = [
-                self.fact_ids.index(fid) for fid in valid_candidate_ids
+                i for i, fact_id in enumerate(self.fact_ids) if fact_id in candidate_ids
             ]
+            if not candidate_indices:
+                return [] # No valid candidates found in the live index
+            candidate_matrix = self.vector_matrix[candidate_indices, :]
 
-        except ValueError:
-            logger.warning(
-                "A race condition occurred where a fact was un-indexed during a search. Returning no results.",
-            )
-            return []
-
-        if self.vector_matrix is None or len(candidate_indices) == 0:
-            return []
-
-        # Create a smaller matrix with only the vectors of our candidate facts.
-        candidate_matrix = self.vector_matrix[candidate_indices, :]
-
-        # --- Step 3 & 4: Vectorize Query and Compare ---
+        # --- Step 3 & 4: Vectorize Query and Compare (this part is mostly unchanged) ---
         query_doc = NLP_MODEL(query_text)
-        query_vector = query_doc.vector
+        query_vector = query_doc.vector.reshape(1, -1) # Ensure query_vector is 2D
 
-        dot_products = np.dot(candidate_matrix, query_vector)
-        norm_query = np.linalg.norm(query_vector)
-        norm_matrix = np.linalg.norm(candidate_matrix, axis=1)
+        # Using cosine_similarity is more stable and standard than manual calculation
+        from sklearn.metrics.pairwise import cosine_similarity
+        similarities = cosine_similarity(query_vector, candidate_matrix)[0]
 
-        if norm_query == 0 or not np.all(norm_matrix):
-            return []
-
-        similarities = dot_products / (norm_matrix * norm_query)
-
-        top_candidate_indices = np.argsort(similarities)[::-1][:top_n]
+        # Get the top N indices from the candidates
+        top_candidate_indices = np.argsort(similarities)[-top_n:][::-1]
 
         # --- Final Step: Prepare and Return Results ---
         results = []
         for i in top_candidate_indices:
+            # If the candidate index is out of bounds for similarities, skip
+            if i >= len(similarities):
+                continue
+
+            similarity_score = similarities[i]
+
+            # Only return results above a certain confidence threshold
+            if similarity_score < 0.3:  # Tune this threshold as needed
+                continue
+
             original_index = candidate_indices[i]
             fact_id = self.fact_ids[original_index]
 
             results.append(
                 {
                     "content": self.fact_id_to_content[fact_id],
-                    "similarity": float(similarities[i]),
+                    "similarity": float(similarity_score),
                     "fact_id": fact_id,
                 },
             )
