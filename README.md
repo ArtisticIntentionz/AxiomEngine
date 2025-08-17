@@ -1,6 +1,6 @@
 # Axiom: A Decentralized Network for Verifiable Truth - A Grounding Engine
 
-[![Hugging Face Spaces](https://img.shields.io/badge/Hugging%20Face-Spaces-blueviolet?logo=huggingface&style=flat-square)](https://huggingface.co/spaces/AllIntentionz/Axiom_P2P_Network)
+[![Hugging Face Spaces](https://img.shields.io/badge/Hugging%20Face-Spaces-blueviolet?logo=huggingface&style=flat-square)](https://huggingface.co/spaces/AIIntentionz/Axiom_P2P_Network)
 
 ![Axiom Logo](https://raw.githubusercontent.com/ArtisticIntentionz/AxiomEngine/main/main/Axiom_logo.PNG)
 
