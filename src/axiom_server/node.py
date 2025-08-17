@@ -108,7 +108,6 @@ class AxiomNode(P2PBaseNode):
             serialized_public_key=temp_p2p.serialized_public_key,
             peer_links=temp_p2p.peer_links,
             server_socket=temp_p2p.server_socket,
-            
         )
         self.peer_links_lock = threading.Lock()
 
@@ -449,7 +448,8 @@ class AxiomNode(P2PBaseNode):
                     # This prevents spamming the whole network and breaks simple loops.
                     num_to_ask = min(3, len(self.peer_links))
                     peers_to_ask = random.sample(
-                        list(self.peer_links.values()), num_to_ask,
+                        list(self.peer_links.values()),
+                        num_to_ask,
                     )
 
                 logger.info(
@@ -464,7 +464,8 @@ class AxiomNode(P2PBaseNode):
 
             except Exception as e:
                 logger.error(
-                    f"Error in peer management loop: {e}", exc_info=True,
+                    f"Error in peer management loop: {e}",
+                    exc_info=True,
                 )
                 time.sleep(
                     60,
