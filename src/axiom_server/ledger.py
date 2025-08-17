@@ -625,39 +625,70 @@ def get_chain_as_dicts(session: Session) -> list[dict]:
 
 
 def replace_chain(session: Session, new_chain_dicts: list[dict]) -> bool:
-    """Perform a full validation of a received blockchain and, if it is valid and longer than the current chain, atomically replace the local chain.
+    """Perform a full validation of a received blockchain and, if it is valid and has more cumulative work (or is longer) than the current chain, atomically replace the local chain.
 
-    This is the heart of the synchronization process.
+    This is the heart of the synchronization and fork resolution process.
     """
     logger.info("Attempting to replace local chain with received chain...")
     current_blocks = session.query(Block).order_by(Block.height.asc()).all()
+    
+    # --- START OF THE FIX ---
 
-    # 1. Validation: The new chain must be longer to be considered.
-    if len(new_chain_dicts) <= len(current_blocks):
-        logger.warning(
-            "Received chain is not longer than the current one. Aborting sync.",
-        )
-        return False
-
+    # 1. Validation: The new chain must be valid to even be considered.
     try:
-        # 2. Cryptographic Validation: Reconstruct the blocks using the new from_dict
-        #    classmethod and verify the entire chain's integrity by checking the
-        #    `previous_hash` links.
         temp_blocks = [Block.from_dict(b) for b in new_chain_dicts]
+        # Verify the entire chain's integrity by checking `previous_hash` links.
         for i in range(1, len(temp_blocks)):
-            # Ensure the current block's previous_hash matches the actual hash of the previous block.
-            if (
-                temp_blocks[i].previous_hash
-                != temp_blocks[i - 1].calculate_hash()
-            ):
+            if temp_blocks[i].previous_hash != temp_blocks[i - 1].calculate_hash():
                 logger.error(
-                    f"Chain validation failed: Invalid hash link at block index {temp_blocks[i].height}.",
+                    f"Chain validation failed: Invalid hash link at block {temp_blocks[i].height}.",
                 )
                 return False
-        logger.info("Validation of received chain was successful.")
+        logger.info("Validation of received chain's integrity was successful.")
+    except Exception as e:
+        logger.error(f"Could not parse received chain data: {e}")
+        return False
 
-        # 3. Atomic Replacement: Perform the delete and insert operations within a
-        #    single transaction to prevent database corruption on failure.
+    # 2. Consensus: Apply the "longest chain rule" with a tie-breaker.
+    current_head = current_blocks[-1] if current_blocks else None
+    new_head = temp_blocks[-1] if temp_blocks else None
+
+    if not new_head:
+        logger.warning("Received an empty chain. Aborting.")
+        return False
+        
+    if current_head:
+        # Case 1: New chain is shorter. Ignore it.
+        if new_head.height < current_head.height:
+            logger.info("Received chain is shorter than the current one. Aborting sync.")
+            return False
+        
+        # Case 2: Chains are the same length. We need a tie-breaker.
+        # We will use the block hash as a deterministic tie-breaker.
+        # The chain with the numerically smaller hash wins.
+        if new_head.height == current_head.height:
+            if new_head.hash >= current_head.hash:
+                logger.info(
+                    "Received chain is same length but its head hash is not smaller. "
+                    "Keeping local chain. Aborting sync."
+                )
+                return False
+            logger.info(
+                "Received chain is same length but has a winning hash. "
+                "Proceeding with replacement (reorg)."
+            )
+        # Case 3: New chain is longer. This is the clear winner.
+        else: # new_head.height > current_head.height
+             logger.info("Received chain is longer. Proceeding with replacement.")
+    else:
+        # If we have no current head, we accept any valid chain.
+        logger.info("Local chain is empty. Accepting any valid chain from peer.")
+
+
+    # --- END OF THE FIX ---
+
+    # 3. Atomic Replacement: Perform the delete and insert operations.
+    try:
         logger.info(
             f"Deleting {len(current_blocks)} old blocks from the database.",
         )
@@ -679,6 +710,5 @@ def replace_chain(session: Session, new_chain_dicts: list[dict]) -> bool:
         logger.error(
             f"A critical error occurred during chain replacement: {e}",
         )
-        # IMPORTANT: Roll back any partial changes if an error occurs.
         session.rollback()
         return False
