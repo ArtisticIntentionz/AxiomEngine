@@ -339,9 +339,16 @@ class AxiomNode(P2PBaseNode):
         """A background thread to maintain and expand the node's peer connections."""
         logger.info("Starting peer management loop.")
         while True:
+            # 1. Ask all current peers for their peer lists.
             logger.info("Broadcasting PEERS_REQUEST to all known peers...")
-            self.broadcast_message(Message.peers_request())
-            time.sleep(300)
+            
+            # --- THIS IS THE FIX ---
+            # Call the correct, existing method for broadcasting.
+            self._send_message_to_peers(Message.peers_request())
+            # --- END OF FIX ---
+
+            # 2. Sleep for a while before the next cycle.
+            time.sleep(300) # e.g., run every 5 minutes
 
     @classmethod
     def start_node(cls, host: str, port: int, bootstrap: bool) -> AxiomNode:
