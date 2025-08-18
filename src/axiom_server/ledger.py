@@ -631,7 +631,7 @@ def replace_chain(session: Session, new_chain_dicts: list[dict]) -> bool:
     """
     logger.info("Attempting to replace local chain with received chain...")
     current_blocks = session.query(Block).order_by(Block.height.asc()).all()
-    
+
     # --- START OF THE FIX ---
 
     # 1. Validation: The new chain must be valid to even be considered.
@@ -639,7 +639,10 @@ def replace_chain(session: Session, new_chain_dicts: list[dict]) -> bool:
         temp_blocks = [Block.from_dict(b) for b in new_chain_dicts]
         # Verify the entire chain's integrity by checking `previous_hash` links.
         for i in range(1, len(temp_blocks)):
-            if temp_blocks[i].previous_hash != temp_blocks[i - 1].calculate_hash():
+            if (
+                temp_blocks[i].previous_hash
+                != temp_blocks[i - 1].calculate_hash()
+            ):
                 logger.error(
                     f"Chain validation failed: Invalid hash link at block {temp_blocks[i].height}.",
                 )
@@ -656,13 +659,15 @@ def replace_chain(session: Session, new_chain_dicts: list[dict]) -> bool:
     if not new_head:
         logger.warning("Received an empty chain. Aborting.")
         return False
-        
+
     if current_head:
         # Case 1: New chain is shorter. Ignore it.
         if new_head.height < current_head.height:
-            logger.info("Received chain is shorter than the current one. Aborting sync.")
+            logger.info(
+                "Received chain is shorter than the current one. Aborting sync.",
+            )
             return False
-        
+
         # Case 2: Chains are the same length. We need a tie-breaker.
         # We will use the block hash as a deterministic tie-breaker.
         # The chain with the numerically smaller hash wins.
@@ -670,20 +675,23 @@ def replace_chain(session: Session, new_chain_dicts: list[dict]) -> bool:
             if new_head.hash >= current_head.hash:
                 logger.info(
                     "Received chain is same length but its head hash is not smaller. "
-                    "Keeping local chain. Aborting sync."
+                    "Keeping local chain. Aborting sync.",
                 )
                 return False
             logger.info(
                 "Received chain is same length but has a winning hash. "
-                "Proceeding with replacement (reorg)."
+                "Proceeding with replacement (reorg).",
             )
         # Case 3: New chain is longer. This is the clear winner.
-        else: # new_head.height > current_head.height
-             logger.info("Received chain is longer. Proceeding with replacement.")
+        else:  # new_head.height > current_head.height
+            logger.info(
+                "Received chain is longer. Proceeding with replacement.",
+            )
     else:
         # If we have no current head, we accept any valid chain.
-        logger.info("Local chain is empty. Accepting any valid chain from peer.")
-
+        logger.info(
+            "Local chain is empty. Accepting any valid chain from peer.",
+        )
 
     # --- END OF THE FIX ---
 

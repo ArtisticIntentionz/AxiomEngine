@@ -6,7 +6,6 @@ from __future__ import annotations
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.
 import argparse
-import random
 import hashlib
 import json
 import logging
@@ -433,7 +432,6 @@ class AxiomNode(P2PBaseNode):
             response_data = {"type": "CHAIN_RESPONSE", "chain": chain_dicts}
             return json.dumps(response_data)
 
-    
     def _peer_management_loop(self) -> None:
         """Maintain and expand the node's peer connections in a background thread."""
         logger.info("Starting peer management loop.")
