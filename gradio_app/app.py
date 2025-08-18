@@ -6,7 +6,8 @@ import requests
 # --- Configurations ---
 # Uses the Hugging Face Secret if available, otherwise falls back to your AWS IP.
 AXIOM_NODE_API_URL = os.environ.get(
-    "AXIOM_NODE_API_URL", "http://3.16.36.97:8000",
+    "AXIOM_NODE_API_URL",
+    "http://3.16.36.97:8000",
 )
 
 
@@ -21,7 +22,9 @@ def search_the_ledger(question_text):
     try:
         # Send the request to your running Axiom node
         response = requests.post(
-            search_endpoint, json={"query": question_text}, timeout=20,
+            search_endpoint,
+            json={"query": question_text},
+            timeout=20,
         )
         response.raise_for_status()  # Raise an exception for bad status codes
 
@@ -65,7 +68,9 @@ def search_the_ledger(question_text):
 iface = gr.Interface(
     fn=search_the_ledger,
     inputs=gr.Textbox(
-        lines=2, placeholder="Ask a question...", label="Question",
+        lines=2,
+        placeholder="Ask a question...",
+        label="Question",
     ),
     outputs=gr.Textbox(label="Results from the Ledger"),
     title="Axiom: A Decentralized Network for Verifiable Truth",
