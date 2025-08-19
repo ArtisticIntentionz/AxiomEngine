@@ -10,17 +10,12 @@ import sys
 import time
 from dataclasses import dataclass
 from enum import Enum
-
-# Yes, I am renaming socket.socket because type names should
-# start with an uppercase character.
-from socket import socket as Socket  # noqa N812
-from typing import TYPE_CHECKING, Any, Callable, Literal
+from socket import socket as Socket
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Literal
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
     from types import TracebackType
 
-import cryptography
 import cryptography.exceptions
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes, serialization
@@ -28,348 +23,151 @@ from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from pydantic import BaseModel, ValidationError
 
 from axiom_server.p2p.constants import (
-    BOOTSTRAP_IP_ADDR,
-    BOOTSTRAP_PORT,
-    ENCODING,
-    KEY_SIZE,
-    NODE_BACKLOG,
-    NODE_CERT_FILE,
-    NODE_CHECK_TIME,
-    NODE_CHUNK_SIZE,
-    NODE_CONNECTION_TIMEOUT,
-    NODE_KEY_FILE,
-    SEPARATOR,
-    SIGNATURE_SIZE,
+    BOOTSTRAP_IP_ADDR, BOOTSTRAP_PORT, ENCODING, KEY_SIZE, NODE_BACKLOG,
+    NODE_CERT_FILE, NODE_CHECK_TIME, NODE_CHUNK_SIZE, NODE_CONNECTION_TIMEOUT,
+    NODE_KEY_FILE, SEPARATOR, SIGNATURE_SIZE,
 )
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("axiom_server.p2p.node")
 
-stdout_handler = logging.StreamHandler(stream=sys.stdout)
-stdout_handler.setFormatter(
-    logging.Formatter(
-        "[%(name)s] %(asctime)s | %(levelname)s | %(filename)s:%(lineno)s >>> %(message)s",
-    ),
-)
-
-logger.addHandler(stdout_handler)
-logger.setLevel(logging.INFO)
-logger.propagate = False
+if not logger.handlers:
+    stdout_handler = logging.StreamHandler(stream=sys.stdout)
+    stdout_handler.setFormatter(
+        logging.Formatter(
+            "[%(name)s] %(asctime)s | %(levelname)s | %(filename)s:%(lineno)s >>> %(message)s",
+        ),
+    )
+    logger.addHandler(stdout_handler)
+    logger.setLevel(logging.INFO)
+    logger.propagate = False
 
 
 class P2PRuntimeError(BaseException):
-    """Raised when the system can't recover from a situation."""
-
     __slots__ = ()
 
-
 class RawMessage(BaseModel):
-    """Represent a message ready to be transmitted over network.
-
-    The main job of this layer is to check the authenticity of
-    the sender.
-    """
-
     data: bytes
     signature: bytes
-
     def to_bytes(self) -> bytes:
-        """Encode this into a byte buffer."""
         return self.signature + self.data
-
     @staticmethod
     def from_bytes(data: bytes) -> RawMessage:
-        """Decode a byte buffer to a raw message."""
-        return RawMessage(
-            signature=data[:SIGNATURE_SIZE],
-            data=data[SIGNATURE_SIZE:],
-        )
-
+        return RawMessage(signature=data[:SIGNATURE_SIZE], data=data[SIGNATURE_SIZE:])
     def check_signature(self, public_key: rsa.RSAPublicKey) -> bool:
-        """Check the validity of the signature.
-
-        Returns True if and only if public_key is paired with
-        the private key used to sign the message.
-        This establishes the authenticity of the emitter.
-        """
         return _verify(self.signature, self.data, public_key)
 
-
 class MessageType(Enum):
-    """Represent the possible message types."""
-
-    PEERS_REQUEST = 0
-    PEERS_SHARING = 1
-    APPLICATION = 2
-    GET_CHAIN = 3
-    CHAIN_RESPONSE = 4
-
+    PEERS_REQUEST, PEERS_SHARING, APPLICATION, GET_CHAIN, CHAIN_RESPONSE = range(5)
 
 class Message(BaseModel):
-    """A message carrying information."""
-
     message_type: MessageType
-    content: PeersRequest | PeersSharing | ApplicationData | MessageContent
-
+    content: "PeersRequest" | "PeersSharing" | "ApplicationData" | "MessageContent"
     def _to_bytes(self) -> bytes:
         return self.model_dump_json().encode(ENCODING)
-
     def to_raw(self, private_key: rsa.RSAPrivateKey) -> RawMessage:
-        """Create a raw message, signing it."""
         data = self._to_bytes()
-
         return RawMessage(data=data, signature=_sign(data, private_key))
-
     @staticmethod
-    def _from_bytes(data: bytes) -> Message:
+    def _from_bytes(data: bytes) -> "Message":
         try:
             return Message.model_validate_json(data.decode(ENCODING))
-
         except (UnicodeDecodeError, ValidationError) as e:
-            message = f"cannot create Message from bytes ({e})"
-            logger.exception(message)
-            raise P2PRuntimeError(message) from e
-
+            raise P2PRuntimeError(f"cannot create Message from bytes ({e})") from e
     @staticmethod
-    def from_raw(raw: RawMessage) -> Message:
-        """Decode a raw message."""
+    def from_raw(raw: RawMessage) -> "Message":
         return Message._from_bytes(raw.data)
-
     def check_content(self) -> bool:
-        """Check the pertinence of message_type and the actual type of content."""
         return (
-            (
-                self.message_type == MessageType.PEERS_REQUEST
-                and isinstance(self.content, PeersRequest)
-            )
-            or (
-                self.message_type == MessageType.PEERS_SHARING
-                and isinstance(self.content, PeersSharing)
-            )
-            or (
-                self.message_type == MessageType.APPLICATION
-                and isinstance(self.content, ApplicationData)
-            )
-            or (
-                self.message_type == MessageType.GET_CHAIN
-                and isinstance(self.content, MessageContent)
-            )
+            (self.message_type == MessageType.PEERS_REQUEST and isinstance(self.content, PeersRequest)) or
+            (self.message_type == MessageType.PEERS_SHARING and isinstance(self.content, PeersSharing)) or
+            (self.message_type == MessageType.APPLICATION and isinstance(self.content, ApplicationData)) or
+            (self.message_type == MessageType.GET_CHAIN and isinstance(self.content, MessageContent))
         )
-
     @staticmethod
-    def peers_request() -> Message:
-        """Build a peers request message."""
-        return Message(
-            message_type=MessageType.PEERS_REQUEST,
-            content=PeersRequest(),
-        )
-
+    def peers_request() -> "Message":
+        return Message(message_type=MessageType.PEERS_REQUEST, content=PeersRequest())
     @staticmethod
-    def peers_sharing(peers: list[Peer]) -> Message:
-        """Build a peers sharing message."""
+    def peers_sharing(peers: list["Peer"]) -> "Message":
         return Message(
             message_type=MessageType.PEERS_SHARING,
-            content=PeersSharing(
-                peers=[
-                    peer.to_serialized()
-                    for peer in peers
-                    if peer.can_be_shared()
-                ],
-            ),
+            content=PeersSharing(peers=[p.to_serialized() for p in peers if p.can_be_shared()])
         )
-
     @staticmethod
-    def application_data(data: str) -> Message:
-        """Build a message carrying application data."""
-        return Message(
-            message_type=MessageType.APPLICATION,
-            content=ApplicationData(data=data),
-        )
-
+    def application_data(data: str) -> "Message":
+        return Message(message_type=MessageType.APPLICATION, content=ApplicationData(data=data))
     @staticmethod
-    def get_chain_request() -> Message:
-        """Build a get chain request message."""
-        # This message type requires no special content, so we create a
-        # generic MessageContent object.
-        return Message(
-            message_type=MessageType.GET_CHAIN,
-            content=MessageContent(),
-        )
-
-
-class MessageContent(BaseModel):
-    """Data transmitted in a message."""
-
-
-class PeersRequest(MessageContent):
-    """Request for sharing of peer information."""
-
-
-class PeersSharing(MessageContent):
-    """Peer information sharing."""
-
-    peers: list[SerializedPeer]
-
-
-class ApplicationData(MessageContent):
-    """Client code data."""
-
-    data: str
-
+    def get_chain_request() -> "Message":
+        return Message(message_type=MessageType.GET_CHAIN, content=MessageContent())
 
 class SerializedPeer(BaseModel):
-    """Represent a peer ready to be transmitted over network."""
-
     ip_address: str
     port: int
+    def to_peer(self) -> "Peer":
+        return Peer(ip_address=self.ip_address, port=self.port, public_key=None)
 
-    def to_peer(self) -> Peer:
-        """Deserialize the peer."""
-        return Peer(
-            ip_address=self.ip_address,
-            port=self.port,
-            public_key=None,
-        )
+class MessageContent(BaseModel):
+    pass
+class PeersRequest(MessageContent):
+    pass
+class PeersSharing(MessageContent):
+    peers: list[SerializedPeer]
+class ApplicationData(MessageContent):
+    data: str
 
+Message.update_forward_refs()
 
 @dataclass
 class Peer:
-    """Represent the home address of a node."""
-
     ip_address: str
     port: int | None
     public_key: rsa.RSAPublicKey | None
-
     def can_be_shared(self) -> bool:
-        """Check if the peer can be shared.
-
-        This means checking if the peer has declared a home port and public key.
-        """
         return self.public_key is not None and self.port is not None
-
     def to_serialized(self) -> SerializedPeer:
-        """Serialize the peer."""
-        assert self.port is not None
-        assert self.public_key is not None
+        assert self.port is not None and self.public_key is not None
         return SerializedPeer(ip_address=self.ip_address, port=self.port)
-
 
 def _deserialize_public_key(data: bytes) -> rsa.RSAPublicKey:
     try:
         key = serialization.load_pem_public_key(data)
-
-    except (
-        ValueError,
-        TypeError,
-        cryptography.exceptions.UnsupportedAlgorithm,
-    ) as e:
-        message = f"unable to load key from bytes: {e}"
-        logger.exception(message)
-        raise P2PRuntimeError(message) from e
-
+    except (ValueError, TypeError, cryptography.exceptions.UnsupportedAlgorithm) as e:
+        raise P2PRuntimeError(f"unable to load key from bytes: {e}") from e
     if not isinstance(key, rsa.RSAPublicKey):
-        message = f"invalid key, not a public RSA key: '{key}'"
-        logger.error(message)
-        raise P2PRuntimeError(message)
-
+        raise P2PRuntimeError(f"invalid key, not a public RSA key: '{key}'")
     return key
-
-
 def _serialize_public_key(key: rsa.RSAPublicKey) -> bytes:
-    return key.public_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PublicFormat.SubjectPublicKeyInfo,
-    )
-
-
-# the following is taken from https://elc.github.io/python-security/chapters/07_Asymmetric_Encryption.html#rsa-encryption
-
-
+    return key.public_bytes(encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo)
 def _generate_key_pair() -> tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
-    private_key = rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=KEY_SIZE,
-    )
-
-    public_key = private_key.public_key()
-    return private_key, public_key
-
-
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=KEY_SIZE)
+    return private_key, private_key.public_key()
 def _sign(message: bytes, private_key: rsa.RSAPrivateKey) -> bytes:
-    return private_key.sign(
-        message,
-        padding.PSS(
-            mgf=padding.MGF1(hashes.SHA256()),
-            salt_length=padding.PSS.MAX_LENGTH,
-        ),
-        hashes.SHA256(),
-    )
-
-
-def _verify(
-    signature: bytes,
-    message: bytes,
-    public_key: rsa.RSAPublicKey,
-) -> bool:
+    return private_key.sign(message, padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH), hashes.SHA256())
+def _verify(signature: bytes, message: bytes, public_key: rsa.RSAPublicKey) -> bool:
     try:
-        public_key.verify(
-            signature,
-            message,
-            padding.PSS(
-                mgf=padding.MGF1(hashes.SHA256()),
-                salt_length=padding.PSS.MAX_LENGTH,
-            ),
-            hashes.SHA256(),
-        )
+        public_key.verify(signature, message, padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH), hashes.SHA256())
         return True
-    except InvalidSignature:
-        return False
-
+    except InvalidSignature: return False
 
 @dataclass
 class PeerLink:
-    """Represents an active link with a peer."""
-
     peer: Peer
     socket: Socket
     alive: bool
     buffer: bytes
-
     def fmt_addr(self) -> str:
-        """Give a short description of the peer home address."""
         return f"{self.peer.ip_address}:{self.peer.port}"
-
 
 @dataclass
 class NodeContextManager:
-    """Handle the systematic stopping of the given node."""
+    node: "Node"
+    def __enter__(self) -> "Node": return self.node
+    def __exit__(self, exc_type, exc_value, exc_tb): self.node.stop()
 
-    node: Node
-
-    def __enter__(self) -> Node:
-        """Return the node."""
-        return self.node
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        exc_tb: TracebackType | None,
-    ) -> None:
-        """Handle stopping the node."""
-        self.node.stop()
-
-
-def _all(item: Any) -> Literal[True]:
-    return True
-
-
+def _all(item: Any) -> Literal[True]: return True
 ALL = _all
-
 
 @dataclass
 class Node:
-    """A P2P node, associated with a home address, and RSA keys."""
-
     ip_address: str
     port: int
     public_ip: str | None
@@ -379,524 +177,241 @@ class Node:
     serialized_public_key: bytes
     peer_links: list[PeerLink]
     server_socket: Socket
+    _self_ips: set[str] | None = None
 
     @staticmethod
-    def start(
-        ip_address: str,
-        port: int = 0,
-        public_ip: str | None = None,
-    ) -> Node:
-        """Create a new Node by generating new public and private keys, binding the home socket to ip_address and port.
-
-        Args:
-            ip_address str: the ip_address to bind to.
-            port int: the port to bind to.
-            public_ip str | None: the optional public IP for self-discovery.
-
-        """
+    def start(ip_address: str, port: int = 0, public_ip: str | None = None) -> "Node":
         context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-
-        if not NODE_CERT_FILE.exists():
-            message = f"cannot load cert file {NODE_CERT_FILE}"
-            logger.error(message)
-            raise P2PRuntimeError(message)
-
-        if not NODE_KEY_FILE.exists():
-            message = f"cannot load key file {NODE_KEY_FILE}"
-            logger.error(message)
-            raise P2PRuntimeError(message)
-
+        if not NODE_CERT_FILE.exists(): raise P2PRuntimeError(f"cannot load cert file {NODE_CERT_FILE}")
+        if not NODE_KEY_FILE.exists(): raise P2PRuntimeError(f"cannot load key file {NODE_KEY_FILE}")
         context.load_cert_chain(certfile=NODE_CERT_FILE, keyfile=NODE_KEY_FILE)
         server_socket = Socket(socket_lib.AF_INET, socket_lib.SOCK_STREAM)
         server_socket.bind((ip_address, port))
         server_socket.listen(NODE_BACKLOG)
-        secure_server_socket = context.wrap_socket(
-            server_socket,
-            server_side=True,
-        )
+        secure_server_socket = context.wrap_socket(server_socket, server_side=True)
         private_key, public_key = _generate_key_pair()
         computed_ip_address, computed_port = secure_server_socket.getsockname()
-        assert isinstance(computed_ip_address, str)
-        assert isinstance(computed_port, int)
         logger.info(f"started node on {computed_ip_address}:{computed_port}")
-
-        # --- THIS IS THE MISSING LINE THAT FIXES THE BUG ---
-        # It defines the `final_public_ip` variable before it gets used.
-        # It intelligently decides to use the provided public_ip if available,
-        # otherwise, it falls back to the IP the socket is bound to.
-        final_public_ip = (
-            public_ip if public_ip is not None else computed_ip_address
-        )
-
+        final_public_ip = public_ip if public_ip is not None else computed_ip_address
         return Node(
-            ip_address=computed_ip_address,
-            port=computed_port,
-            public_ip=final_public_ip,
-            serialized_port=str(computed_port).encode(ENCODING),
-            private_key=private_key,
-            public_key=public_key,
-            serialized_public_key=_serialize_public_key(public_key),
-            peer_links=[],
-            server_socket=secure_server_socket,
+            ip_address=computed_ip_address, port=computed_port, public_ip=final_public_ip,
+            serialized_port=str(computed_port).encode(ENCODING), private_key=private_key,
+            public_key=public_key, serialized_public_key=_serialize_public_key(public_key),
+            peer_links=[], server_socket=secure_server_socket
         )
+
+    def _get_self_ips(self) -> set[str]:
+        if self._self_ips is None:
+            ips = {"127.0.0.1", "localhost", self.ip_address}
+            if self.public_ip: ips.add(self.public_ip)
+            try:
+                _, _, local_ips = socket_lib.gethostbyname_ex(socket_lib.gethostname())
+                ips.update(local_ips)
+            except socket_lib.gaierror: pass
+            self._self_ips = {ip for ip in ips if ip} # Filter out None or empty strings
+        return self._self_ips
+
+    def _is_self(self, ip_address: str, port: int) -> bool:
+        if port != self.port: return False
+        return ip_address in self._get_self_ips()
 
     def stop(self) -> None:
-        """Stop the node by closing all active peer connections and the server socket.
-
-        This method iterates through all peer links, closes the socket for each active link,
-        and then closes the main server socket.
-        """
         for link in self.peer_links:
-            if link.alive:
-                link.socket.close()
-
+            if link.alive: link.socket.close()
         self.server_socket.close()
         logger.info("closed server socket")
 
     def update(self) -> None:
-        """Handle incoming and outgoing network events for the node.
-
-        This method performs the following tasks:
-            - Monitors the server socket and all peer sockets for readability.
-            - Accepts new incoming connections.
-            - Receives data from connected peers.
-            - Handles exceptions during connection acceptance and data reception, logging errors.
-            - Removes peer links that are no longer alive from the list of active connections.
-
-        Raises:
-            Exception: If an error occurs while accepting a new connection.
-            P2PRuntimeError: If an error occurs while receiving data from a peer.
-
-        """
-        sockets: list[Socket] = [self.server_socket] + [
-            peer_link.socket for peer_link in self.peer_links
-        ]
-        readable: list[Socket]
-        readable, _, _ = select.select(sockets, [], [], NODE_CHECK_TIME)
-
-        if self.server_socket in readable:
-            try:
-                socket, addr = self.server_socket.accept()
-                self._handle_new_connection(socket, addr)
-
-            except Exception as e:
-                logger.exception(
-                    f"error while accepting incoming connection: {e}",
-                )
-
-        for link in self.peer_links:
-            if link.socket in readable:
+        sockets: list[Socket] = [self.server_socket] + [p.socket for p in self.peer_links]
+        try:
+            readable, _, _ = select.select(sockets, [], [], NODE_CHECK_TIME)
+            if self.server_socket in readable:
                 try:
-                    self._recv(link)
+                    socket, addr = self.server_socket.accept()
+                    self._handle_new_connection(socket, addr)
+                except (ssl.SSLEOFError, ssl.SSLError) as e:
+                    if "HTTP_REQUEST" in str(e):
+                        logger.warning("Ignored a plain HTTP request on the secure P2P port.")
+                    elif "UNEXPECTED_EOF" in str(e):
+                         logger.info(f"A peer disconnected abruptly: {e}")
+                    else:
+                        logger.error(f"An SSL error occurred: {e}")
+                except Exception as e:
+                    logger.exception(f"Error accepting connection: {e}")
+            for link in self.peer_links:
+                if link.socket in readable:
+                    try: self._recv(link)
+                    except P2PRuntimeError as e:
+                        logger.exception(f"{link.fmt_addr()} error receiving: {e}")
+                    if not link.alive:
+                        logger.info(f"{link.fmt_addr()} closed connection")
+            self.peer_links = [link for link in self.peer_links if link.alive]
+        except Exception as e:
+            logger.error(f"Error during socket selection: {e}", exc_info=True)
 
-                except P2PRuntimeError as e:
-                    logger.exception(
-                        f"{link.fmt_addr()} error while receiving: {e}",
-                    )
-
-                if not link.alive:
-                    logger.info(f"{link.fmt_addr()} closed connection")
-
-        self.peer_links = [link for link in self.peer_links if link.alive]
-
-    def search_link_by_peer(
-        self,
-        fun: Callable[[Peer], bool],
-    ) -> PeerLink | None:
-        """Search for a PeerLink in the peer_links list whose associated Peer satisfies the given predicate function.
-
-        Args:
-            fun (Callable[[Peer], bool]): A function that takes a Peer object and returns True if the Peer matches the search criteria.
-
-        Returns:
-            PeerLink | None: The first PeerLink whose associated Peer satisfies the predicate, or None if no such PeerLink is found.
-
-        """
+    def search_link_by_peer(self, fun: Callable[[Peer], bool]) -> PeerLink | None:
         for link in self.peer_links:
-            if fun(link.peer):
-                return link
-
+            if fun(link.peer): return link
         return None
-
-    def iter_links_by_peer(
-        self,
-        fun: Callable[[Peer], bool] = ALL,
-    ) -> Iterable[PeerLink]:
-        """Iterate over peer links, yielding those whose associated peer satisfies a given condition.
-
-        Args:
-            fun (Callable[[Peer], bool], optional): A predicate function that takes a Peer object and returns True if the link should be yielded. Defaults to ALL (a function that always returns True).
-
-        Yields:
-            PeerLink: The peer link whose associated peer satisfies the predicate function.
-
-        """
+    def iter_links_by_peer(self, fun: Callable[[Peer], bool] = ALL) -> Iterable[PeerLink]:
         for link in self.peer_links:
-            if fun(link.peer):
-                yield link
-
+            if fun(link.peer): yield link
     def search_link(self, fun: Callable[[PeerLink], bool]) -> PeerLink | None:
-        """Search for a peer link in self.peer_links that matches a given condition.
-
-        Args:
-            fun (Callable[[PeerLink], bool]): A function that takes a PeerLink object and returns True if it matches the desired condition.
-
-        Returns:
-            PeerLink | None: The first PeerLink object that satisfies the condition, or None if no such link is found.
-
-        """
         for link in self.peer_links:
-            if fun(link):
-                return link
-
+            if fun(link): return link
         return None
-
-    def iter_links(
-        self,
-        fun: Callable[[PeerLink], bool] = ALL,
-    ) -> Iterable[PeerLink]:
-        """Iterate over peer links, yielding those for which the provided function returns True.
-
-        Args:
-            fun (Callable[[PeerLink], bool], optional): A predicate function that takes a PeerLink and returns True if the link should be yielded. Defaults to ALL, which yields all links.
-
-        Yields:
-            PeerLink: Each peer link for which the predicate function returns True.
-
-        """
+    def iter_links(self, fun: Callable[[PeerLink], bool] = ALL) -> Iterable[PeerLink]:
         for link in self.peer_links:
-            if fun(link):
-                yield link
+            if fun(link): yield link
 
     def broadcast_application_message(self, data: str) -> None:
-        """Broadcast an application-level message to all connected peers.
-
-        This method wraps the provided data in an application-specific message format
-        and sends it to all peers connected to the node.
-
-        Args:
-            data (str): The application data to be sent to peers.
-
-        """
-        message = Message.application_data(data)
-        self._send_message_to_peers(message)
-
-    def bootstrap(
-        self,
-        ip_addr: str = BOOTSTRAP_IP_ADDR,
-        port: int = BOOTSTRAP_PORT,
-    ) -> bool:
-        """Attempt to connect this node to a target peer in the network.
-
-        This method searches for an existing link to the specified peer using its IP address and port.
-        If no such link exists, it tries to create a new link.
-        Upon successful connection, it sends a request for the peer list of the target node.
-
-        Args:
-            ip_addr (str): The IP address of the peer to bootstrap to. Defaults to BOOTSTRAP_IP_ADDR.
-            port (int): The port of the peer to bootstrap to. Defaults to BOOTSTRAP_PORT.
-
-        Returns:
-            None
-
-        """
+        self._send_message_to_peers(Message.application_data(data))
+    def bootstrap(self, ip_addr: str = BOOTSTRAP_IP_ADDR, port: int = BOOTSTRAP_PORT) -> bool | None:
         logger.info(f"Bootstrapping to target: {ip_addr}:{port}")
-        link = self.search_link_by_peer(
-            lambda peer: peer.ip_address == ip_addr and peer.port == port,
-        )
-
+        if self._is_self(ip_addr, port):
+            logger.warning("Bootstrap target is self. Skipping.")
+            return True
+        link = self.search_link_by_peer(lambda p: p.ip_address == ip_addr and p.port == port)
         if link is None:
             link = self._create_link(ip_addr, port)
-
             if link is None:
-                logger.error("failed to bootstrap: can't connect to server")
+                logger.error("Failed to bootstrap: can't connect to server")
                 return None
-
-            logger.info(
-                f"Connection to {link.fmt_addr()} successful. Requesting blockchain...",
-            )
+            logger.info(f"Connection to {link.fmt_addr()} successful. Requesting data...")
         self._send_message(link, Message.get_chain_request())
         self._send_message(link, Message.peers_request())
         return True
-
     def _connect_to_peer(self, ip_address: str, port: int) -> Socket | None:
+        if self._is_self(ip_address, port): return None
         context = ssl.create_default_context()
-        context.check_hostname = False
-        context.verify_mode = ssl.CERT_NONE
+        context.check_hostname, context.verify_mode = False, ssl.CERT_NONE
         socket = Socket(socket_lib.AF_INET, socket_lib.SOCK_STREAM)
         socket.bind((self.ip_address, 0))
         socket.settimeout(NODE_CONNECTION_TIMEOUT)
         secure_socket = context.wrap_socket(socket, server_hostname=ip_address)
-
         try:
             secure_socket.connect((ip_address, port))
-
-        except (
-            OSError,
-            socket_lib.herror,
-            socket_lib.gaierror,
-            socket_lib.timeout,
-            TimeoutError,
-            InterruptedError,
-            Exception,
-        ) as e:
-            # just in case you want to go back to specific error catching,
-            # don't delete the explicit error types
-            logger.exception(
-                f"error while trying to connect to {ip_address}:{port} ({e})",
-            )
+        except Exception as e:
+            logger.error(f"Error connecting to {ip_address}:{port} ({e})")
             return None
-
         return secure_socket
-
     def _declare_to_peer(self, link: PeerLink) -> None:
         self._send(link, self.serialized_public_key)
         self._send(link, self.serialized_port)
-
-    def _handle_new_connection(
-        self,
-        socket: Socket,
-        addr: socket_lib._RetAddress,
-    ) -> None:
+    def _handle_new_connection(self, socket: Socket, addr: socket_lib._RetAddress) -> None:
         if socket.family != socket_lib.AF_INET:
-            logger.info(f"{addr} ignoring non INET socket: {socket.family}")
+            logger.info(f"{addr} ignoring non-INET socket: {socket.family}")
             return
-
         ip_addr, port = addr
-        assert isinstance(ip_addr, str)
-        assert isinstance(port, int)
-        link = PeerLink(
-            peer=Peer(ip_address=ip_addr, port=None, public_key=None),
-            socket=socket,
-            alive=True,
-            buffer=b"",
-        )
+        link = PeerLink(peer=Peer(ip_address=ip_addr, port=None, public_key=None), socket=socket, alive=True, buffer=b"")
         self.peer_links.append(link)
         self._send(link, self.serialized_public_key)
-        logger.info(f"{link.fmt_addr()} established connection")
-
+        logger.info(f"Connection established with {ip_addr}:{port}")
     def _handle_public_key_declaration(self, link: PeerLink) -> bool:
         if link.peer.public_key is None:
-            try:
-                key = _deserialize_public_key(link.buffer)
-
+            try: key = _deserialize_public_key(link.buffer)
             except P2PRuntimeError as e:
-                logger.exception(
-                    f"{link.fmt_addr()} unable to parse public key ({e})",
-                )
+                logger.exception(f"{link.fmt_addr()} unable to parse public key ({e})")
                 return True
-
             link.peer.public_key = key
             logger.info(f"{link.fmt_addr()} public key set")
             return True
-
         return False
-
     def _handle_port_declaration(self, link: PeerLink) -> bool:
         if link.peer.port is None:
-            try:
-                port = int(link.buffer.decode(ENCODING))
-
+            try: port = int(link.buffer.decode(ENCODING))
             except (ValueError, UnicodeDecodeError) as e:
-                logger.exception(
-                    f"{link.fmt_addr()} unable to parse port ({e})",
-                )
+                logger.exception(f"{link.fmt_addr()} unable to parse port ({e})")
                 return True
-
             link.peer.port = port
             logger.info(f"{link.fmt_addr()} port set")
             return True
-
         return False
-
     def _handle_peers_request(self, link: PeerLink) -> None:
-        peers = [
-            link.peer for link in self.peer_links if link.peer.can_be_shared()
-        ]
-        logger.info(
-            f"{link.fmt_addr()} requested we share peers with them, sharing {len(peers)} peers",
-        )
-
+        peers = [p.peer for p in self.peer_links if p.peer.can_be_shared()]
+        logger.info(f"{link.fmt_addr()} requested peers, sharing {len(peers)}")
         self._send_message(link, Message.peers_sharing(peers))
-
-    def _handle_peers_sharing(
-        self,
-        link: PeerLink,
-        content: PeersSharing,
-    ) -> None:
+    def _handle_peers_sharing(self, link: PeerLink, content: PeersSharing) -> None:
         logger.info(f"{link.fmt_addr()} shared {len(content.peers)} peers")
-
         for serialized_peer in content.peers:
             shared_peer = serialized_peer.to_peer()
-            is_self = False
-
-            if shared_peer.port == self.port:
-                # Check against all possible addresses that could mean "me"
-                self_ips = {
-                    self.ip_address,
-                    self.public_ip,
-                    "127.0.0.1",
-                    "localhost",
-                }
-                if shared_peer.ip_address in self_ips:
-                    logger.info(
-                        f"Ignoring peer {shared_peer.ip_address}:{shared_peer.port} because it is myself.",
-                    )
-                    is_self = True
-
-            if is_self:
+            if self._is_self(shared_peer.ip_address, shared_peer.port):
                 continue
-            assert shared_peer.port is not None
-
-            def check_peer_eq(
-                peer: Peer,
-                shared_peer: Peer = shared_peer,
-            ) -> bool:
-                """Return if peers are equivalent."""
-                return (
-                    peer.ip_address == shared_peer.ip_address
-                    and peer.port == shared_peer.port
-                )
-
-            if self.search_link_by_peer(
-                check_peer_eq,
-            ):
+            if self.search_link_by_peer(lambda p: p.ip_address == shared_peer.ip_address and p.port == shared_peer.port):
                 continue
             self._create_link(shared_peer.ip_address, shared_peer.port)
-
     def _create_link(self, ip_address: str, port: int) -> PeerLink | None:
         socket = self._connect_to_peer(ip_address, port)
-
-        if socket is not None:
-            link = PeerLink(
-                peer=Peer(ip_address=ip_address, port=port, public_key=None),
-                socket=socket,
-                alive=True,
-                buffer=b"",
-            )
+        if socket:
+            link = PeerLink(peer=Peer(ip_address=ip_address, port=port, public_key=None), socket=socket, alive=True, buffer=b"")
             self.peer_links.append(link)
             self._declare_to_peer(link)
             return link
-
         return None
-
     def _handle_buffer_readable(self, link: PeerLink) -> None:
-        if self._handle_public_key_declaration(link):
-            return
+        if self._handle_public_key_declaration(link): return
         assert link.peer.public_key is not None
-        if self._handle_port_declaration(link):
-            return
+        if self._handle_port_declaration(link): return
         assert link.peer.port is not None
-
         raw_message = RawMessage.from_bytes(link.buffer)
-
         if not raw_message.check_signature(link.peer.public_key):
-            logger.error(
-                f"{link.fmt_addr()} ignoring message because the signature doesn't match content",
-            )
+            logger.error(f"{link.fmt_addr()} ignoring message: invalid signature")
             return
-
         message = Message.from_raw(raw_message)
-
         if not message.check_content():
-            logger.error(
-                f"{link.fmt_addr()} ignoring message because the content doesn't match the type indicator",
-            )
+            logger.error(f"{link.fmt_addr()} ignoring message: content/type mismatch")
             return
-
         logger.info(f"{link.fmt_addr()} received {message.message_type}")
         self._handle_message(link, message)
-
     def _handle_message(self, link: PeerLink, message: Message):
-        """Dispatches incoming messages to their appropriate handlers."""
         if message.message_type == MessageType.GET_CHAIN:
-            if hasattr(self, "get_chain_callback") and callable(
-                self.get_chain_callback,
-            ):
-                logger.info(
-                    f"Peer {link.fmt_addr()} requested the blockchain. Executing callback...",
-                )
+            if hasattr(self, "get_chain_callback") and callable(self.get_chain_callback):
+                logger.info(f"Peer {link.fmt_addr()} requested blockchain. Executing callback...")
                 chain_data_json = self.get_chain_callback()
-                response = Message.application_data(chain_data_json)
-                self._send_message(link, response)
-            else:
-                logger.warning(
-                    "Received GET_CHAIN request but no handler is registered.",
-                )
-
+                self._send_message(link, Message.application_data(chain_data_json))
         elif message.message_type == MessageType.APPLICATION:
             assert isinstance(message.content, ApplicationData)
             self._handle_application_message(link, message.content)
-
         elif message.message_type == MessageType.PEERS_REQUEST:
             self._handle_peers_request(link)
-
-        # --- THIS IS THE FINAL FIX ---
-        elif (
-            message.message_type == MessageType.PEERS_SHARING
-        ):  # <-- Changed hyphen to underscore
-            # --- END OF FINAL FIX ---
+        elif message.message_type == MessageType.PEERS_SHARING:
             assert isinstance(message.content, PeersSharing)
             self._handle_peers_sharing(link, message.content)
-
-    def _handle_application_message(
-        self,
-        link: PeerLink,
-        content: ApplicationData,
-    ) -> None:
+    def _handle_application_message(self, link: PeerLink, content: ApplicationData) -> None:
         logger.info(f"application data: {content.data}")
-
     def _send_message(self, link: PeerLink, message: Message) -> None:
         raw_message = message.to_raw(self.private_key)
-        data = raw_message.to_bytes()
+        self._send(link, raw_message.to_bytes())
         logger.info(f"sending {message.message_type} to {link.fmt_addr()}")
-        self._send(link, data)
-
     def _send_message_to_peers(self, message: Message) -> None:
         raw_message = message.to_raw(self.private_key)
-        data = raw_message.to_bytes()
+        self._send_to_peers(raw_message.to_bytes())
         logger.info(f"sending {message.message_type} to peers")
-        self._send_to_peers(data)
-
     def _send_to_peers(self, data: bytes) -> None:
         for link in self.peer_links:
             self._send(link, data)
-
     def _send(self, link: PeerLink, data: bytes) -> None:
-        if SEPARATOR in data:
-            message = f"found separator {SEPARATOR!r} in data to send, which is not permitted"
-            logger.error(message)
-            raise P2PRuntimeError(message)
-
+        if SEPARATOR in data: raise P2PRuntimeError(f"found separator {SEPARATOR!r} in data")
         link.socket.sendall(data + SEPARATOR)
-
     def _recv(self, link: PeerLink) -> None:
         chunk = link.socket.recv(NODE_CHUNK_SIZE)
-
         if not chunk:
             link.alive = False
-            link.socket.close()
+            if link.socket: link.socket.close()
             return
-
         link.buffer += chunk
-
         while SEPARATOR in link.buffer:
             link.buffer, rest = link.buffer.split(SEPARATOR, 1)
             self._handle_buffer_readable(link)
             link.buffer = rest
 
-
 if __name__ == "__main__":
     try:
-        with NodeContextManager(
-            Node.start("localhost", port=int(sys.argv[1])),
-        ) as node:
+        with NodeContextManager(Node.start("localhost", port=int(sys.argv[1]))) as node:
             if "bootstrap" in sys.argv:
                 node.bootstrap()
-
             while True:
                 time.sleep(0.1)
                 node.update()
-
     except KeyboardInterrupt:
         logger.info("user interrupted the node. goodbye! ^-^")
