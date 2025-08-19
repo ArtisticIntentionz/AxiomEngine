@@ -11,10 +11,10 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from socket import socket as Socket
-from typing import TYPE_CHECKING, Any, Callable, Iterable, Literal
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Literal, Union
 
 if TYPE_CHECKING:
-    from types import TracebackType
+    from collections.abc import Iterable
 
 import cryptography.exceptions
 from cryptography.exceptions import InvalidSignature
@@ -61,7 +61,7 @@ class MessageType(Enum):
 
 class Message(BaseModel):
     message_type: MessageType
-    content: "PeersRequest" | "PeersSharing" | "ApplicationData" | "MessageContent"
+    content: Union["PeersRequest", "PeersSharing", "ApplicationData", "MessageContent"]
     def _to_bytes(self) -> bytes:
         return self.model_dump_json().encode(ENCODING)
     def to_raw(self, private_key: rsa.RSAPrivateKey) -> RawMessage:
