@@ -18,6 +18,7 @@ from pydantic import BaseModel
 from spacy.tokens.doc import Doc
 from sqlalchemy import (
     Boolean,
+    Column,
     Engine,
     Enum,
     Float,
@@ -25,6 +26,7 @@ from sqlalchemy import (
     Integer,
     LargeBinary,
     String,
+    Table,
     Text,
     create_engine,
 )
@@ -82,10 +84,10 @@ class FactStatus(str, enum.Enum):
 class RelationshipType(str, enum.Enum):
     """Defines the nature of the link between two facts."""
 
-    CORRELATION = "correlation"  # The facts are about the same topic.
-    CONTRADICTION = "contradiction"  # The facts state opposing information.
-    CAUSATION = "causation"  # One fact is a likely cause of the other.
-    CHRONOLOGY = "chronology"  # One fact chronologically follows another.
+    CORRELATION = "correlation"
+    CONTRADICTION = "contradiction"
+    CAUSATION = "causation"
+    CHRONOLOGY = "chronology"
     ELABORATION = "elaboration"
 
 
@@ -156,8 +158,7 @@ class Block(Base):
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Self:
-        """Create a Block object from a dictionary, typically from P2P data. This is the inverse of the to_dict() method."""
-        # We use .get() for safety to avoid KeyErrors if a field is missing.
+        """Create a Block object from a dictionary, typically from P2P data."""
         return cls(
             height=data.get("height"),
             hash=data.get("hash"),
@@ -165,7 +166,6 @@ class Block(Base):
             merkle_root=data.get("merkle_root"),
             timestamp=data.get("timestamp"),
             nonce=data.get("nonce", 0),
-            # fact_hashes is not part of the header, so we default it.
             fact_hashes=data.get("fact_hashes", "[]"),
         )
 
@@ -195,6 +195,47 @@ def semantics_from_serialized(serialized: SerializedSemantics) -> Semantics:
             "object": serialized.object,
         },
     )
+
+fact_entity_link = Table(
+    "fact_entity_link",
+    Base.metadata,
+    Column("fact_id", Integer, ForeignKey("facts.id"), primary_key=True),
+    Column("entity_id", Integer, ForeignKey("entities.id"), primary_key=True),
+)
+
+class Entity(Base):
+    """Represents a unique 'node' in our knowledge graph."""
+    __tablename__ = 'entities'
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String, unique=True, nullable=False, index=True)
+    type: Mapped[str] = mapped_column(String, nullable=False)
+
+    facts: Mapped[list[Fact]] = relationship(
+        "Fact",
+        secondary=fact_entity_link,
+        back_populates="entities"
+    )
+
+    def __repr__(self):
+        return f"<Entity(name='{self.name}', type='{self.type}')>"
+
+
+class Peer(Base):
+    """Represents another node in the P2P network and stores its reputation."""
+    __tablename__ = 'peers'
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    public_key: Mapped[str] = mapped_column(String, unique=True, nullable=False, index=True)
+    last_known_ip: Mapped[str] = mapped_column(String)
+    last_known_port: Mapped[int] = mapped_column(Integer)
+    reputation_score: Mapped[float] = mapped_column(Float, default=0.5, nullable=False)
+    first_seen: Mapped[str] = mapped_column(String, default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
+    last_seen: Mapped[str] = mapped_column(String, default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
+    last_connection_time: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+
+    def __repr__(self):
+        return f"<Peer(key='{self.public_key[:10]}...', score={self.reputation_score:.8f})>"
 
 
 class Fact(Base):
@@ -228,9 +269,7 @@ class Fact(Base):
     )
     last_checked: Mapped[str] = mapped_column(
         String,
-        default=lambda: datetime.datetime.now(
-            datetime.timezone.utc,
-        ).isoformat(),
+        default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat(),
         nullable=False,
     )
     semantics: Mapped[str] = mapped_column(
@@ -248,6 +287,11 @@ class Fact(Base):
         "FactLink",
         primaryjoin="or_(Fact.id == FactLink.fact1_id, Fact.id == FactLink.fact2_id)",
         viewonly=True,
+    )
+    entities: Mapped[list[Entity]] = relationship(
+        "Entity",
+        secondary=fact_entity_link,
+        back_populates="facts"
     )
 
     @classmethod
@@ -294,6 +338,19 @@ class Fact(Base):
                 "object": semantics["object"],
             },
         )
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize Fact to a dictionary for API responses."""
+        return {
+            "id": self.id,
+            "hash": self.hash,
+            "content": self.content,
+            "score": self.score,
+            "disputed": self.disputed,
+            "last_checked": self.last_checked,
+            "sources": [source.domain for source in self.sources],
+            "entities": [entity.name for entity in self.entities],
+        }
 
 
 class FactVector(Base):
@@ -415,31 +472,17 @@ def create_genesis_block(session: Session) -> None:
     logger.info("Genesis Block created and sealed.")
 
 
-# --- NEW FUNCTION FOR P2P SYNCHRONIZATION ---
 def add_block_from_peer_data(
     session: Session,
     block_data: dict[str, Any],
-) -> Block:
-    """Validate and add a new block received from a peer.
-
-    This is the core of blockchain synchronization. It ensures that a node
-    only accepts blocks that correctly extend its own version of the chain.
-
-    Args:
-        session: The active SQLAlchemy database session.
-        block_data: A dictionary containing the block header data from a peer.
-
-    Returns:
-        The newly added Block object on success, or None on failure.
-
-    """
+) -> Block | None:
+    """Validate and add a new block received from a peer."""
     latest_local_block = get_latest_block(session)
     if not latest_local_block:
         logger.error("Cannot add peer block: Local ledger has no blocks.")
         return None
 
     try:
-        # 1. CRITICAL VALIDATION: Is the new block the very next one in the sequence?
         expected_height = latest_local_block.height + 1
         if block_data["height"] != expected_height:
             logger.error(
@@ -448,7 +491,6 @@ def add_block_from_peer_data(
             )
             return None
 
-        # 2. CRITICAL VALIDATION: Does the new block correctly chain to our latest block?
         if block_data["previous_hash"] != latest_local_block.hash:
             logger.error(
                 f"Block integrity error: Peer block's previous_hash "
@@ -457,12 +499,8 @@ def add_block_from_peer_data(
             )
             return None
 
-        # 3. If validation passes, create the Block object from the peer data.
-        # We now use the Block.from_dict method to ensure consistency.
         new_block = Block.from_dict(block_data)
 
-        # 4. Optional but Recommended: Re-verify the block's hash.
-        # This prevents peers from sending blocks with invalid proof-of-work.
         if new_block.hash != new_block.calculate_hash():
             logger.error("Invalid hash for received block. Discarding.")
             return None
@@ -473,7 +511,6 @@ def add_block_from_peer_data(
             f"Added new block #{new_block.height} from peer to local ledger.",
         )
 
-        # --- FIX: Return the newly created block object on success.
         return new_block
 
     except (KeyError, TypeError, ValueError) as e:
@@ -494,7 +531,7 @@ def add_fact_corroboration(
     fact_id: int,
     source_id: int,
 ) -> None:
-    """Increment a fact's trust score and add the source to it. Both must already exist."""
+    """Increment a fact's trust score and add the source to it."""
     fact = session.get(Fact, fact_id)
     source = session.get(Source, source_id)
     if fact is None:
@@ -505,7 +542,7 @@ def add_fact_corroboration(
 
 
 def add_fact_object_corroboration(fact: Fact, source: Source) -> None:
-    """Increment a fact's trust score and add the source to it. Does nothing if the source already exists."""
+    """Increment a fact's trust score and add the source to it."""
     if source not in fact.sources:
         fact.sources.append(source)
         fact.score += 1
@@ -536,7 +573,7 @@ def insert_relationship(
     score: int,
     relationship_type: RelationshipType = RelationshipType.CORRELATION,
 ) -> None:
-    """Insert a relationship between two facts into the knowledge graph. Both facts must exist."""
+    """Insert a relationship between two facts into the knowledge graph."""
     fact1 = session.get(Fact, fact_id_1)
     fact2 = session.get(Fact, fact_id_2)
     if fact1 is None:
@@ -617,32 +654,20 @@ class Proposal(TypedDict):
 
 
 def get_chain_as_dicts(session: Session) -> list[dict]:
-    """Query the database for all blocks, order them by height, and serialize them into a list of dictionaries for network transport."""
+    """Query the database for all blocks and serialize them."""
     logger.info("Exporting full blockchain from database for peer...")
     all_blocks = session.query(Block).order_by(Block.height.asc()).all()
-    # This uses the to_dict() method you already have on your Block objects.
     return [block.to_dict() for block in all_blocks]
 
 
 def replace_chain(session: Session, new_chain_dicts: list[dict]) -> bool:
-    """Perform a full validation of a received blockchain and, if it is valid and has more cumulative work (or is longer) than the current chain, atomically replace the local chain.
-
-    This is the heart of the synchronization and fork resolution process.
-    """
+    """Perform a full validation and replacement of the local blockchain."""
     logger.info("Attempting to replace local chain with received chain...")
     current_blocks = session.query(Block).order_by(Block.height.asc()).all()
-
-    # --- START OF THE FIX ---
-
-    # 1. Validation: The new chain must be valid to even be considered.
     try:
         temp_blocks = [Block.from_dict(b) for b in new_chain_dicts]
-        # Verify the entire chain's integrity by checking `previous_hash` links.
         for i in range(1, len(temp_blocks)):
-            if (
-                temp_blocks[i].previous_hash
-                != temp_blocks[i - 1].calculate_hash()
-            ):
+            if temp_blocks[i].previous_hash != temp_blocks[i - 1].calculate_hash():
                 logger.error(
                     f"Chain validation failed: Invalid hash link at block {temp_blocks[i].height}.",
                 )
@@ -651,51 +676,35 @@ def replace_chain(session: Session, new_chain_dicts: list[dict]) -> bool:
     except Exception as e:
         logger.error(f"Could not parse received chain data: {e}")
         return False
-
-    # 2. Consensus: Apply the "longest chain rule" with a tie-breaker.
+    
     current_head = current_blocks[-1] if current_blocks else None
     new_head = temp_blocks[-1] if temp_blocks else None
 
     if not new_head:
         logger.warning("Received an empty chain. Aborting.")
         return False
-
+        
     if current_head:
-        # Case 1: New chain is shorter. Ignore it.
         if new_head.height < current_head.height:
-            logger.info(
-                "Received chain is shorter than the current one. Aborting sync.",
-            )
+            logger.info("Received chain is shorter than the current one. Aborting sync.")
             return False
-
-        # Case 2: Chains are the same length. We need a tie-breaker.
-        # We will use the block hash as a deterministic tie-breaker.
-        # The chain with the numerically smaller hash wins.
+        
         if new_head.height == current_head.height:
             if new_head.hash >= current_head.hash:
                 logger.info(
                     "Received chain is same length but its head hash is not smaller. "
-                    "Keeping local chain. Aborting sync.",
+                    "Keeping local chain. Aborting sync."
                 )
                 return False
             logger.info(
                 "Received chain is same length but has a winning hash. "
-                "Proceeding with replacement (reorg).",
+                "Proceeding with replacement (reorg)."
             )
-        # Case 3: New chain is longer. This is the clear winner.
-        else:  # new_head.height > current_head.height
-            logger.info(
-                "Received chain is longer. Proceeding with replacement.",
-            )
+        else:
+             logger.info("Received chain is longer. Proceeding with replacement.")
     else:
-        # If we have no current head, we accept any valid chain.
-        logger.info(
-            "Local chain is empty. Accepting any valid chain from peer.",
-        )
+        logger.info("Local chain is empty. Accepting any valid chain from peer.")
 
-    # --- END OF THE FIX ---
-
-    # 3. Atomic Replacement: Perform the delete and insert operations.
     try:
         logger.info(
             f"Deleting {len(current_blocks)} old blocks from the database.",
