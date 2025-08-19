@@ -196,6 +196,7 @@ def semantics_from_serialized(serialized: SerializedSemantics) -> Semantics:
         },
     )
 
+
 fact_entity_link = Table(
     "fact_entity_link",
     Base.metadata,
@@ -203,18 +204,20 @@ fact_entity_link = Table(
     Column("entity_id", Integer, ForeignKey("entities.id"), primary_key=True),
 )
 
+
 class Entity(Base):
     """Represents a unique 'node' in our knowledge graph."""
-    __tablename__ = 'entities'
+
+    __tablename__ = "entities"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(String, unique=True, nullable=False, index=True)
+    name: Mapped[str] = mapped_column(
+        String, unique=True, nullable=False, index=True,
+    )
     type: Mapped[str] = mapped_column(String, nullable=False)
 
     facts: Mapped[list[Fact]] = relationship(
-        "Fact",
-        secondary=fact_entity_link,
-        back_populates="entities"
+        "Fact", secondary=fact_entity_link, back_populates="entities",
     )
 
     def __repr__(self):
@@ -223,16 +226,33 @@ class Entity(Base):
 
 class Peer(Base):
     """Represents another node in the P2P network and stores its reputation."""
-    __tablename__ = 'peers'
+
+    __tablename__ = "peers"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    public_key: Mapped[str] = mapped_column(String, unique=True, nullable=False, index=True)
+    public_key: Mapped[str] = mapped_column(
+        String, unique=True, nullable=False, index=True,
+    )
     last_known_ip: Mapped[str] = mapped_column(String)
     last_known_port: Mapped[int] = mapped_column(Integer)
-    reputation_score: Mapped[float] = mapped_column(Float, default=0.5, nullable=False)
-    first_seen: Mapped[str] = mapped_column(String, default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
-    last_seen: Mapped[str] = mapped_column(String, default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
-    last_connection_time: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    reputation_score: Mapped[float] = mapped_column(
+        Float, default=0.5, nullable=False,
+    )
+    first_seen: Mapped[str] = mapped_column(
+        String,
+        default=lambda: datetime.datetime.now(
+            datetime.timezone.utc,
+        ).isoformat(),
+    )
+    last_seen: Mapped[str] = mapped_column(
+        String,
+        default=lambda: datetime.datetime.now(
+            datetime.timezone.utc,
+        ).isoformat(),
+    )
+    last_connection_time: Mapped[float] = mapped_column(
+        Float, default=0.0, nullable=False,
+    )
 
     def __repr__(self):
         return f"<Peer(key='{self.public_key[:10]}...', score={self.reputation_score:.8f})>"
@@ -269,7 +289,9 @@ class Fact(Base):
     )
     last_checked: Mapped[str] = mapped_column(
         String,
-        default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        default=lambda: datetime.datetime.now(
+            datetime.timezone.utc,
+        ).isoformat(),
         nullable=False,
     )
     semantics: Mapped[str] = mapped_column(
@@ -289,9 +311,7 @@ class Fact(Base):
         viewonly=True,
     )
     entities: Mapped[list[Entity]] = relationship(
-        "Entity",
-        secondary=fact_entity_link,
-        back_populates="facts"
+        "Entity", secondary=fact_entity_link, back_populates="facts",
     )
 
     @classmethod
@@ -667,7 +687,10 @@ def replace_chain(session: Session, new_chain_dicts: list[dict]) -> bool:
     try:
         temp_blocks = [Block.from_dict(b) for b in new_chain_dicts]
         for i in range(1, len(temp_blocks)):
-            if temp_blocks[i].previous_hash != temp_blocks[i - 1].calculate_hash():
+            if (
+                temp_blocks[i].previous_hash
+                != temp_blocks[i - 1].calculate_hash()
+            ):
                 logger.error(
                     f"Chain validation failed: Invalid hash link at block {temp_blocks[i].height}.",
                 )
@@ -676,34 +699,40 @@ def replace_chain(session: Session, new_chain_dicts: list[dict]) -> bool:
     except Exception as e:
         logger.error(f"Could not parse received chain data: {e}")
         return False
-    
+
     current_head = current_blocks[-1] if current_blocks else None
     new_head = temp_blocks[-1] if temp_blocks else None
 
     if not new_head:
         logger.warning("Received an empty chain. Aborting.")
         return False
-        
+
     if current_head:
         if new_head.height < current_head.height:
-            logger.info("Received chain is shorter than the current one. Aborting sync.")
+            logger.info(
+                "Received chain is shorter than the current one. Aborting sync.",
+            )
             return False
-        
+
         if new_head.height == current_head.height:
             if new_head.hash >= current_head.hash:
                 logger.info(
                     "Received chain is same length but its head hash is not smaller. "
-                    "Keeping local chain. Aborting sync."
+                    "Keeping local chain. Aborting sync.",
                 )
                 return False
             logger.info(
                 "Received chain is same length but has a winning hash. "
-                "Proceeding with replacement (reorg)."
+                "Proceeding with replacement (reorg).",
             )
         else:
-             logger.info("Received chain is longer. Proceeding with replacement.")
+            logger.info(
+                "Received chain is longer. Proceeding with replacement.",
+            )
     else:
-        logger.info("Local chain is empty. Accepting any valid chain from peer.")
+        logger.info(
+            "Local chain is empty. Accepting any valid chain from peer.",
+        )
 
     try:
         logger.info(
