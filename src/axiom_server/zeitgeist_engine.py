@@ -31,8 +31,7 @@ logger.propagate = False
 
 
 def get_trending_topics(top_n: int = 1) -> list[str]:
-    """
-    Fetch recent news headlines, filter for high-quality English content,
+    """Fetch recent news headlines, filter for high-quality English content,
     and return the most frequently mentioned entities.
     """
     logger.info("Discovering high-quality, English trending topics...")
@@ -52,32 +51,38 @@ def get_trending_topics(top_n: int = 1) -> list[str]:
         # We only want to analyze English headlines.
         try:
             if detect(title) != "en":
-                logger.debug(f"Skipping non-English headline: '{title[:50]}...'")
+                logger.debug(
+                    f"Skipping non-English headline: '{title[:50]}...'",
+                )
                 continue
         except LangDetectException:
             # This happens if the text is too short or ambiguous. Skip it.
-            logger.debug(f"Could not determine language for: '{title[:50]}...'")
+            logger.debug(
+                f"Could not determine language for: '{title[:50]}...'",
+            )
             continue
 
         # --- ENHANCEMENT 2: Quality Check ---
         # We reuse the crucible's intelligence to filter out "bad" headlines.
         # We create a spaCy object to pass to the pipeline.
         doc = NLP_MODEL(title)
-        
+
         # The pipeline will return None if any check fails.
         checked_span = SENTENCE_CHECKS.run(doc[:])
-        
+
         if not checked_span:
             # The log message for why it failed is already printed by the pipeline.
             continue
-            
+
         # --- If both checks pass, extract entities ---
         for ent in checked_span.ents:
             if ent.label_ in ["ORG", "PERSON", "GPE"]:
                 all_entities.append(ent.text)
 
     if not all_entities:
-        logger.warning("No significant entities found in high-quality English headlines.")
+        logger.warning(
+            "No significant entities found in high-quality English headlines.",
+        )
         return []
 
     topic_counts = Counter(all_entities)

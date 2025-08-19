@@ -12,30 +12,30 @@ from concurrent.futures import (
     as_completed,
 )  # <-- NEW IMPORT
 from typing import Final
+from urllib.parse import urlparse
 
 import feedparser
-from urllib.parse import urlparse 
 
 logger = logging.getLogger(__name__)
 
 BLACKLISTED_DOMAINS: Final[set[str]] = {
-    "www.fodors.com",          # Travel blog/forum
-    "www.lotterypost.com",     # Lottery results/forum
-    "www.nomadicmatt.com",     # Travel blog
-    "georgerrmartin.com",      # Author's personal blog
-    "freakonomics.com",        # Opinion/narrative content
-    "consequence.net",         # Music/entertainment news
-    "pitchfork.com",           # Music reviews
-    "www.brooklynvegan.com",   # Music blog
-    "www.rollingstone.com",    # Entertainment/culture magazine
-    "www.billboard.com",       # Music charts/news
-    "www.spin.com",            # Music magazine
-    "www.stereogum.com",       # Music blog
-    "adventure.com",           # Travel/adventure stories
-    "matadornetwork.com",      # Travel stories
-    "www.roadsandkingdoms.com", # Travel stories
+    "www.fodors.com",  # Travel blog/forum
+    "www.lotterypost.com",  # Lottery results/forum
+    "www.nomadicmatt.com",  # Travel blog
+    "georgerrmartin.com",  # Author's personal blog
+    "freakonomics.com",  # Opinion/narrative content
+    "consequence.net",  # Music/entertainment news
+    "pitchfork.com",  # Music reviews
+    "www.brooklynvegan.com",  # Music blog
+    "www.rollingstone.com",  # Entertainment/culture magazine
+    "www.billboard.com",  # Music charts/news
+    "www.spin.com",  # Music magazine
+    "www.stereogum.com",  # Music blog
+    "adventure.com",  # Travel/adventure stories
+    "matadornetwork.com",  # Travel stories
+    "www.roadsandkingdoms.com",  # Travel stories
     "www.smithsonianmag.com",  # Often contains long-form narrative stories
-    "www.atlasobscura.com",    # Often narrative/story-based
+    "www.atlasobscura.com",  # Often narrative/story-based
 }
 
 # Your curated and verified list of RSS feeds.
@@ -207,7 +207,6 @@ RSS_FEEDS: Final[tuple[str, ...]] = (
     "https://www.youtube.com/feeds/videos.xml?channel_id=UCW39zufHfsuGgpLviKh297Q",
     "https://www.youtube.com/feeds/videos.xml?channel_id=UCo30hbSt6D9z2ObnR4Goo0A",
 )
-
 
 
 def get_content_from_prioritized_feed(

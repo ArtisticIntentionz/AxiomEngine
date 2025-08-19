@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import os
+import random
 import sys
 from typing import TypedDict, cast
-import random
 
 import requests
 from PyQt6.QtCore import QThread, QTimer, pyqtSignal
@@ -29,26 +28,34 @@ BOOTSTRAP_PEERS = [
     "http://127.0.0.1:8003",
 ]
 
+
 # --- MODIFIED: Updated data models to match the server's response ---
 class ChatResult(TypedDict):
     """Represents a single result from the /chat endpoint."""
+
     content: str
     similarity: float
     fact_id: int
     sources: list[str]
     disputed: bool
 
+
 class ChatResponse(TypedDict):
     """The expected JSON response from the /chat endpoint."""
+
     results: list[ChatResult]
+
 
 class ErrorResponse(TypedDict):
     """A response containing an error message."""
+
     error: str
+
 
 # --- MODIFIED: The Network Worker is now resilient and queries multiple nodes ---
 class NetworkWorker(QThread):
     """The network worker for the intelligent chat interface."""
+
     finished = pyqtSignal(object)
     progress = pyqtSignal(str)
 
@@ -62,27 +69,34 @@ class NetworkWorker(QThread):
         """Execute the chat query logic with fallback."""
         # Shuffle the list of peers to distribute the load
         nodes_to_try = random.sample(BOOTSTRAP_PEERS, len(BOOTSTRAP_PEERS))
-        
+
         for i, node_url in enumerate(nodes_to_try):
             try:
-                self.progress.emit(f"Querying Axiom Node {i+1}/{len(nodes_to_try)} ({node_url})...")
+                self.progress.emit(
+                    f"Querying Axiom Node {i + 1}/{len(nodes_to_try)} ({node_url})...",
+                )
                 response = self._perform_chat_query(node_url)
                 # If successful, emit the result and stop trying other nodes
                 self.finished.emit(response)
                 return
             except requests.RequestException as e:
-                self.progress.emit(f"Node {node_url} failed: {e}. Trying next...")
-                continue # Try the next node in the list
-        
+                self.progress.emit(
+                    f"Node {node_url} failed: {e}. Trying next...",
+                )
+                continue  # Try the next node in the list
+
         # If all nodes failed
         self.finished.emit({"error": "All known Axiom nodes are unreachable."})
 
-    def _perform_chat_query(self, node_url: str) -> ChatResponse | ErrorResponse:
+    def _perform_chat_query(
+        self,
+        node_url: str,
+    ) -> ChatResponse | ErrorResponse:
         """Perform a single POST request to the /chat endpoint of a specific node."""
         response = requests.post(
             f"{node_url}/chat",
             json={"query": self.query_term},
-            timeout=15, # A generous timeout for the query
+            timeout=15,  # A generous timeout for the query
         )
         response.raise_for_status()
         return cast("ChatResponse", response.json())
@@ -90,6 +104,7 @@ class NetworkWorker(QThread):
     def stop(self) -> None:
         """Stop the worker thread."""
         self.is_running = False
+
 
 class AxiomClientApp(QWidget):
     """The main GUI window for the Axiom Client."""
@@ -142,7 +157,8 @@ class AxiomClientApp(QWidget):
     def start_search(self) -> None:
         """Handle when the user clicks 'Search' or presses Enter."""
         query = self.query_input.text()
-        if not query: return
+        if not query:
+            return
         self.search_button.setEnabled(False)
         self.results_output.setText("...")
         self.network_worker = NetworkWorker(query)
@@ -184,7 +200,7 @@ class AxiomClientApp(QWidget):
             elif similarity > 85:
                 title = f"High Confidence Answer ({similarity:.1f}% Match)"
                 explanation = "Based on a proven fact in the ledger, here is a direct answer:"
-            else: # similarity > 65
+            else:  # similarity > 65
                 title = f"Related Information Found ({similarity:.1f}% Match)"
                 explanation = "I don't have an exact match, but this related fact may be helpful:"
 
@@ -202,17 +218,24 @@ class AxiomClientApp(QWidget):
             response = requests.get(f"{node_to_check}/status", timeout=2)
             response.raise_for_status()
             data = response.json()
-            self.connection_status_label.setText(f"🟢 Connected to {node_to_check}")
-            self.block_height_label.setText(f"Block: {data.get('latest_block_height', 'N/A')}")
+            self.connection_status_label.setText(
+                f"🟢 Connected to {node_to_check}",
+            )
+            self.block_height_label.setText(
+                f"Block: {data.get('latest_block_height', 'N/A')}",
+            )
             self.version_label.setText(f"Node: v{data.get('version', 'N/A')}")
         except requests.exceptions.RequestException:
             self.set_disconnected_status(node_to_check)
 
     def set_disconnected_status(self, checked_url: str) -> None:
         """Set all UI elements to a disconnected state."""
-        self.connection_status_label.setText(f"🔴 Disconnected from {checked_url}")
+        self.connection_status_label.setText(
+            f"🔴 Disconnected from {checked_url}",
+        )
         self.block_height_label.setText("Block: N/A")
         self.version_label.setText("Node: N/A")
+
 
 def cli_run() -> int:
     """Application entrypoint."""
@@ -220,6 +243,7 @@ def cli_run() -> int:
     ex = AxiomClientApp()
     ex.show()
     sys.exit(app.exec())
+
 
 if __name__ == "__main__":
     cli_run()

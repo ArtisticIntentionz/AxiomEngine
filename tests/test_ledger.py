@@ -33,7 +33,7 @@ def db_session() -> Session:
         Base.metadata.drop_all(engine)
 
 
-# These new tests verify the core security and integrity of our new architecture.
+# --- UPDATED TEST FOR PROOF-OF-STAKE ---
 def test_genesis_block_creation(db_session: Session):
     """Tests that the very first block is created correctly."""
     create_genesis_block(db_session)
@@ -43,28 +43,34 @@ def test_genesis_block_creation(db_session: Session):
     assert genesis.previous_hash == "0", (
         "Genesis block's previous_hash should be '0'"
     )
-    assert genesis.hash.startswith("00"), (
-        "Genesis block should be sealed with default difficulty"
-    )
+    # A PoS block's hash just needs to be a valid 64-character hex string.
+    assert len(genesis.hash) == 64
+    assert all(c in "0123456789abcdef" for c in genesis.hash)
 
 
+# --- UPDATED TEST FOR PROOF-OF-STAKE ---
 def test_add_new_block_to_chain(db_session: Session):
     """Tests that a new block is correctly chained to the previous one."""
     create_genesis_block(db_session)
     genesis = get_latest_block(db_session)
     assert genesis is not None
 
-    fact_hashes = json.dumps([
-        "1dfa9132b143d22538cb38522338604791552554756b107c14a5a8126e8436e8",
-        "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
-    ])
+    fact_hashes = json.dumps(
+        [
+            "1dfa9132b143d22538cb38522338604791552554756b107c14a5a8126e8436e8",
+            "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        ],
+    )
     new_block = Block(
         height=genesis.height + 1,
         previous_hash=genesis.hash,
         fact_hashes=fact_hashes,
         timestamp=time.time(),
+        # Add a dummy proposer, as this is now part of the block's identity
+        proposer_pubkey="test_proposer_key",
     )
-    new_block.seal_block(difficulty=3)
+    # The new seal_block function has no arguments.
+    new_block.seal_block()
 
     db_session.add(new_block)
     db_session.commit()
@@ -75,11 +81,12 @@ def test_add_new_block_to_chain(db_session: Session):
     assert latest.previous_hash == genesis.hash, (
         "New block should chain to genesis hash"
     )
-    assert latest.hash.startswith("000"), (
-        "New block should be sealed with specified difficulty"
-    )
+    # A PoS block's hash just needs to be a valid 64-character hex string.
+    assert len(latest.hash) == 64
+    assert all(c in "0123456789abcdef" for c in latest.hash)
 
 
+# --- THIS TEST IS ALREADY CORRECT AND REMAINS UNCHANGED ---
 def test_fact_ingestion_default_status(db_session: Session):
     """Tests that a new fact is created with the correct default 'ingested' status."""
     source = Source(domain="example.com")
@@ -99,6 +106,7 @@ def test_fact_ingestion_default_status(db_session: Session):
     )
 
 
+# --- THIS TEST IS ALREADY CORRECT AND REMAINS UNCHANGED ---
 def test_update_fact_status(db_session: Session):
     """Tests that a fact's status can be correctly updated through its lifecycle."""
     source = Source(domain="example.com")

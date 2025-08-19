@@ -2,16 +2,17 @@
 
 from __future__ import annotations
 
-# Copyright (C) 2025 The Axiom Contributors
-# This program is licensed under the Peer Production License (PPL).
-# See the LICENSE file for full details.
-from datetime import datetime, timezone
 import enum
 import hashlib
 import json
 import logging
 import sys
 import time
+
+# Copyright (C) 2025 The Axiom Contributors
+# This program is licensed under the Peer Production License (PPL).
+# See the LICENSE file for full details.
+from datetime import datetime, timezone
 from typing import Any
 
 from pydantic import BaseModel
@@ -138,7 +139,7 @@ class Block(Base):
         if fact_hashes_list:
             merkle_tree = merkle.MerkleTree(fact_hashes_list)
             # This line correctly converts the bytes root to a hex string for storage.
-            self.merkle_root = merkle_tree.root.hex() 
+            self.merkle_root = merkle_tree.root.hex()
         else:
             self.merkle_root = hashlib.sha256(b"").hexdigest()
 
@@ -213,7 +214,12 @@ class Fact(Base):
         default=False,
         nullable=False,
     )
-    hash: Mapped[str] = mapped_column(String, default="", nullable=False, index=True)
+    hash: Mapped[str] = mapped_column(
+        String,
+        default="",
+        nullable=False,
+        index=True,
+    )
     last_checked: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -241,7 +247,7 @@ class Fact(Base):
         """Return SerializedFact from Fact."""
         # The key is to prepare the dictionary of data FIRST,
         # ensuring all types are correct *before* calling the constructor.
-        
+
         data_for_model = {
             "content": fact.content,
             "score": fact.score,
@@ -252,10 +258,10 @@ class Fact(Base):
             "semantics": fact.get_serialized_semantics(),
             "sources": [source.domain for source in fact.sources],
         }
-        
+
         # Now, create the model from the clean, validated data.
         return cls(**data_for_model)
-    
+
     @property
     def corroborated(self) -> bool:
         """Return if score is positive."""
@@ -317,7 +323,7 @@ class SerializedFact(BaseModel):
         """Return SerializedFact from Fact."""
         # The key is to prepare the dictionary of data FIRST,
         # ensuring all types are correct *before* calling the constructor.
-        
+
         data_for_model = {
             "content": fact.content,
             "score": fact.score,
@@ -328,7 +334,7 @@ class SerializedFact(BaseModel):
             "semantics": fact.get_serialized_semantics(),
             "sources": [source.domain for source in fact.sources],
         }
-        
+
         # Now, create the model from the clean, pre-validated data.
         return cls(**data_for_model)
 
@@ -388,6 +394,7 @@ class FactLink(Base):
     )
     fact2: Mapped[Fact] = relationship("Fact", foreign_keys=[fact2_id])
 
+
 class Validator(Base):
     """Represents a node that has staked collateral to participate in consensus."""
 
@@ -395,8 +402,16 @@ class Validator(Base):
 
     public_key: Mapped[str] = mapped_column(String, primary_key=True)
     region: Mapped[str] = mapped_column(String, nullable=False)
-    stake_amount: Mapped[int] = mapped_column(Integer, nullable=False, default=0) 
-    reputation_score: Mapped[float] = mapped_column(Float, nullable=False, default=1.0)  
+    stake_amount: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+    )
+    reputation_score: Mapped[float] = mapped_column(
+        Float,
+        nullable=False,
+        default=1.0,
+    )
     rewards: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=False)
     last_seen: Mapped[datetime] = mapped_column(
@@ -404,6 +419,7 @@ class Validator(Base):
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
     )
+
 
 def initialize_database(engine: Engine) -> None:
     """Ensure the database file and ALL required tables exist."""
@@ -426,7 +442,7 @@ def create_genesis_block(session: Session) -> None:
         fact_hashes=json.dumps([]),
         timestamp=time.time(),
     )
-    genesis.seal_block() # <-- REMOVE difficulty=2
+    genesis.seal_block()  # <-- REMOVE difficulty=2
     session.add(genesis)
     session.commit()
     logger.info("Genesis Block created and sealed.")

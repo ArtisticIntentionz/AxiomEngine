@@ -1,8 +1,8 @@
 ========================================
       AxiomEngine Fact Analysis Report
 ========================================
-Generated on: 2025-08-19T01:09:30.818886
-Total Facts Analyzed: 11
+Generated on: 2025-08-19T14:26:10.782037
+Total Facts Analyzed: 241
 
 ----------------------------------------
 Disputed Facts (0)
@@ -15,50 +15,970 @@ Corroborated Facts (0)
 No corroborated facts found. These are facts with a score > 0.
 
 ----------------------------------------
-Ingested & Awaiting Corroboration (11)
+Ingested & Awaiting Corroboration (241)
 ----------------------------------------
 
-1. Fact Hash: 150b6d77b31c5f1717a4b935b2e05baa41237e7f2cea99295ccd23e7389d40be
-   Content: upon the discovery of a large crack in the newly formed lava delta at kapoho, state officials are warning the public of the dangers of visiting hawaii island’s eastern coastal areas.
-   Sources: www.staradvertiser.com
+1. Fact Hash: 0404b3c00fa6dbe1cb4163f8cb5b17b7948b6af9d9603703bd55ef4c6486813b
+   Content: some workers have filed legal complaints, including workers' compensation claims, barnhart said.
+   Sources: www.axios.com
 
-2. Fact Hash: 29c5024c474a845694dd32385a98000e5741b002bfe730ece86e0ba42b005512
-   Content: the picturesque spot in mallorca is home to just over 600 people, but the high number of visitors in the summer is putting a strain on resources
-   Sources: elpais.com
+2. Fact Hash: 2f0e0d645dc58ff13fae3f2dffd2dd12a97644c4a4e379eafa59c208ff49deef
+   Content: australia could significantly increase its climate adaptation investment in the pacific by shifting funding away from technical advisers and towards infrastructure.
+   Sources: www.lowyinstitute.org
 
-3. Fact Hash: 2d1dc5cdf973787cbde7e49eb03b0d711f0ba638176e9a677a3246df96418399
-   Content: in a surprise institutional statement, quim torra said the date will not be set until the regional budget is passed in parliament
-   Sources: elpais.com
+3. Fact Hash: 403642f2042511d3634d351190491869086ffbab65bfda210a97457311cc1f05
+   Content: the egozero system takes data from humans wearing smart glasses and turns it into useable 3d navigation data for robots to do general manipulation tasks.
+   Sources: spectrum.ieee.org
 
-4. Fact Hash: 4269c3f655a3050388a5580281973e8f74e98f605748f01d44e3fe6e5f19f36e
-   Content: x is struggling on android with installs down by 49% year-over-year as of june 2025.
-   Sources: techcrunch.com
+4. Fact Hash: 44cd70d1f466bf24637fa5447561dd5de21ba6790c8c9afc21ae6231c40be351
+   Content: russian and ukrainian presidents vladimir putin and volodymyr zelensky looked set for a peace summit after fast-moving talks monday between donald trump and european leaders that focused on the key issue of long-term security guarantees for kyiv.
+   Sources: www.france24.com
 
-5. Fact Hash: 4f2073370371a1672ef8f9c02ec7c196b8d7ac64b1cd3b2f1a25fbff08d06213
-   Content: hawaii’s seasonally adjusted unemployment rate for july fell to 2.7% from 2.8% in june to mark its lowest level since before covid-19.
-   Sources: www.staradvertiser.com
+5. Fact Hash: 527fb4de1a6a89dda9dafcc4935df047876e336ce29a3301e447e8df09d3e1cd
+   Content: ben rhodes, who served as former president obama’s deputy national security adviser, expressed skepticism on tuesday that a peace deal to end the war in ukraine could materialize in the near future.
+   Sources: thehill.com
 
-6. Fact Hash: 55cd5ad54aacf7c847e12c86be4e9530babc5848b145e585a17cf78970cd4ab2
-   Content: reuters photographer jon nazca has traveled to ronda in the southern spanish city of málaga to compare this year’s empty streets to the festivities seen in 2019 and 2018
-   Sources: elpais.com
+6. Fact Hash: 550ef0d32d9e4e462ee3dc7917a21502f2148b891b0ab3e243d3a2260a8dfa20
+   Content: some of the north korean workers are even stationed in china and other nearby countries to keep suspicions low.
+   Sources: www.axios.com
 
-7. Fact Hash: 56846cad3c7e1ffb4362efeab033103a3a17b2d1bd03b297a86bde914fa705de
-   Content: the national weather service has issued a coastal flooding alert statewide, effective from tuesday afternoon to thursday afternoon.
-   Sources: www.staradvertiser.com
+7. Fact Hash: 6031f4d6795863cdf3539576cb0cb9218055c063832ee6abde9ef650e923ebfe
+   Content: midjourney bias (2023) contextual integrity failure users discovered that the ai image generator often produced biased images of people, such as showing white men as ceos regardless of the prompt.
+   Sources: spectrum.ieee.org
 
-8. Fact Hash: 7556e3996689effee600edb214f39166bf864f4de5f49eedc7c416f0729f781b
-   Content: cal true freshman jaron-keawe sagapolutele, a campbell high school standout, has won the starting quarterback job, golden bears coach justin wilcox announced today.
-   Sources: www.staradvertiser.com
+8. Fact Hash: 65f14f11d14426e269ad6ab93689f19638e2c8e063c12d8b95c3669ec996415a
+   Content: it turns out that there is a word in english: “integrous.”
+   Sources: spectrum.ieee.org
 
-9. Fact Hash: 8739a10d67a32397ac5783cdbfc2c1e1de8b6533fcf449378cb3043f513f4df2
-   Content: softbank will pay $23 per share for intel common stock.
-   Sources: techcrunch.com
+9. Fact Hash: 6828973da2c1541d12f96031a073a7948102d5d05f2a25a0e52548d678fafd40
+   Content: without enough resources to meet their needs, families of homicide victims say, years later, they’re still struggling to cope.
+   Sources: www.themarshallproject.org
 
-10. Fact Hash: 91a6b7ac2b95ad2ef6fc439483a6e060c089820e7cd31d27944d0ee8bc484b8d
-   Content: texas attorney general ken paxton is investigating meta and characterai over claims they deceptively market chatbots as mental health tools, raising concerns about child safety, data privacy, and targeted advertising.
-   Sources: techcrunch.com
+10. Fact Hash: 740aa05d976f781366e4561e485048d83f84ec41c16f03b5029e7ed04e18b4ca
+   Content: the post post from community: uncf mke thanks walkers, sponsors & community appeared first on milwaukee neighborhood news service .
+   Sources: milwaukeenns.org
 
-11. Fact Hash: b7268f72dbdab89cfeb654e6170b9cd770e910c2e1fc8b74896d79b82baaa5b2
-   Content: this plan will offer 10x more messages and image generation than the free tier, among other benefits.
-   Sources: techcrunch.com
+11. Fact Hash: 9ceeabdfbfb684e7f6b5f5ea90757a8f472a7b5d888d23efc87ba311ea24da7c
+   Content: israelis closed businesses, universities, and streets in a massive outpouring of rage and opposition to plans to expand the war against hamas in gaza.
+   Sources: www.csmonitor.com
+
+12. Fact Hash: b4c4a682760d03512efcc63c858c6aa0c4c1fa4aa2d748f301b8f42827bf3465
+   Content: a natural-born tinkerer it stands to reason that mann would become a leading tinkerer.
+   Sources: spectrum.ieee.org
+
+13. Fact Hash: bab4c07acd993a1fd6ccb5166686bbc9f0c9e157a45df2d401a3d1c2582c4099
+   Content: the call was toward the end of trump's meeting with the european leaders.
+   Sources: www.axios.com
+
+14. Fact Hash: c158b69ae5a1883decd5af513fa8a1d844186b82a319192d18cba71d51c56e49
+   Content: house oversight and government reform committee ranking member robert garcia (d-calif.) said the plan for the department of justice to respond in “batches” to the committee’s subpoena for files relating to the late sex offender jeffrey epstein amounts to a “cover-up.”
+   Sources: thehill.com
+
+15. Fact Hash: df80bed9d8627b3143e146c8f81dcba691900ab28cc5779ae437879bccc9e6ad
+   Content: there was an inevitability that came with the redevelopment of climate pledge arena in queen anne: sue bird was going to get a statue.
+   Sources: www.adn.com
+
+16. Fact Hash: e174a6131cd3693ec92673c6fd7a8936ed911c93f993bf8a77ac10d910c7f9f9
+   Content: many people with little or no criminal record have been swept into the administration’s immigration dragnet since january, an analysis of deportation data shows.
+   Sources: www.themarshallproject.org
+
+17. Fact Hash: e314a5227f549ef67b1429e0ac609ec9e2c450b900b71903e464338a3aae6a3f
+   Content: the cidery sought chapter 11 protection with its filing aug. 13, but its owner says nothing will functionally change for the business.
+   Sources: www.denverpost.com
+
+18. Fact Hash: ee071de4f9d04140ae9a829cd2329266657fe5ba15617533e66bb03a4f406586
+   Content: the dream is to have a robot like the jetson’s rosie that can performing a range of household tasks, like tidying up or folding laundry.
+   Sources: spectrum.ieee.org
+
+19. Fact Hash: f20df6016216efd407b31b47598478d2ae3fc16a8a41c73ca0c72cf54240f73e
+   Content: “when you grow up in a culture of violence, that doesn’t just disappear,” writes rashon venable.
+   Sources: www.themarshallproject.org
+
+20. Fact Hash: f2cd58e2627aa37284c40984288a38aac6da89d1437cbfb89d64d55c3125a9b3
+   Content: those are often stolen from a real person, or even from a dead u.s. citizen.
+   Sources: www.axios.com
+
+21. Fact Hash: 03a453864b31d897fd8c1624e6962e4ffced7d7754c1bcc87c106fdcc08c7455
+   Content: in the past two years, companies and their security partners have begun to grasp the scale of the problem — and now, they're sounding the alarm about where it's headed next.
+   Sources: www.axios.com
+
+22. Fact Hash: 0998f7acef53c7dc40d4a456df38b97d576877ce3c08ebae7318011938eab891
+   Content: in 2014, tim berners-lee called for a “magna carta for the web” to restore the balance of power between individuals and institutions.
+   Sources: spectrum.ieee.org
+
+23. Fact Hash: 248b0c290373d7ae78b475d66da4ac72e13c782999acd8c06ace543698bc0033
+   Content: screenshots from crowdstrike video getting a job at a u.s. company — and going undetected — is a team effort that involves several north korean it workers, china-based companies and even a handful of americans.
+   Sources: www.axios.com
+
+24. Fact Hash: 48e7b71fe63353ba24a1d2453d99847b0ca35ba1726f245269ebc26defd8d819
+   Content: a smaller cryptocurrency startup told the wsj that they accidentally had north korean workers on their payroll for almost two years.
+   Sources: www.axios.com
+
+25. Fact Hash: 4b7c764bf777af93cc68fed1f9a9e40fed1df61060ecbc787163674be844a836
+   Content: web 1.0 of the 1990s prioritized making information available.
+   Sources: spectrum.ieee.org
+
+26. Fact Hash: 7deb6c85e91513f688c92143e68caa4a06827d1d67400730343c199721e2a4ef
+   Content: russian foreign minister sergey lavrov argued tuesday that any summit between the leaders should be prepared “step by step, gradually,...
+   Sources: thehill.com
+
+27. Fact Hash: 8949324e8f9d4c43a01d05f7af7a24cda2c130ea5bff1ebc6bc847a4308cbda1
+   Content: in 2021, facebook’s global outage was triggered by a single mistaken command—an input error missed by automated systems.
+   Sources: spectrum.ieee.org
+
+28. Fact Hash: 8f2d2cea404e38fcfe965c9b72037c9d3b48a7808334bff245313178c534635c
+   Content: crowdstrike outage (2024) processing integrity failure a faulty software update from crowdstrike caused 8.5 million windows computers worldwide to crash—grounding flights, shutting down hospitals, and disrupting banks.
+   Sources: spectrum.ieee.org
+
+29. Fact Hash: 924fbb52a8ce080ba0a0005f41b7ecc6266ff91328410bb1a0cd1e669e315003
+   Content: that address often belongs to an american accomplice, who typically operates what's known as a "laptop farm."
+   Sources: www.axios.com
+
+30. Fact Hash: b9ecb5c83f69324d93fe673cda5881f7ca33c62496f7c87e654527803dd01dbd
+   Content: "if you hire contract it workers, this has probably happened to you," rubin said.
+   Sources: www.axios.com
+
+31. Fact Hash: c2f833444093088400b9d806e62929acccb3441504ab407fb495170da26f0821
+   Content: why data integrity matters in ai for ai systems, integrity is crucial in four domains.
+   Sources: spectrum.ieee.org
+
+32. Fact Hash: c7a1952903683a0ef641b95db015ffb521bada360558ea7cbed0b294e3c71934
+   Content: nasa mars climate orbiter (1999) processing integrity f ailure lockheed martin’s software calculated thrust in pound-seconds, while nasa’s navigation software expected newton-seconds.
+   Sources: spectrum.ieee.org
+
+33. Fact Hash: c9e65e6e2d6f90ce6aa10c560cf83bc1d35f4d2a6e537e2a467ae2ae30ea78f2
+   Content: google told reporters at the rsa conference in may that it had seen north koreans applying to its jobs.
+   Sources: www.axios.com
+
+34. Fact Hash: cd257e2833f03a2f9c6c4034ccdb149dc7cb34191ee704c9b783d846e1d7248c
+   Content: the u.s and china are far ahead when it comes to artificial intelligence.
+   Sources: www.spiegel.de
+
+35. Fact Hash: e873ecf7714e365eff2ad68a632cd5098538365665c732660f5bf340eb3cc14b
+   Content: experts have long been predicting a famine in the gaza strip.
+   Sources: www.spiegel.de
+
+36. Fact Hash: e93b3ecc64f4f29de3da66712a4237ea441308ba9008218c2fcc1275610f7f46
+   Content: huihui lin , a research scientist at a*star who worked on the project, explains that the synthesis’ rapid speeds come from the high density of the nanograins that form on the copper, and from the plasma in the growth chamber, which provides high quantities of particles that react with the substrate to form the carbon structure.
+   Sources: spectrum.ieee.org
+
+37. Fact Hash: ee1e941cc0fa6cb9e4ac346b1500fc53764277303c69895e0156c99a0952b818
+   Content: the researchers have found a way to fine-tune these angstrom-scale pores to control how the material filters hydrogen ions, in order to produce proton beams with less scattering.
+   Sources: spectrum.ieee.org
+
+38. Fact Hash: fd73db4b48ea1de2f76d577dba49b7f4288f6ceba0ce120d66a55eedd5518c9b
+   Content: the announcement comes a week after a title defense, which was canceled.
+   Sources: www.al.com
+
+39. Fact Hash: ffc8c7b1f6f159c0a44be631c9d7f189b7680b8b7295f1d09f30dad3fcce1c3c
+   Content: in one case, sam rubin, senior vice president of palo alto networks' unit 42 consulting and threat intelligence team, told axios that within 12 hours of a large client posting a new job, more than 90% of the applicants were suspected to be north korean workers.
+   Sources: www.axios.com
+
+40. Fact Hash: ffd57059588dc749322d9c318640c718dce5d95fc79cb4182eaa15485de49407
+   Content: ecobat to sell germany, austria battery recycling operations to clarios the transaction is expected to close by early 2026, pending regulatory approvals.
+   Sources: www.cra-recycle.org
+
+41. Fact Hash: 04bdffa04eb827f501238de16917012db285d1579f3a986f70580868231a2ff4
+   Content: maybe by the end of the week will have some clear architecture," a ukrainian official said.
+   Sources: www.axios.com
+
+42. Fact Hash: 04de577ec5f2d6ff0b9c2698e1c60c26a90a0770c6f5f306e83701ebd533103a
+   Content: donald trump's continued attacks on federal reserve chief jerome powell threaten the pillars of the u.s. economy.
+   Sources: www.spiegel.de
+
+43. Fact Hash: 0c234a1bc5f5d70d5bfb4e3bbc5d9f0dae76eb5d9bf98afd7a0bae3df9c989a0
+   Content: data: bureau of labor statistics; chart: axios visuals job growth slowed down substantially this summer.
+   Sources: www.axios.com
+
+44. Fact Hash: 180fbe099d49fdcc4347995ce20e949dc7848f8bcf684b5dc0c541f6d62daaac
+   Content: on aug. 19, 1909, indianapolis motor speedway hosted its first automobile race.
+   Sources: www.chicagotribune.com
+
+45. Fact Hash: 24fea9f1ce1a9edd26af5daafcda208e71d80e81cc03f70d8af6acfc0fbc54fe
+   Content: an election in bolivia expresses voter desire for a moderate approach to governing and a distaste for socialism’s mistakes.
+   Sources: www.csmonitor.com
+
+46. Fact Hash: 300c1782535788455624cf9206f38c68e47d8d21ca9655180094a326bf9107d2
+   Content: the nanograins provide the right conditions for uc-mac to grow, and eventually, a complete layer of the atom-thick carbon material crystallizes on top of the copper.
+   Sources: spectrum.ieee.org
+
+47. Fact Hash: 310951c7234ecadc19d1668a1419097020bf35765edcf8822f6385b6e467b802
+   Content: web 3.0 is poised to change this dynamic by returning ownership to the data owners.
+   Sources: spectrum.ieee.org
+
+48. Fact Hash: 37bd5623d60ce71342d5dc8fefd0016dd587f9d16f60de5269f3e5c94b29bc5d
+   Content: details by france 24 correspondent in kinshasa, emmet livingstone, in kinshasa, has more.
+   Sources: www.france24.com
+
+49. Fact Hash: 49afb3f65aeabb0e0e08518499e950dcafa544e916759c3fa568578f4cc0b85c
+   Content: driving the news: treasury secretary scott bessent was interviewed on tuesday morning by cnbc .
+   Sources: www.axios.com
+
+50. Fact Hash: 4f4479d9baed383f846a534568302a4c6780a21e90ce66cab73b3c080495678c
+   Content: after months of refusing to discuss the issue, president trump has come around to the idea of u.s. involvement in such a scheme.
+   Sources: www.axios.com
+
+51. Fact Hash: 65697e17b583e063b5fc170632cd6ac5fb2825f0ae1928b897486f777e662024
+   Content: why it matters: u.s. and european security guarantees are a key ukrainian demand.
+   Sources: www.axios.com
+
+52. Fact Hash: 799e9c39aa7fb1f2a1cfff26abf6ff032b1830027371f0e2fd040a20952eb128
+   Content: “look, mail ballots are secure,” griswold said on “cnn news central.”
+   Sources: thehill.com
+
+53. Fact Hash: 9197f869d25b3122aea9bdebd0eb20069c2224515dee2b8eaeebda61d4b00e37
+   Content: depending on the temperature of the copper and the rate at which it’s deposited, irregular crystals a couple dozen nanometers in size called nanograins form.
+   Sources: spectrum.ieee.org
+
+54. Fact Hash: 93218001f02851c74099f72a0bdb13ee513dde0c1d84a7e5295d3bb07362c540
+   Content: xerox parc researcher alan kay ’s belief that “ the best way to predict the future is to invent it .”
+   Sources: spectrum.ieee.org
+
+55. Fact Hash: 99470b4ca97e8e2d9206b1167413ad4d6b06e632f2ecafed523001e32b7ca22d
+   Content: as an undergraduate, mann was already experimenting with early prototypes of wearable computers—head-mounted displays, body-worn cameras, and portable computing systems that predated mainstream mobile tech by decades.
+   Sources: spectrum.ieee.org
+
+56. Fact Hash: ae0ed8f62e27150fcb69b8653b58ef2c1a0c853b94ce3e493fa3a5b347ed6864
+   Content: when training robots on image-based data, “the mismatch is too large between what human hands look like and what robot arms look like,” says bhirangi.
+   Sources: spectrum.ieee.org
+
+57. Fact Hash: b27ce47d878a7a2235d27df71ee388df372d72f198e4090696c02a2086e8cee8
+   Content: maria bontsler is one of them - and is now in prison herself.
+   Sources: www.spiegel.de
+
+58. Fact Hash: d701e500d340e8e11980e44b197941a697b8934ff26ed4f1c2ad4d7773f54d45
+   Content: u.n. officials estimated that more than one million displaced people were now inside the city.
+   Sources: www.wsj.com
+
+59. Fact Hash: dc4c8407a47300bea52f99bd3d7ecc3c3150e533df8a93e76007450e7965b449
+   Content: the third domain is the security relationships between components.
+   Sources: spectrum.ieee.org
+
+60. Fact Hash: f22d27b8a24352f9e8b31a17e2185a3f45b35c468a5f47df97cab4eb5b980424
+   Content: as of the morning of aug. 18, over 16,500 flood-related service requests had been made to impact 211..
+   Sources: milwaukeenns.org
+
+61. Fact Hash: 00391336d51941d236941e3d722916aa521596373140ef33fe95b3bb1c748ebf
+   Content: the failure caused the $328 million spacecraft to burn up in the mars atmosphere.
+   Sources: spectrum.ieee.org
+
+62. Fact Hash: 258843d6249909cb2c1f02f57955c8e0e0c22e63f39a78ea47bcfb30bdd05316
+   Content: then there's the challenge of ensuring the salaries actually reach the north korean regime.
+   Sources: www.axios.com
+
+63. Fact Hash: 357d618625b7a7b8fb37a398be2573865d7b7a27b5eaeef0d23f9d761bafd02d
+   Content: why spend $10 billion to "stabilize" a company without trying to solve the main reason it's unstable in the first place?
+   Sources: www.axios.com
+
+64. Fact Hash: 420e2eb8a849a963f97129d6ad3428c2912dc95dd8f1d1b50da1ad6625fc68e6
+   Content: that often requires the facilitators forward the paychecks to front companies across china or funnel it through cryptocurrency exchanges.
+   Sources: www.axios.com
+
+65. Fact Hash: 48829a4ae0e539e836af696c367ae34e408b0bcbe3e1cf8e7dadad3d2ddcfb1f
+   Content: of those three features, data integrity will become of paramount importance.
+   Sources: spectrum.ieee.org
+
+66. Fact Hash: 512f12dcc2d36580a01d2e6ea3334e6339b3b9465aa02a93b42ee4048546b795
+   Content: french president emmanuel macron, in washington for talks on long-term security guarantees for ukraine, said france and britain would hold a meeting on tuesday with kyiv's allies.
+   Sources: www.rfi.fr
+
+67. Fact Hash: 5bddc845c0a8f08b7db18bd3083cd9579d3f958c5e16452bb771de93eaf2c4a4
+   Content: at first glance, the combination of a rising unemployment rate and strong jobs growth simply does not compute.
+   Sources: www.axios.com
+
+68. Fact Hash: 61a00686475554520940f043278e2c6836a1ab54bcfeb888e0059ab4f61a20b4
+   Content: the new leaf will be the cheapest ev you can buy when it goes on sale this fall.
+   Sources: arstechnica.com
+
+69. Fact Hash: 707164017c456cf3292b3054cf78a3568a18b9459344f3ca1e863408ed41e2d1
+   Content: onoe was instrumental in aligning companies’ and countries’ infrastructures as 3g networks took shape, and went to play a key role in the creating 4g standards as well.
+   Sources: spectrum.ieee.org
+
+70. Fact Hash: 70a551f046190032e497e87ad74cd2a62701278e8c49d19e1969225a755c16fc
+   Content: driving the news: asked about the potential u.s. involvement in the security guarantee of ukraine, trump said in an exclusive interview with fox & friends that there would be no american boots on the ground defending the ukrainian border.
+   Sources: www.axios.com
+
+71. Fact Hash: 969a0d7b7f25641fdd8295dd821a58d8a20095d47b4fcda05fa86be81e66bc19
+   Content: “releasing the epstein files in batches just continues this white house cover-up,” garcia said...
+   Sources: thehill.com
+
+72. Fact Hash: b8a00912b3baeb3fd8993cefbf1d30463021ccfca2189d0893cf220d2fd41096
+   Content: a new twist on pencil graphite might be a key ingredient to better cancer treatment, scientists in singapore say.
+   Sources: spectrum.ieee.org
+
+73. Fact Hash: bc14e5a98e85ca1a1b9ab2769a02cdafd7ee65a6bd1dcf7206bc5230f9f4bf38
+   Content: residents of goma reported gunfire and shelling after rebels overran congolese troops.
+   Sources: www.wsj.com
+
+74. Fact Hash: c38732a737dd06b00e8d949dfe563dfcd818e0476fa522faf5858f499ce2f28a
+   Content: voice-clone scams (2024) input and processing integrity failure scammers used ai-powered voice-cloning tools to mimic the voices of victims’ family members, tricking people into sending money.
+   Sources: spectrum.ieee.org
+
+75. Fact Hash: cb46fad9299d6bd393e86e55701578ba717e1b711d7f72a57be572c9cf60c4c3
+   Content: middle and high schools in mayotte will reopen next week, eight months after cyclone chido killed at least 50 people and wrecked classrooms across the french overseas department.
+   Sources: www.rfi.fr
+
+76. Fact Hash: cc743066cce815c14b05cbb0a73498cb48df581a2d16e8b85033c598412bf86b
+   Content: a survivor who testified in the case slammed the sentence — a choice between prison or paying a fine — which nigeria’s anti-trafficking agency intends to appeal.
+   Sources: www.icij.org
+
+77. Fact Hash: cfe440647ca764100c3ac367973a4f8fa5242dc312423b53168cf54a78607638
+   Content: in web 2.0, the web of today, platforms for e-commerce, social media, and cloud computing prioritize confidentiality, as personal data has become the internet’s currency.
+   Sources: spectrum.ieee.org
+
+78. Fact Hash: d36074ce56d89feb491c0bd772746609a7df0d09714475f0e83f5061dcfee1e1
+   Content: during the covid pandemic, as remote work became the norm, the idea of secretly juggling two full-time jobs gained traction.
+   Sources: spectrum.ieee.org
+
+79. Fact Hash: d4eaf1c32b27668106b7df7672364c7b7bdb71e0f3ca5c4d742219b75dc0a9d8
+   Content: the post post from community: laughing liberally milwaukee appeared first on milwaukee neighborhood news service .
+   Sources: milwaukeenns.org
+
+80. Fact Hash: e75b7c2491ed2c5f176f0dc271e2e3cfc995385cb09f9665b5c77ceb36a333a1
+   Content: source: recycling today ecore acquires outdoor surface provider ohio-based pro-techs surfacing llc has been acquired by recycled-content rubber products manufacturing firm ecore international.
+   Sources: www.cra-recycle.org
+
+81. Fact Hash: 034981f64f8cb7b164d196f2774060455a41c4afec66d940c53f857e5f928cc4
+   Content: in a recent pre-print , which serves as a proof of concept for the approach, the researchers trained a robot to complete seven manipulation tasks, such as picking up a piece of bread and placing it on a nearby plate.
+   Sources: spectrum.ieee.org
+
+82. Fact Hash: 10a0d87ce12399ac4dcd489621fb42e330a9bdf819d1828fb37a3b015865a65d
+   Content: ariane 5 rocket (1996) processing integrity f ailure a 64-bit velocity calculation was converted to a 16-bit output, causing an error called overflow.
+   Sources: spectrum.ieee.org
+
+83. Fact Hash: 13d8db360f6fad1a37dfe99500ef8177e13dcb7a0f4cf683ae8cdb189b126f6e
+   Content: from april 2023 to july 2024, the unemployment rate rose a whopping 0.8 percentage point — one of many signs the labor market softened significantly.
+   Sources: www.axios.com
+
+84. Fact Hash: 3d775f2c1382576bd551898b5367d3f4e58674472c0b6a07bfaf8cbd57c6ebf5
+   Content: rajoelina also used the occasion to showcase two flagship infrastructure projects of three sadc heads of state.
+   Sources: www.france24.com
+
+85. Fact Hash: 4a9fbff3f2e0dfc2a82a3800761b1d2ac04516889cf1c08911c8abf76c91f5e8
+   Content: the first, input integrity, concerns the quality and authenticity of data entering a system.
+   Sources: spectrum.ieee.org
+
+86. Fact Hash: 4ece160ccaf5c0b03577c6c59e491749c47c69fa81041806b6701a1a25d8cd22
+   Content: the intrigue: cybersecurity companies have been discovering and naming new groups running these hacks, with names like jasper sleet , moonstone sleet and famous chollima .
+   Sources: www.axios.com
+
+87. Fact Hash: 64f13947adb9ea893403d475aa9091e6852846e4d9eb4f5e0d27cb47ecbf1423
+   Content: what to watch : as u.s. companies become more alert, north korean it workers are shifting their focus abroad as they seek employment at other companies and set up laptop farms throughout europe — suggesting the operation is only just now ramping up, instead of slowing down.
+   Sources: www.axios.com
+
+88. Fact Hash: 677f7adcfcfffffaba1bd81a95f55e0e7aa7f3ce9969553445ed696ae5215ddb
+   Content: education minister elisabeth borne, visiting the indian ocean archipelago, promised lessons would resume "in the same conditions as before the cyclone."
+   Sources: www.rfi.fr
+
+89. Fact Hash: 6898031bfa44c7e91d6555bad40eb9be8152ff975bf4a334eb7e3d7c5de7ad18
+   Content: web 3.0 —the distributed, decentralized web of tomorrow—is finally poised to change the internet’s dynamic by returning ownership to data creators.
+   Sources: spectrum.ieee.org
+
+90. Fact Hash: 87c09f727118b9efb0e3b5a062642ab95b4cd8ff9970b3529456d2fe4afe64cc
+   Content: the alliance mounted its first coordinated response to a suspected sabotage campaign against critical infrastructure after another cable was severed in the baltic sea.
+   Sources: www.wsj.com
+
+91. Fact Hash: 9ef69f28fb297cdbfdb6d6e392b1b169ba072fdb66779cae3755b1f014439455
+   Content: in july, the fbi said it executed searchers of 21 premises across 14 states that were known or suspected laptop farms, seizing 137 laptops.
+   Sources: www.axios.com
+
+92. Fact Hash: a619056dba5dc77eed146b61ef5779d6f369221dcc13a9c534cab374784b86a4
+   Content: "there's a hierarchy: there's a group of people who are the interviewers, and they're the ones with the really good english specialties," hilligoss told axios.
+   Sources: www.axios.com
+
+93. Fact Hash: a987f52dab1269ac03d37fe29051f938d947ebb8a0952c0fa9fde1286bdfe95f
+   Content: mann, however, adds: “sometimes you invent it by simply refusing to accept the limitations of the present.”
+   Sources: spectrum.ieee.org
+
+94. Fact Hash: ca3144ed33452d19fabf02854ccea9fc29fdcf72e3cf022a5e88b638dd0709f4
+   Content: ultra-thin foils of carbon materials have been used for decades in proton therapy to filter particles into high-precision beams meant to kill tumors.
+   Sources: spectrum.ieee.org
+
+95. Fact Hash: cf3e344f802f72f371e8db23dee2f9d61df40b9240ef609ac3b12e27c696a081
+   Content: researchers in hong kong are installing artificial nest boxes to help yellow-crested cockatoos breed after most natural cavities were lost to typhoons and tree cutting.
+   Sources: www.france24.com
+
+96. Fact Hash: dabdf4e0d20ebd4e70584199f81c22be07152bbfc9653d309bfa62734a13722d
+   Content: catch up quick: the u.s. government would soon acquire around a 10% equity stake in intel, whose products division has been supporting its foundry.
+   Sources: www.axios.com
+
+97. Fact Hash: db7a7cc0ff8be1c728a018ba4b86c1f0b1be50aaed4e556bd71c4d7f404e7964
+   Content: a new report details how china and other authoritarian regimes are increasingly targeting critics who sought refuge in the country.
+   Sources: www.icij.org
+
+98. Fact Hash: e0bd45fd97398043c69d7dcbf552440fddafd049656d07f2c02aba2bc43b27c3
+   Content: israel allowed displaced gazans to begin crossing a military zone that bisects the enclave after a deadlock over hostage releases was broken.
+   Sources: www.wsj.com
+
+99. Fact Hash: ed892d5e97dbda27a9cfd257fe3220ce85eed308fa0e335375632bc50b51c587
+   Content: the bottom line: some companies also hesitate to report these incidents, fearing they could be penalized for unknowingly violating u.s. sanctions — even though law enforcement officials have said they're more interested in cooperation than prosecution.
+   Sources: www.axios.com
+
+100. Fact Hash: fe6c0fd960ff0c8d8523d23bba8d3a3e44d104eb985d87f7b48c6f20c48bf640
+   Content: only very few defense attorneys in russia are still prepared to represent opposition activists in court against charges of being "traitors" and "terrorists".
+   Sources: www.spiegel.de
+
+101. Fact Hash: 0f36e1448eeb6ffc242783c4f5343fdf8aba8f2ba4eed1b848503a04cfedc0fe
+   Content: the situation remains challenging along the 600-mile front line.
+   Sources: foreignpolicy.com
+
+102. Fact Hash: 1231166ee2eb0b43ae1794b9c1818af49db4db70181ccb24db1d9e0b7df39a8e
+   Content: the post 5 things to know and do the week of aug. 18 appeared first on milwaukee neighborhood news service .
+   Sources: milwaukeenns.org
+
+103. Fact Hash: 2d0d2239a2ab0bf60434f2297e9aa4f5811ef85bdc5ba1ae18868b0ff56ec5b9
+   Content: the 500-million-year-old fossil, containing a species named in honor of the krayt dragons in star wars, is a much larger ancestor of phallic marine worms that can be found on the seabed today.
+   Sources: www.wired.com
+
+104. Fact Hash: 34a520db29ad037b61599821b1a47bca111a4cf8c93268259fb4457639426575
+   Content: might be handy to know about potential storms a few days before the news starts covering them.
+   Sources: discourse.32bit.cafe
+
+105. Fact Hash: 3651bc5173d666e94234048f53515fb9dcfb76b0db642f0234c95a96b628ec64
+   Content: source: recycling today ecobat to sell germany, austria battery recycling operations to clarios the transaction is expected to close by early 2026, pending regulatory approvals.
+   Sources: www.cra-recycle.org
+
+106. Fact Hash: 3c267a68c1db81beb62de0ce1b007fcdff87fa385f34cbbf50e6ec70a6eaf0ad
+   Content: baltimore replaces litter baskets with citibin waste enclosures citibin’s basketplus is a modular waste enclosure with additional storage for full bags of waste awaiting collection.
+   Sources: www.cra-recycle.org
+
+107. Fact Hash: 3ef8c41a66d49fd09938b2607f3fe1cc334e645a01fbcabbcffb6f4c11905b93
+   Content: european commission releases code of practice for generative ai have you created an llm that was trained using more than 100,000,000,000,000,000,000,000 floating-point operations and is used in europe?
+   Sources: spectrum.ieee.org
+
+108. Fact Hash: 45059fbed3ac44bb0e6844f523b3de60ba9e11a3d9b6d6251f68595d80c954d1
+   Content: most alaska legislators will not return to juneau for a technical session scheduled tuesday.
+   Sources: www.adn.com
+
+109. Fact Hash: 4728bc26edf42c8f8dbaf17e3cf372d1f32110d50f3292d684f138aab17cba5b
+   Content: the proposed art market integrity act would subject art brokers to the same bsa reporting requirements as antiquities dealers, banks and other financial institutions.
+   Sources: www.icij.org
+
+110. Fact Hash: 50b0e98bd70c7d751cd3c148160a20a873ed4a3715ed96916ebd763ad0510ef2
+   Content: the senate is restoring science funding to normal levels; that may not be enough.
+   Sources: arstechnica.com
+
+111. Fact Hash: 5beda9dfdbd83fcd672d30fe40caa677f3b37da84b0b1f799c0efa68d853016b
+   Content: u.s. and european leaders met to discuss security guarantees and whether to push for a cease-fire in the russia-ukraine war.
+   Sources: foreignpolicy.com
+
+112. Fact Hash: 76ecbe2cd4dd27e9a3c4ee5a74e4c482d1438145138e4193063f05ee7b965171
+   Content: like homeowners who care deeply about maintaining the property they own, users in the web 3.0 paradigm will become stewards of their personal digital spaces.
+   Sources: spectrum.ieee.org
+
+113. Fact Hash: 9e747f6719cd3b799012390e24990e76a6cd01ec30ffa113dad66da7cabfd67a
+   Content: back then, mann attracted stares, questions, suspicion, and sometimes hostility.
+   Sources: spectrum.ieee.org
+
+114. Fact Hash: 9f3e0f2d44d8e03de2fc404492da93a88161ee91720067b69e559a61dd5b908b
+   Content: photo: kim won jin/afp via getty images right now, the operations are predominantly focused on making money for north korea's regime.
+   Sources: www.axios.com
+
+115. Fact Hash: a3615dfaf540e3526bae61f7375d1fd9dcbeb3a0a8161d7a1c3a073d735259de
+   Content: russian operatives are using new tactics to expand moscow’s reach in africa, two years after the death of wagner boss yevgeny prigozhin.
+   Sources: www.rfi.fr
+
+116. Fact Hash: c245c8365c11c9a09c89fed81a5e79355bdfdd4c9d66de1fe06470677cf023cf
+   Content: the e-edition – your digital replica of the newspaper!it’s new and ready for you to read first thing every morning, seven days a week.
+   Sources: richmond.com
+
+117. Fact Hash: f42d2dd9a6cf547e1388d2f7486afdfbfa7ebf0fd7e05d2c24e0ebef5b187cf9
+   Content: if you want reasonably unbiased hard news, reuters provides a variety of feeds.
+   Sources: discourse.32bit.cafe
+
+118. Fact Hash: f5e82f021c8d5da1fd75283d083ca0e18c837a75f0e24558ebbdb640b365f86a
+   Content: students in serbia set a global standard of integrity in demanding accountability and transparency from public authorities.
+   Sources: www.csmonitor.com
+
+119. Fact Hash: fd7d98dbd4a00140ad36f41c26c3bc899c9657eb74c28222f6697c1c75109902
+   Content: the intrigue: even small-to-mid-sized companies that rely on remote it talent or outsource their it needs to a consulting firm have encountered this problem, adam meyers, senior vice president of counter adversary operations at crowdstrike, said.
+   Sources: www.axios.com
+
+120. Fact Hash: fdf08cbafdc19b198a9249db868697c453b9f2d0e2f0cd771188a293349caf31
+   Content: it involves several north korean government offices, dozens of china-based front companies and americans willing to facilitate the fraud.
+   Sources: www.axios.com
+
+121. Fact Hash: 143912d91fb62c74fdbc99eabcf3e2f21e36c6ae89c9c1615aafc0d9e8afb53a
+   Content: second: ai systems are only as good as the integrity of the data they’re trained on, and the integrity of their decision-making processes.
+   Sources: spectrum.ieee.org
+
+122. Fact Hash: 31e01ec5ac1b3848299f93f1306fc827b6495de9978aa1ec4eb051d5111e11cf
+   Content: france on tuesday slammed as "abhorrent" and "erroneous" israeli prime minister benjamin netanyahu's accusation of antisemitism against president emmanuel
+   Sources: www.france24.com
+
+123. Fact Hash: 3234d38a5b3c5b0c451de005dc14b4c63b5b7af5d942116f808c9412800bcd3f
+   Content: many of them will use ai tools to help generate passable resumes and linkedin profiles, according to trevor hilligoss, senior vice president at spycloud labs.
+   Sources: www.axios.com
+
+124. Fact Hash: 443ca02848080a4d3b33f445c1d83c417b80f396b6087a1131e8740327bc283f
+   Content: this article is crossposted from ieee spectrum ’s careers newsletter.
+   Sources: spectrum.ieee.org
+
+125. Fact Hash: 45a2ce47e7586ad13fc15066a04f1fdf05a93c46189f64a56e07de43bd42ad02
+   Content: as ai systems become more autonomous, communicating directly with one another via standardized protocols, these integrity controls will be essential for maintaining trust.
+   Sources: spectrum.ieee.org
+
+126. Fact Hash: 4671039964f524f260f4b0b0c3000cc57f16ab060af5b47ea05db657a1f1e766
+   Content: in eastern democratic republic of congo, there are fears that recent violence will derail peace talks meant to bring an end to fighting with m23 rebels, who are backed by rwanda.
+   Sources: www.france24.com
+
+127. Fact Hash: 46bf5cb0bbeecff2cbc261a47226fe7318d2dd4aa5313ded7d3a4c38cc68ae10
+   Content: first: internet of things devices interact directly with the physical world, so corrupted input or output can result in real-world harm.
+   Sources: spectrum.ieee.org
+
+128. Fact Hash: 571a76bf9236055ee25041487b9198a2311d89edefa3dde178b5f592b2627380
+   Content: nearly every fortune 500 company is hiding the same uncomfortable secret: they have hired a north korean it worker.
+   Sources: www.axios.com
+
+129. Fact Hash: 7a5906aa76726a7823861503188e567c6102b673a5180f4181b2af6b52016775
+   Content: boeing 737 max (2018) input integrity f ailure faulty sensor data caused a n automated flight-control system to repeatedly push the airplane’s nose down, leading to a fatal crash.
+   Sources: spectrum.ieee.org
+
+130. Fact Hash: 9978a400874fddbd97c65b82ef41c34b1f9d5103f4c80824cf7142275dada44e
+   Content: france and its european partners are resisting washington’s push to end the un peacekeeping mission in lebanon – unifil – arguing its presence remains essential for stability along israel’s northern border.
+   Sources: www.rfi.fr
+
+131. Fact Hash: 9beb017725d59076dfb22a872ba74e8f20ecf0cda3427c2b7661adcd155334e5
+   Content: laughing liberally milwaukee is hosted by comedian, cartoonist and satirist matthew filipowicz.
+   Sources: milwaukeenns.org
+
+132. Fact Hash: a8956ea76d292047be771016a33277b28153eec4de63646cd9a235f57c1ebc97
+   Content: to be clear, there are all sorts of second-order issues with the u.s. government bluntly coercing u.s. companies to alter their strategic decisions.
+   Sources: www.axios.com
+
+133. Fact Hash: ac35d33010e5c6dfee539146069cc56bcf162091ea8225e81dff3e5d1f21a4c4
+   Content: found via blue dwarf: https://fediversereport.com/ “an interesting website that gives all the (weekly) news you need to stay current on what is happening in the fediverse.”
+   Sources: discourse.32bit.cafe
+
+134. Fact Hash: b05689a2b3e13a1b6084e8086d817a0d8f57c7b3d08d3748a3fd25a606bc5216
+   Content: source: recycling today baltimore replaces litter baskets with citibin waste enclosures citibin’s basketplus is a modular waste enclosure with additional storage for full bags of...
+   Sources: www.cra-recycle.org
+
+135. Fact Hash: ba44c811df8afe40e08a3a0848c8d9adff7e5811643504a75635f528e173db45
+   Content: as the heat of the summer dissipates and ushers in cooler mornings and evenings, it's the…
+   Sources: www.postandcourier.com
+
+136. Fact Hash: bf8b64964f1d70e70baebd6197418fdd1cc272a75ddb60d6ef6a0c9bc3462c08
+   Content: source: recycling today eu enhances cbam through new legislative measures as cbam requirements evolve, early action is critical.
+   Sources: www.cra-recycle.org
+
+137. Fact Hash: d0635d6b349af97dd19b1e973cd3f84b84ca17d178cba7c38920bd2351aa0383
+   Content: the united states, which has put pressure on all sides to stop the fighting, remains optimistic about the peace process.
+   Sources: www.france24.com
+
+138. Fact Hash: d6ae3804bf2884d668564f4d6cc1b22b468290bfc4e6e905e9afd6a38ae25787
+   Content: some of the women were held alone for extended periods and spent eight months in tunnels, an israeli medical official said.
+   Sources: www.wsj.com
+
+139. Fact Hash: dc3fbdb0af679e59c4bd837cd68a9e78e1f5ae8e7fb11f0f247883ba270aec2c
+   Content: this growth happens in just three seconds, more than an order of magnitude faster than previous methods used to grow carbon foils.
+   Sources: spectrum.ieee.org
+
+140. Fact Hash: e019e18d7defa569a6398cccd8593d1abfb91712902f95caf86c745e3c7ade4f
+   Content: "there's not one giant red flag to point to," said sarah kern, a leading north korea analyst at sophos' counter threat unit.
+   Sources: www.axios.com
+
+141. Fact Hash: 0fbeca98f2ca62831ebf2b80cf1f9782ffcd1a9da6450e589ae5a42e26fc2b79
+   Content: this has two main advantages: first, the setup is more portable than external cameras.
+   Sources: spectrum.ieee.org
+
+142. Fact Hash: 44bb935dc25fd6bf39f31e1f1c9b76f4765cc968dfd07b5abceb19fa8758d2ff
+   Content: s ponsored by sony , the award was bestowed by the ieee consumer technology society at the consumer electronics show held in january in las vegas.
+   Sources: spectrum.ieee.org
+
+143. Fact Hash: 4690af1efca8125679c44f0365e41815e90781e21170b8c5a7d013d20f6829e0
+   Content: source: recycling today copper exchange price disparity retreats in august analyst john gross says the gap between comex and london metal...
+   Sources: www.cra-recycle.org
+
+144. Fact Hash: 4ef9cbcade36e9b226a5e013d82ab5061ec86a861939e98f4a4fa4406901a0fe
+   Content: “american voters, and to some extent the american media, don’t...
+   Sources: thehill.com
+
+145. Fact Hash: 5bd9523821921d277c42530854da553e9c726e1ef9aa9e1afd93325abd16931a
+   Content: a member of mit’s media lab in high school, mann won several math competitions designed to challenge students at university level.
+   Sources: spectrum.ieee.org
+
+146. Fact Hash: 6958b7289d6ac4faf1c4af7f716d691c8f3ac6ac3e4ab4d42f9954f14aeb5e24
+   Content: knowbe4, a cybersecurity training company, admitted last year that it hired a north korean it worker.
+   Sources: www.axios.com
+
+147. Fact Hash: 6c1ba48d6358d16342d2427eec936b62994e9b558d36aef38d317d11f311d80c
+   Content: digital signatures ensure that data lineage is traceable, much like a title deed proves ownership.
+   Sources: spectrum.ieee.org
+
+148. Fact Hash: 6d6b52444c9311d1460381996659c033ef9ef5d6c69dd0100856926eaa9d57df
+   Content: photo: the department of justice after landing the job, the developers step in and request that their company laptop be shipped to a u.s. address — often citing a last-minute move or family emergency.
+   Sources: www.axios.com
+
+149. Fact Hash: 70ca636a76e253689c7ae337b924d641df7081e10f0436cf4b646355a3a652dc
+   Content: troubles at vanke raise questions about the continued spread of the property crisis and whether the chinese state will step in.
+   Sources: www.wsj.com
+
+150. Fact Hash: 77a05e3126ba6daa0de52c179b2e8bb470f2aa7514cb5cc010054ef814ff0fbe
+   Content: what to watch: two sources with knowledge of the issue said a joint u.s.,-european-ukrainian commission was formed to draft a proposal for security guarantees.
+   Sources: www.axios.com
+
+151. Fact Hash: 7cae0495a808eddc78cd0fa7a67a603e2338aff6ce679b62be70e73ee0002abd
+   Content: "in the coming days everyone are going to be working from sunrise till dark on the security guarantees.
+   Sources: www.axios.com
+
+152. Fact Hash: 83dee0ecb0ffce2d8687912f4ba1611ed1e26354d5dd2a65369012a933ded192
+   Content: while the united states and china remain key security actors, countries in the region are engaging with a broader array of external partners to enhance their autonomy and military capabilities.
+   Sources: www.lowyinstitute.org
+
+153. Fact Hash: 8511453d3ac249a1d0be2a4427b1c5e211b56ad26d1e26a22b97d32345691cd0
+   Content: deming — nearly three years have passed since carl lee johnson, a 22-year-old construction worker, was fatally struck by a car at a job site on interstate 10, a few miles west of deming.
+   Sources: www.abqjournal.com
+
+154. Fact Hash: 933295511f074ffbce740c2826decd35fb29bb88c9870bebf6535f4d74bcd8d1
+   Content: published in computer magazine in october 1997, the seminal work outlined the structure and vision for wearable computing as a formal research field.
+   Sources: spectrum.ieee.org
+
+155. Fact Hash: be7cad8cd15ce2802ae4042fe1872bad2aee94373f113847c97aadec90734675
+   Content: despite its potential importance in cancer treatment though, lin says that uc-mac was originally designed with different applications in mind.
+   Sources: spectrum.ieee.org
+
+156. Fact Hash: c3589e1a23dc5fc0869c0da9222cddafd00a3c36b60e5be22f80450b416ea7d7
+   Content: 🔵 plus: california dems move ahead with redistricting {beacon} global leaders sprang into action tuesday seeking to capitalize on the good vibes coming out of president trump’s meeting with ukrainian president volodymyr zelensky and other european leaders to work toward bringing an end to the russia-ukraine war.
+   Sources: thehill.com
+
+157. Fact Hash: cbb6c852a3fb99ec7abc3c573a58cc30e0eba270152d24299e8f60b573e098ec
+   Content: bessent confirmed that the u.s. government is in talks to take an equity stake, via the conversion of untapped chips act loans (logistical details of which remain murky).
+   Sources: www.axios.com
+
+158. Fact Hash: e86c431e63a22f9228f0efd6135e53debded6207d17ad5b57bab2fcf52657bbf
+   Content: and the undercover north korean it workers are often exceptional at their jobs — at least until they start stealing sensitive data or extorting companies that try to fire them.
+   Sources: www.axios.com
+
+159. Fact Hash: f2579a858ec9d2a966ea5259e4758ff6089b566eb69447ddfed9a298c1812e9e
+   Content: trump and the european leaders agreed it needs to happen by the end of august, but russian foreign minister sergey lavrov said tuesday that full preparations would have to be made at working levels before the leaders could sit down together.
+   Sources: www.axios.com
+
+160. Fact Hash: fc6aad91c6a169a954a1379f525032300b3f3a9293bfcac1dca448f738db0e8f
+   Content: ecore acquires outdoor surface provider ohio-based pro-techs surfacing llc has been acquired by recycled-content rubber products manufacturing firm ecore international.
+   Sources: www.cra-recycle.org
+
+161. Fact Hash: 12ffa88a1d9817e7723a49e8a129f94e9d566fea90c3ba66bc02fa4c60446127
+   Content: you’ll grow exponentially faster—and frankly, have a lot more fun— if you commit fully to one role.
+   Sources: spectrum.ieee.org
+
+162. Fact Hash: 16b3b1908e3cc5413a185ec42240b6f811e94f37ed11577bd6e38dd8dc46d088
+   Content: uk previously demanded that apple break encryption to aid government spying.
+   Sources: arstechnica.com
+
+163. Fact Hash: 2143da399035e41a3efb919cf278966bb8c124951f8ee03926a59b7be8fd6a81
+   Content: the species is endangered, with only about 150 in the city and around 2,000 worldwide.
+   Sources: www.france24.com
+
+164. Fact Hash: 31c32151ad60472541ed5fe99244698554adbc96f854f864320e434df80a7cf5
+   Content: mann’s doctoral research contributed foundational concepts and hardware that influenced future smart glasses and devices for life logging, the practice of creating a digital record of one’s daily life.
+   Sources: spectrum.ieee.org
+
+165. Fact Hash: 32650dc7bbe5c75f07f8bfc0c41026b0c9a9340ef9c8af520c3776f6145002ff
+   Content: too impatient to accept that the waveform dot on the machine’s display moved only up and down instead of both vertically and horizontally, mann invented a way to push its image through physical space.
+   Sources: spectrum.ieee.org
+
+166. Fact Hash: 44103e35345045d69e6ebec41096198483e7746c5c052d4181ca7e61a0f68523
+   Content: screenshot via linkedin hiring processes are so siloed that it's difficult for managers to see all the signs of fraud until the north korean workers start their roles, kern said.
+   Sources: www.axios.com
+
+167. Fact Hash: 4a81aa0d4bcdf9928855362eec5fed0056ab6c7c57daafb1ba2525600e525ae5
+   Content: this was the “overemployed” craze, and the /r/overemployed subreddit ballooned to nearly half a million members.
+   Sources: spectrum.ieee.org
+
+168. Fact Hash: 63b0cad89c932a8c30865e4912cfefac92045fe792665bea45cca97c6401a03f
+   Content: first, the workers identify potential identities they can assume.
+   Sources: www.axios.com
+
+169. Fact Hash: 7745c5129fe67a9e2bc9e33d0dd7128f1c1504cd77a34641acbccbf6b4283fa2
+   Content: but the economy added an average of 177,000 jobs a month in that same span.
+   Sources: www.axios.com
+
+170. Fact Hash: 786e9beaa107a3f1ae04464fd266ab64042b0cf439d07b371d6e8f881d8a4e83
+   Content: mann has been active in the ieee computer and ieee consumer technology societies.
+   Sources: spectrum.ieee.org
+
+171. Fact Hash: 8078b9a2520721c24cd1438f6db01df54716a7c808ed7689b1b0f1276128b09b
+   Content: the other side: as security guarantees were being discussed at the white house, the russian foreign ministry said it "categorically" rejects the possibility of "a military contingent with the participation of nato countries" inside ukraine.
+   Sources: www.axios.com
+
+172. Fact Hash: 826541608ca93e8e1c947070c92041b20c353ff91d2bcf4006657d8b2a726352
+   Content: here's a look back at what happened in the chicago area on aug. 19 according to the tribune's archives.
+   Sources: www.chicagotribune.com
+
+173. Fact Hash: 831e149b7aeaf6558bd5497741cf424eff18aedca883085f80173fa190d75068
+   Content: "they've been stealing intellectual property and then working on the projects themselves," michael "barni" barnhart, principal investigator at dtex systems, told axios.
+   Sources: www.axios.com
+
+174. Fact Hash: 855d08e5c9418da96c9af1d28029e8f7f176f812f68988d123ef663896ec3ea2
+   Content: since the fall of kabul in august 2021, tens of thousands of afghans have arrived in the united states.
+   Sources: www.csmonitor.com
+
+175. Fact Hash: 89fde902c73da8268135e518cd746483e06d8d0375473a507d9e8a7787d55ec0
+   Content: threat level: but the hacking groups involved are evolving into something more sophisticated and dangerous — including by potentially building their own ai models and feeding in sensitive u.s. company data.
+   Sources: www.axios.com
+
+176. Fact Hash: 9c1e58e08e85f9ec7003e886d4df3b4fb8d29b30eace60c472075908492593b1
+   Content: —rahul what the chips act looks like now the u.s. chips and science act of 2022 aimed to reestablish advanced manufacturing for logic and memory in the united states.
+   Sources: spectrum.ieee.org
+
+177. Fact Hash: 9ef6ec978e1efbc36ae63ceb958f3ccc03028394b139bdfaf378171e011aecb2
+   Content: crowdstrike has investigated more than 320 incidents where north korean operatives landed jobs as remote software developers, according to the company's annual threat hunting report published earlier this month.
+   Sources: www.axios.com
+
+178. Fact Hash: bc35f6b790225161cf17d4d420d8d4bcac357f04068b8c3cbd568b753f36b3c2
+   Content: that's because the north korean operation has become as complex as a multi-national corporation.
+   Sources: www.axios.com
+
+179. Fact Hash: d6d39e5639ecdac26e4e3faecbac3239499cf2206a4ecb1c64385ec6edd6be37
+   Content: these facilitators are told to install specific remote desktop software onto the laptops so the north korean worker can operate the laptop from abroad.
+   Sources: www.axios.com
+
+180. Fact Hash: df40f69586b0feed3bb423a0020fd697753c89d289c0c332affd2aad6dce8779
+   Content: pr is thrilled to share that don totu has been featured in vogue’s...
+   Sources: lerpr.com
+
+181. Fact Hash: 05f44c848d411bb4f6fb165b949b8f7d931863b159d39cb632dc293a3ad82163
+   Content: for the first time in 30 years, the american academy of pediatrics is substantially diverging from u.s. government vaccine recommendations.
+   Sources: www.denverpost.com
+
+182. Fact Hash: 276b7a415f02c288de38737da72502cf54618c919c5426fc59065b028b8e108e
+   Content: copper exchange price disparity retreats in august analyst john gross says the gap between comex and london metal exchange pricing has narrowed but responding inventory shifts remain in place.
+   Sources: www.cra-recycle.org
+
+183. Fact Hash: 2d06340a3b69cc99e2f2c02de0460d784388875c4532b07afe57da60a52e0caa
+   Content: photo: kim won jin/afp via getty images north korea has invested years into building up its remote it labor force, providing training not just for remote job fraud but also corporate espionage and ip theft.
+   Sources: www.axios.com
+
+184. Fact Hash: 2e6bb6bf7a6139f9f5fc4954abcce48e02138da11ef166c8645a1f1479686e28
+   Content: in the 1980s, people weren’t wearing head-mounted cameras, displays, or computers .
+   Sources: spectrum.ieee.org
+
+185. Fact Hash: 3865f3b98338b77e7d15d1d8f4acbbfaf9708c50aa2c4a6044e125302aeb5c6e
+   Content: when then deployed to autonomously complete these tasks with a robot, the system achieved a 70 percent success rate.
+   Sources: spectrum.ieee.org
+
+186. Fact Hash: 47a45ff02619f90ef784817680cc1afe02f718fb229d1a4906d76c9ac1eff74b
+   Content: the book business is booming in syria: authors and titles banned during the assad family’s dictatorial rule are now legal and flying off the shelves.
+   Sources: www.csmonitor.com
+
+187. Fact Hash: 56114e9aa54466a61fb860ca0f622bef81a221920c280ca00ff25e654fe93836
+   Content: the oxford english dictionary recorded the word used in the mid-1600s but now declares it obsolete .
+   Sources: spectrum.ieee.org
+
+188. Fact Hash: 64d947085c7767cf1ed0c13699009624f85d3a8fd368c9aa506cdd2e7dc0dc7d
+   Content: the commission is headed by secretary of state marco rubio, with national security advisers from ukraine and european countries also participating in the discussions.
+   Sources: www.axios.com
+
+189. Fact Hash: 69b56ae7164373e99ab5a81891ce66c314144138fc251f4cfd912859399883fa
+   Content: por silvia stellacci roma (ap) — el glaciar ventina, uno de los más grandes en el norte de lombardía, italia, se ha derretido tanto debido al cambio climático que los geólogos
+   Sources: www.chicagotribune.com
+
+190. Fact Hash: 780f09cc987665e0181c18916326d164d52169b33eca0fef34f6fdc39e0193c8
+   Content: most of their 53-man roster — which should now include undrafted rookie darling efton chism iii — is settled.
+   Sources: www.adn.com
+
+191. Fact Hash: 82b0ce9004b8364e75fa57928b061014763702746cc92f4faeae37568470153d
+   Content: russia is refusing to commit to a meeting between ukrainian president volodymyr zelensky and russian president vladimir putin, which president trump has encouraged as a next step toward ending the war between their two countries.
+   Sources: thehill.com
+
+192. Fact Hash: 9c0b35ae2c0f20dcaa2aba21c4086ac610e237a23464abd1ba4b9d9ee4b99ce0
+   Content: that’s going to happen between 65 and 85.”
+   Sources: spectrum.ieee.org
+
+193. Fact Hash: 9e7ef0bdbddb8f4e92e74ceccbd838169c152c7e84a9c3041b23f75b50e5e29b
+   Content: because of the angstrom-sized pores in the material, the team discovered that uc-mac was uniquely suited to turning molecular hydrogen ions into protons.
+   Sources: spectrum.ieee.org
+
+194. Fact Hash: a9c6375e1285a2a0d5a799f62cdda773a89ad1def26f3f011e273cee4a4b299c
+   Content: a wired review of a now deleted twitter account that used the screen name “dr. erwin j. antoni iii” shows it posted conspiratorial content about the 2020 election, covid-19, and jeffrey epstein.
+   Sources: www.wired.com
+
+195. Fact Hash: af96c7329faa11549cdafa7fe78aa6d2aa583416cd6556c3a89e36a66f493df9
+   Content: "trump and zelensky spoke in general terms about what was needed regarding security guarantees but didn't go into specifics," a ukrainian official said.
+   Sources: www.axios.com
+
+196. Fact Hash: c3c6c4e3aaf2666713e397d3f7cdbc2946f7cb693a084b9c29ec65f34edb353f
+   Content: for each task, they collected 20 minutes of data from humans performing these tasks while recording their actions with glasses from meta’s project aria .
+   Sources: spectrum.ieee.org
+
+197. Fact Hash: debc97b19b0e0e73d633035761dca4b34796f1b3bd1a8112143bbfb1aba65435
+   Content: eu enhances cbam through new legislative measures as cbam requirements evolve, early action is critical.
+   Sources: www.cra-recycle.org
+
+198. Fact Hash: f4d9f5b315a299dfae532503bd85f1bc88a3de619c05bba6ac1eb70502f046b3
+   Content: in multiple cases, hiring managers only realized something was wrong weeks later when employees looked or behaved differently than during the interview, barnhart said.
+   Sources: www.axios.com
+
+199. Fact Hash: fcc055e1eb286eec3d1a773702399cf410978b1086d1b2dfdafd983862d6fb2f
+   Content: behind the scenes: security guarantees were a key topic in trump's meetings with ukrainian president volodymyr zelensky and seven other european leaders on monday at the white house.
+   Sources: www.axios.com
+
+200. Fact Hash: fde4591906d8a298c6b4b4627e28bc98770f981306ebcc757d2b97083c78e389
+   Content: the transaction, if approved, will bring together two major players in u.s. television and the country’s local news landscape.
+   Sources: www.denverpost.com
+
+201. Fact Hash: 1dd03a1defe29503d9b5dbb3adfb383ee9ba7c3855c18ef9cad60a01fc0da202
+   Content: in the early 1990s, individual regions and carriers had built their own telecommunications infrastructures using different technologies and protocols.
+   Sources: spectrum.ieee.org
+
+202. Fact Hash: 3098e193121a308f0225775462755c63dd067014104fa6bb4f188e12420563cc
+   Content: a smartphone attached to the gripper captures video with the same point-space method that’s used in egozero.
+   Sources: spectrum.ieee.org
+
+203. Fact Hash: 3812dc2b0fdf6287f6bd52e3fee1e38e18b1b7fb0b9335a27221d92707ff8856
+   Content: the scale illustration: sarah grillo/axios driving the news: nine security officials who spoke with axios all said they've yet to meet a fortune 500 company that hasn't inadvertently hired a north korean it worker.
+   Sources: www.axios.com
+
+204. Fact Hash: 385cb38ff24af92f2581a7aba82fe7c14cf922bf159f6c2af7907f16e55ce134
+   Content: of note: the official topic of this year's jackson hole economic policy symposium, which starts thursday, is "labor markets in transition: demographics, productivity, and macroeconomic policy."
+   Sources: www.axios.com
+
+205. Fact Hash: 458b80c893993185b8e23c1a14852654a44846486184b8f71ae7a2e5510f20ed
+   Content: solarwinds supply-chain attack (2020) storage integrity f ailure russian hackers compromised the process that solarwinds used to package its software, injecting malicious code that was distributed to 18,000 customers, including nine federal agencies.
+   Sources: spectrum.ieee.org
+
+206. Fact Hash: 464383f8638069aba002e7a68a472a5d238f7f857ba16cc4c703ba5a45c90a41
+   Content: chatgpt data leak (2023) storage integrity f ailure a bug in openai’s chatgpt mixed different users’ conversation histories.
+   Sources: spectrum.ieee.org
+
+207. Fact Hash: 64e6dfdf36b4082347bbeea636f335e7badde63da67ecdb0b6bc4868cdc67f42
+   Content: the law is complex, so the european commission has created easier-to-parse guidelines for developers and operators to follow that should keep them on the right side of regulators.
+   Sources: spectrum.ieee.org
+
+208. Fact Hash: 66687d003efdf7fdbe16e76536419cb920be63f4f97ed46f4c4152fda6f86885
+   Content: the big picture: for north korea, this is a precious revenue stream that evades american sanctions — capitalizing on the wealth of high-paying remote worker roles in the u.s. to route cash back to pyongyang.
+   Sources: www.axios.com
+
+209. Fact Hash: 695248b48ed65713a30d1075a5f492479578c8651f19633401200a1677ced413
+   Content: an investigation led by rfi and the monitoring group all eyes on wagner shows influence campaigns remain active from angola to chad.
+   Sources: www.rfi.fr
+
+210. Fact Hash: 792e32126a9c8717f25707494f1d443d5bd4d528c78a6225904e31e18facbfc0
+   Content: hoka is offering a last chance online deal on select clifton 9 running shoes this week.
+   Sources: www.al.com
+
+211. Fact Hash: 86b7ebc6f07fefd36288d0479c058ba92c2c2bfae8cb564a635dac0c8f8bbfed
+   Content: dozens of resumes, linkedin profiles, and fraudulent identity documents shared with axios lay bare the scale and sophisticated of the scams.
+   Sources: www.axios.com
+
+212. Fact Hash: 8709883af7b205701cab19394902e45bf2b2480b0d6c9ecc387fcd386562e758
+   Content: as the trump administration tightens immigration policies, some afghans are questioning whether their status in the u.s. is secure.
+   Sources: www.csmonitor.com
+
+213. Fact Hash: 91ecb70727daeec4c53c671d632cdd5e5ff187570ecdd3f52395ddd79f19d245
+   Content: other participants in the scheme include the lazarus group, which typically leads the regime's cryptocurrency hacks and has positioned insiders within crypto companies, and research center 227, a new ai research unit inside north korea's intelligence agency.
+   Sources: www.axios.com
+
+214. Fact Hash: a38059e209e8b2e0a04f552134b21a15625ca3b4f8e554097f8a08c4ba53e804
+   Content: tim berners-lee’s solid protocol restructures the web around personal data pods with granular access controls.
+   Sources: spectrum.ieee.org
+
+215. Fact Hash: b84818546ba833d300b9e79c2a00c7862fc572e997075332dda7d70f354527a4
+   Content: for instance, in a december indictment of 14 north koreans , the workers were found using stolen identities to apply to dozens of jobs.
+   Sources: www.axios.com
+
+216. Fact Hash: b84b1596f5356dfd6481658fac33eefa89cc2dd03e3772b6e7eccaa07b87ff75
+   Content: after benjamin netanyahu on tuesday sent a letter accusing emmanuel macron of fuelling anti-semitism in france by calling for the recognition of a palestinian state, the french presidency snapped back with a statement calling the israeli leader's claims "abject" and "erroneous".
+   Sources: www.france24.com
+
+217. Fact Hash: e14747d5ad3c104f3df1c8e544e438f20e9a9e048e9cf5336c5a4bd7f3a477b7
+   Content: photo: the department of justice second , the workers find open jobs in software development, technical support and devops posted on upwork, fiverr, linkedin, and third-party staffing platforms.
+   Sources: www.axios.com
+
+218. Fact Hash: e5db727c2f730eda8ced46f48058ed1d77b0366053f0a311ffb415f8e1cdd2c1
+   Content: speaking with france 24's mark owen about the destruction of the gaza strip, israeli columnist and activist gershon baskin says that 'the countries of the world that have relations with israel and that don't use their leverage to stop the gaza genocide [...] are complicit in it'.
+   Sources: www.france24.com
+
+219. Fact Hash: f19c3e71b5d7f13817c1536b79df34cd4706966cde2fc62f6e53183e809d84b9
+   Content: this will change many things about what’s often described as the “cia triad” of digital security: confidentiality, integrity, and availability.
+   Sources: spectrum.ieee.org
+
+220. Fact Hash: f5bc41a74f6875ebe686aaaa1ceeff58a1b749ed57c2590605d91b7ee7f916ef
+   Content: workers are selected and trained at elite institutions such as kim chaek university of technology and the university of sciences in pyongsong — some with specializations in software development, ai or cryptography.
+   Sources: www.axios.com
+
+221. Fact Hash: 058d2923e6bf35a90444dc8bee67335ae05314617836e0186d4023adfa1bc12f
+   Content: trump said european countries would be the first line of defense to guarantee ukraine's security after the war.
+   Sources: www.axios.com
+
+222. Fact Hash: 089dd884fb743aa0a036fc4eaaac80b36a73ce44f7eb4d980aabc58bbde29baf
+   Content: nato's article 5 commits the alliance to mutually defend a member who comes under attack.
+   Sources: www.axios.com
+
+223. Fact Hash: 09ed2964aaf86050bc6c3f8000caf09e2e8f51f361fb303b8131b00b4212552d
+   Content: a measles outbreak that killed two children is now over.
+   Sources: arstechnica.com
+
+224. Fact Hash: 276490d31fae34057c21b6b241ce7d6c83421bbea7bada23e52d98df08bcee8b
+   Content: the trump administration wants to help struggling u.s. chipmaker intel, which today received a $2 billion vote of confidence from japan's softbank.
+   Sources: www.axios.com
+
+225. Fact Hash: 31a4d459f087969f4b38f59c165d81963ddd85d8356635a58a7d8983080849ff
+   Content: between the lines: it sounds easy to simply weed out north korean job applicants.
+   Sources: www.axios.com
+
+226. Fact Hash: 363dd82aecb01bbe2a9d0654df3bc48f8e60a63f2928d8c46048f4263490eea0
+   Content: the second half of egozero’s name refers to the fact that the system is trained without any robot data, which can be costly and difficult to collect; human data alone is enough for the robot to learn a new task.
+   Sources: spectrum.ieee.org
+
+227. Fact Hash: 4dcf621350444a289e4ee360786076a9eafaaf84dd9bc74f98a4f8e68d751c32
+   Content: that’s a question that the general-purpose robotics and ai lab at nyu, led by assistant professor lerrel pinto , hopes to answer with egozero , a smart-glasses system that aids robot learning by collecting data with a souped-up version of meta’s glasses .
+   Sources: spectrum.ieee.org
+
+228. Fact Hash: 5ebd14b8c3af1acc6261580d4cc8ce2cca9934dff0d5ca9d9d33b7a953965dcd
+   Content: tourism in las vegas is slumping this summer, with resorts and convention centers reporting fewer visitors compared to last year.
+   Sources: www.denverpost.com
+
+229. Fact Hash: 7ed4a25bd6dfc82c9ec516c0dba894d7438da5a5abed0a00cfabf7a0fa1055bd
+   Content: the structures present in uc-mac create tiny pores in the material that are only one tenth of a nanometer wide.
+   Sources: spectrum.ieee.org
+
+230. Fact Hash: 85be2c7a84a9f4fb287cbeab1791922c3eb4bc56a70a72042315b6a7eb5285c6
+   Content: according to state health officials, a measles outbreak that started in an undervaccinated community and killed two children is now over.
+   Sources: www.wired.com
+
+231. Fact Hash: 960541ce361adae8b9982661a2fce518cf014ee5131fab404571bba107a8e0b2
+   Content: the final in-person meeting of the public education department’s statewide listening tour, which is working on a remedial plan to fix education in new mexico, will take place in albuquerque on wednesday.
+   Sources: www.abqjournal.com
+
+232. Fact Hash: a5332821ecaf4a579f110c242b2780f05b5f3dd4def1294a474ad06be0ac3fbf
+   Content: "it takes, in this case, two to tango.
+   Sources: www.axios.com
+
+233. Fact Hash: acbfb280d7e2221837fb355e567c13c9e9ef8240c83e71cb67b7fb13bb2e22d1
+   Content: it wouldn’t be the last time mann’s curiosity turned a problem into an opportunity.
+   Sources: spectrum.ieee.org
+
+234. Fact Hash: c6fc429db00eac280a022a489772fe62b054edaf8294c14c62b9630a6a5ed07a
+   Content: the kremlin has long opposed any such scheme on ukrainian territory.
+   Sources: www.axios.com
+
+235. Fact Hash: d0484ec16320b3f7a872003899c1d62e08b6e3314eb6718094a72104fe22f8af
+   Content: the post here are the milwaukee street projects affected by federal funding cuts appeared first on milwaukee neighborhood news service .
+   Sources: milwaukeenns.org
+
+236. Fact Hash: d84a6deb9ecdd8f36f4c488dc143cd5b198e08d5801a375c5a83399fc843596f
+   Content: the richmond times-dispatch has been compiling the definitive tacky lights tour list for 35 years.here's this year's tacky lights list.to nominate a house for the rtd tacky lights list, fill out this form "submit your house for the list.
+   Sources: richmond.com
+
+237. Fact Hash: dc61cf0126b7d6c281d60857ebf49a75c11a9079c68b948eb3073bd00034427d
+   Content: in 2023, the federal aviation administration was forced to halt all u.s. departing flights because of a corrupted database file.
+   Sources: spectrum.ieee.org
+
+238. Fact Hash: e5ce1f769b526687c8805e1be74390e6d316193642c327f451e9b04bbd0f56c2
+   Content: prompt injection attacks (2023–2024) input integrity failure attackers embedded hidden prompts in emails, documents, and websites that hijacked ai assistants, causing them to treat malicious instructions as legitimate commands.
+   Sources: spectrum.ieee.org
+
+239. Fact Hash: ec928e2a482e1b57b2722fdd72a6e050817e870e826990f6db1e26f14706fa99
+   Content: the dream was to earn double the income, accelerate the path to financial freedom, and subtly defy corporate america.
+   Sources: spectrum.ieee.org
+
+240. Fact Hash: f1bc3f45d169c998a132e22ec55837a3b5f1056825a27e1fdfb73688a9edaafa
+   Content: between the lines: normally, the 35,000 average monthly job growth from may through july would be a four-alarm labor market fire.
+   Sources: www.axios.com
+
+241. Fact Hash: a1049ee21750e1e50ccfe835e86ed543e8e29192762e8271af1bf8df3cce4dde
+   Content: if the robot was trained on data picking up one piece of bread—say, a deli roll—it can generalize that information to pick up a piece of ciabatta in a new environment.
+   Sources: spectrum.ieee.org
 
