@@ -66,7 +66,8 @@ class RawMessage(BaseModel):
     @staticmethod
     def from_bytes(data: bytes) -> RawMessage:
         return RawMessage(
-            signature=data[:SIGNATURE_SIZE], data=data[SIGNATURE_SIZE:],
+            signature=data[:SIGNATURE_SIZE],
+            data=data[SIGNATURE_SIZE:],
         )
 
     def check_signature(self, public_key: rsa.RSAPublicKey) -> bool:
@@ -82,7 +83,10 @@ class MessageType(Enum):
 class Message(BaseModel):
     message_type: MessageType
     content: Union[
-        PeersRequest, PeersSharing, ApplicationData, MessageContent,
+        PeersRequest,
+        PeersSharing,
+        ApplicationData,
+        MessageContent,
     ]
 
     def _to_bytes(self) -> bytes:
@@ -128,7 +132,8 @@ class Message(BaseModel):
     @staticmethod
     def peers_request() -> Message:
         return Message(
-            message_type=MessageType.PEERS_REQUEST, content=PeersRequest(),
+            message_type=MessageType.PEERS_REQUEST,
+            content=PeersRequest(),
         )
 
     @staticmethod
@@ -150,7 +155,8 @@ class Message(BaseModel):
     @staticmethod
     def get_chain_request() -> Message:
         return Message(
-            message_type=MessageType.GET_CHAIN, content=MessageContent(),
+            message_type=MessageType.GET_CHAIN,
+            content=MessageContent(),
         )
 
 
@@ -160,7 +166,9 @@ class SerializedPeer(BaseModel):
 
     def to_peer(self) -> Peer:
         return Peer(
-            ip_address=self.ip_address, port=self.port, public_key=None,
+            ip_address=self.ip_address,
+            port=self.port,
+            public_key=None,
         )
 
 
@@ -220,7 +228,8 @@ def _serialize_public_key(key: rsa.RSAPublicKey) -> bytes:
 
 def _generate_key_pair() -> tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
     private_key = rsa.generate_private_key(
-        public_exponent=65537, key_size=KEY_SIZE,
+        public_exponent=65537,
+        key_size=KEY_SIZE,
     )
     return private_key, private_key.public_key()
 
@@ -237,7 +246,9 @@ def _sign(message: bytes, private_key: rsa.RSAPrivateKey) -> bytes:
 
 
 def _verify(
-    signature: bytes, message: bytes, public_key: rsa.RSAPublicKey,
+    signature: bytes,
+    message: bytes,
+    public_key: rsa.RSAPublicKey,
 ) -> bool:
     try:
         public_key.verify(
@@ -298,7 +309,9 @@ class Node:
 
     @staticmethod
     def start(
-        ip_address: str, port: int = 0, public_ip: str | None = None,
+        ip_address: str,
+        port: int = 0,
+        public_ip: str | None = None,
     ) -> Node:
         context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
         if not NODE_CERT_FILE.exists():
@@ -310,7 +323,8 @@ class Node:
         server_socket.bind((ip_address, port))
         server_socket.listen(NODE_BACKLOG)
         secure_server_socket = context.wrap_socket(
-            server_socket, server_side=True,
+            server_socket,
+            server_side=True,
         )
         private_key, public_key = _generate_key_pair()
         computed_ip_address, computed_port = secure_server_socket.getsockname()
@@ -404,7 +418,8 @@ class Node:
             logger.error(f"Error during socket selection: {e}", exc_info=True)
 
     def search_link_by_peer(
-        self, fun: Callable[[Peer], bool],
+        self,
+        fun: Callable[[Peer], bool],
     ) -> PeerLink | None:
         for link in self.peer_links:
             if fun(link.peer):
@@ -412,7 +427,8 @@ class Node:
         return None
 
     def iter_links_by_peer(
-        self, fun: Callable[[Peer], bool] = ALL,
+        self,
+        fun: Callable[[Peer], bool] = ALL,
     ) -> Iterable[PeerLink]:
         for link in self.peer_links:
             if fun(link.peer):
@@ -425,7 +441,8 @@ class Node:
         return None
 
     def iter_links(
-        self, fun: Callable[[PeerLink], bool] = ALL,
+        self,
+        fun: Callable[[PeerLink], bool] = ALL,
     ) -> Iterable[PeerLink]:
         for link in self.peer_links:
             if fun(link):
@@ -435,7 +452,9 @@ class Node:
         self._send_message_to_peers(Message.application_data(data))
 
     def bootstrap(
-        self, ip_addr: str = BOOTSTRAP_IP_ADDR, port: int = BOOTSTRAP_PORT,
+        self,
+        ip_addr: str = BOOTSTRAP_IP_ADDR,
+        port: int = BOOTSTRAP_PORT,
     ) -> bool | None:
         logger.info(f"Bootstrapping to target: {ip_addr}:{port}")
         if self._is_self(ip_addr, port):
@@ -477,7 +496,9 @@ class Node:
         self._send(link, self.serialized_port)
 
     def _handle_new_connection(
-        self, socket: Socket, addr: socket_lib._RetAddress,
+        self,
+        socket: Socket,
+        addr: socket_lib._RetAddress,
     ) -> None:
         if socket.family != socket_lib.AF_INET:
             logger.info(f"{addr} ignoring non-INET socket: {socket.family}")
@@ -527,7 +548,9 @@ class Node:
         self._send_message(link, Message.peers_sharing(peers))
 
     def _handle_peers_sharing(
-        self, link: PeerLink, content: PeersSharing,
+        self,
+        link: PeerLink,
+        content: PeersSharing,
     ) -> None:
         logger.info(f"{link.fmt_addr()} shared {len(content.peers)} peers")
         for serialized_peer in content.peers:
@@ -587,7 +610,8 @@ class Node:
                 )
                 chain_data_json = self.get_chain_callback()
                 self._send_message(
-                    link, Message.application_data(chain_data_json),
+                    link,
+                    Message.application_data(chain_data_json),
                 )
         elif message.message_type == MessageType.APPLICATION:
             assert isinstance(message.content, ApplicationData)
@@ -599,7 +623,9 @@ class Node:
             self._handle_peers_sharing(link, message.content)
 
     def _handle_application_message(
-        self, link: PeerLink, content: ApplicationData,
+        self,
+        link: PeerLink,
+        content: ApplicationData,
     ) -> None:
         logger.info(f"application data: {content.data}")
 

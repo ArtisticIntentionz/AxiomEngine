@@ -212,12 +212,17 @@ class Entity(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(
-        String, unique=True, nullable=False, index=True,
+        String,
+        unique=True,
+        nullable=False,
+        index=True,
     )
     type: Mapped[str] = mapped_column(String, nullable=False)
 
     facts: Mapped[list[Fact]] = relationship(
-        "Fact", secondary=fact_entity_link, back_populates="entities",
+        "Fact",
+        secondary=fact_entity_link,
+        back_populates="entities",
     )
 
     def __repr__(self):
@@ -231,12 +236,17 @@ class Peer(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     public_key: Mapped[str] = mapped_column(
-        String, unique=True, nullable=False, index=True,
+        String,
+        unique=True,
+        nullable=False,
+        index=True,
     )
     last_known_ip: Mapped[str] = mapped_column(String)
     last_known_port: Mapped[int] = mapped_column(Integer)
     reputation_score: Mapped[float] = mapped_column(
-        Float, default=0.5, nullable=False,
+        Float,
+        default=0.5,
+        nullable=False,
     )
     first_seen: Mapped[str] = mapped_column(
         String,
@@ -251,7 +261,9 @@ class Peer(Base):
         ).isoformat(),
     )
     last_connection_time: Mapped[float] = mapped_column(
-        Float, default=0.0, nullable=False,
+        Float,
+        default=0.0,
+        nullable=False,
     )
 
     def __repr__(self):
@@ -311,7 +323,9 @@ class Fact(Base):
         viewonly=True,
     )
     entities: Mapped[list[Entity]] = relationship(
-        "Entity", secondary=fact_entity_link, back_populates="facts",
+        "Entity",
+        secondary=fact_entity_link,
+        back_populates="facts",
     )
 
     @classmethod
