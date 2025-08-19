@@ -201,14 +201,28 @@ class Node:
         )
 
     def _get_self_ips(self) -> set[str]:
+        """
+        Gathers all known IP addresses for this host and caches them.
+        This is a more robust method to get all local network IPs.
+        """
         if self._self_ips is None:
+            # Start with the known addresses
             ips = {"127.0.0.1", "localhost", self.ip_address}
-            if self.public_ip: ips.add(self.public_ip)
+            if self.public_ip:
+                ips.add(self.public_ip)
+            
+            # Try to get all IPs associated with the local hostname
             try:
-                _, _, local_ips = socket_lib.gethostbyname_ex(socket_lib.gethostname())
+                hostname = socket_lib.gethostname()
+                # This can return multiple IPs, including local ones like 192.168...
+                _, _, local_ips = socket_lib.gethostbyname_ex(hostname)
                 ips.update(local_ips)
-            except socket_lib.gaierror: pass
-            self._self_ips = {ip for ip in ips if ip} # Filter out None or empty strings
+            except socket_lib.gaierror:
+                # This can fail in some network configurations, which is okay
+                logger.warning("Could not resolve local hostname to get all IPs.")
+            
+            # Filter out any potential None or empty string values before caching
+            self._self_ips = {ip for ip in ips if ip}
         return self._self_ips
 
     def _is_self(self, ip_address: str, port: int) -> bool:
