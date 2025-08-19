@@ -54,7 +54,10 @@ def test_add_new_block_to_chain(db_session: Session):
     genesis = get_latest_block(db_session)
     assert genesis is not None
 
-    fact_hashes = json.dumps(["hash1", "hash2"])
+    fact_hashes = json.dumps([
+        "1dfa9132b143d22538cb38522338604791552554756b107c14a5a8126e8436e8",
+        "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+    ])
     new_block = Block(
         height=genesis.height + 1,
         previous_hash=genesis.hash,

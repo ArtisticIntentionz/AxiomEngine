@@ -208,12 +208,19 @@ class FactIndexer:
             original_index = candidate_indices[i]
             # Use that to find the original fact ID
             fact_id = self.fact_ids[original_index]
+            
+            # We need to find the full Fact object from our pre-filtered list
+            # to get its `disputed` status and `sources`.
+            fact = next(f for f in pre_filtered_facts if f.id == fact_id)
 
             results.append(
                 {
                     "content": self.fact_id_to_content[fact_id],
                     "similarity": float(similarities[i]),
                     "fact_id": fact_id,
+                    
+                    "disputed": fact.disputed,
+                    "sources": [source.domain for source in fact.sources],
                 },
             )
 

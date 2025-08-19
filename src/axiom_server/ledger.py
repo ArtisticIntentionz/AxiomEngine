@@ -5,7 +5,7 @@ from __future__ import annotations
 # Copyright (C) 2025 The Axiom Contributors
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.
-import datetime
+from datetime import datetime, timezone
 import enum
 import hashlib
 import json
@@ -18,6 +18,7 @@ from pydantic import BaseModel
 from spacy.tokens.doc import Doc
 from sqlalchemy import (
     Boolean,
+    DateTime,
     Engine,
     Enum,
     Float,
@@ -97,7 +98,6 @@ class Block(Base):
     hash: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     previous_hash: Mapped[str] = mapped_column(String, nullable=False)
     timestamp: Mapped[float] = mapped_column(Float, nullable=False)
-    nonce: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     fact_hashes: Mapped[str] = mapped_column(Text, nullable=False)
 
     merkle_root: Mapped[str] = mapped_column(
@@ -106,41 +106,44 @@ class Block(Base):
         default="",
     )
 
-    def __init__(self, **kwargs: Any) -> None:
-        """Initialize Block."""
-        super().__init__(**kwargs)
-        self.nonce = self.nonce or 0
+    proposer_pubkey: Mapped[str] = mapped_column(
+        String,
+        ForeignKey("validators.public_key"),
+        nullable=True,
+    )
+    proposer: Mapped[Validator] = relationship("Validator")
 
     def calculate_hash(self) -> str:
         """Return hash from this block."""
+        # CRITICAL FIX: We must load the fact_hashes from its JSON string representation
+        # to ensure we are working with a list of strings, not bytes.
+        fact_hashes_as_strings = sorted(json.loads(self.fact_hashes))
+
         block_string = json.dumps(
             {
                 "height": self.height,
                 "previous_hash": self.previous_hash,
-                "fact_hashes": sorted(json.loads(self.fact_hashes)),
+                "fact_hashes": fact_hashes_as_strings,  # Use the cleaned list of strings here
                 "timestamp": self.timestamp,
-                "nonce": self.nonce,
                 "merkle_root": self.merkle_root,
+                "proposer_pubkey": self.proposer_pubkey,
             },
             sort_keys=True,
         ).encode()
         return hashlib.sha256(block_string).hexdigest()
 
-    def seal_block(self, difficulty: int) -> None:
-        """Calculate the Merkle Root and then seal the block via Proof of Work."""
+    def seal_block(self) -> None:
+        """Calculate the Merkle Root and finalize the block's hash..."""
         fact_hashes_list = json.loads(self.fact_hashes)
         if fact_hashes_list:
             merkle_tree = merkle.MerkleTree(fact_hashes_list)
-            self.merkle_root = merkle_tree.root.hex()
+            # This line correctly converts the bytes root to a hex string for storage.
+            self.merkle_root = merkle_tree.root.hex() 
         else:
             self.merkle_root = hashlib.sha256(b"").hexdigest()
 
         self.hash = self.calculate_hash()
-        target = "0" * difficulty
-        while not self.hash.startswith(target):
-            self.nonce += 1
-            self.hash = self.calculate_hash()
-        logger.info(f"Block sealed! Hash: {self.hash}")
+        logger.info(f"Block content finalized! Hash: {self.hash}")
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize to a dictionary for P2P broadcasting."""
@@ -150,7 +153,7 @@ class Block(Base):
             "previous_hash": self.previous_hash,
             "merkle_root": self.merkle_root,
             "timestamp": self.timestamp,
-            "nonce": self.nonce,
+            "proposer_pubkey": self.proposer_pubkey,
         }
 
 
@@ -186,6 +189,12 @@ class Fact(Base):
 
     __tablename__ = "facts"
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Automatically calculate the hash whenever a new Fact is created
+        if self.content:
+            self.set_hash()
+
     vector_data: Mapped[FactVector] = relationship(
         back_populates="fact",
         cascade="all, delete-orphan",
@@ -204,13 +213,11 @@ class Fact(Base):
         default=False,
         nullable=False,
     )
-    hash: Mapped[str] = mapped_column(String, default="", nullable=False)
-    last_checked: Mapped[str] = mapped_column(
-        String,
-        default=lambda: datetime.datetime.now(
-            datetime.timezone.utc,
-        ).isoformat(),
-        nullable=False,
+    hash: Mapped[str] = mapped_column(String, default="", nullable=False, index=True)
+    last_checked: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
     )
     semantics: Mapped[str] = mapped_column(
         String,
@@ -230,17 +237,25 @@ class Fact(Base):
     )
 
     @classmethod
-    def from_model(cls, model: SerializedFact) -> Self:
-        """Return new Fact from serialized fact."""
-        return cls(
-            content=model.content,
-            score=model.score,
-            disputed=model.disputed,
-            hash=model.hash,
-            last_checked=model.last_checked,
-            semantics=model.semantics.model_dump_json(),
-        )
-
+    def from_fact(cls, fact: Fact) -> Self:
+        """Return SerializedFact from Fact."""
+        # The key is to prepare the dictionary of data FIRST,
+        # ensuring all types are correct *before* calling the constructor.
+        
+        data_for_model = {
+            "content": fact.content,
+            "score": fact.score,
+            "disputed": fact.disputed,
+            "hash": fact.hash,
+            # THIS IS THE FIX: Convert the datetime object to a string here.
+            "last_checked": fact.last_checked.isoformat(),
+            "semantics": fact.get_serialized_semantics(),
+            "sources": [source.domain for source in fact.sources],
+        }
+        
+        # Now, create the model from the clean, validated data.
+        return cls(**data_for_model)
+    
     @property
     def corroborated(self) -> bool:
         """Return if score is positive."""
@@ -300,15 +315,22 @@ class SerializedFact(BaseModel):
     @classmethod
     def from_fact(cls, fact: Fact) -> Self:
         """Return SerializedFact from Fact."""
-        return cls(
-            content=fact.content,
-            score=fact.score,
-            disputed=fact.disputed,
-            hash=fact.hash,
-            last_checked=fact.last_checked,
-            semantics=fact.get_serialized_semantics(),
-            sources=[source.domain for source in fact.sources],
-        )
+        # The key is to prepare the dictionary of data FIRST,
+        # ensuring all types are correct *before* calling the constructor.
+        
+        data_for_model = {
+            "content": fact.content,
+            "score": fact.score,
+            "disputed": fact.disputed,
+            "hash": fact.hash,
+            # THIS IS THE FIX: Convert the datetime object to a standard string here.
+            "last_checked": fact.last_checked.isoformat(),
+            "semantics": fact.get_serialized_semantics(),
+            "sources": [source.domain for source in fact.sources],
+        }
+        
+        # Now, create the model from the clean, pre-validated data.
+        return cls(**data_for_model)
 
 
 class Source(Base):
@@ -366,6 +388,22 @@ class FactLink(Base):
     )
     fact2: Mapped[Fact] = relationship("Fact", foreign_keys=[fact2_id])
 
+class Validator(Base):
+    """Represents a node that has staked collateral to participate in consensus."""
+
+    __tablename__ = "validators"
+
+    public_key: Mapped[str] = mapped_column(String, primary_key=True)
+    region: Mapped[str] = mapped_column(String, nullable=False)
+    stake_amount: Mapped[int] = mapped_column(Integer, nullable=False, default=0) 
+    reputation_score: Mapped[float] = mapped_column(Float, nullable=False, default=1.0)  
+    rewards: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=False)
+    last_seen: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
 
 def initialize_database(engine: Engine) -> None:
     """Ensure the database file and ALL required tables exist."""
@@ -388,7 +426,7 @@ def create_genesis_block(session: Session) -> None:
         fact_hashes=json.dumps([]),
         timestamp=time.time(),
     )
-    genesis.seal_block(difficulty=2)
+    genesis.seal_block() # <-- REMOVE difficulty=2
     session.add(genesis)
     session.commit()
     logger.info("Genesis Block created and sealed.")

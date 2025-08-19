@@ -1,0 +1,64 @@
+========================================
+      AxiomEngine Fact Analysis Report
+========================================
+Generated on: 2025-08-19T01:09:30.818886
+Total Facts Analyzed: 11
+
+----------------------------------------
+Disputed Facts (0)
+----------------------------------------
+No disputed facts found in the ledger.
+
+----------------------------------------
+Corroborated Facts (0)
+----------------------------------------
+No corroborated facts found. These are facts with a score > 0.
+
+----------------------------------------
+Ingested & Awaiting Corroboration (11)
+----------------------------------------
+
+1. Fact Hash: 150b6d77b31c5f1717a4b935b2e05baa41237e7f2cea99295ccd23e7389d40be
+   Content: upon the discovery of a large crack in the newly formed lava delta at kapoho, state officials are warning the public of the dangers of visiting hawaii island’s eastern coastal areas.
+   Sources: www.staradvertiser.com
+
+2. Fact Hash: 29c5024c474a845694dd32385a98000e5741b002bfe730ece86e0ba42b005512
+   Content: the picturesque spot in mallorca is home to just over 600 people, but the high number of visitors in the summer is putting a strain on resources
+   Sources: elpais.com
+
+3. Fact Hash: 2d1dc5cdf973787cbde7e49eb03b0d711f0ba638176e9a677a3246df96418399
+   Content: in a surprise institutional statement, quim torra said the date will not be set until the regional budget is passed in parliament
+   Sources: elpais.com
+
+4. Fact Hash: 4269c3f655a3050388a5580281973e8f74e98f605748f01d44e3fe6e5f19f36e
+   Content: x is struggling on android with installs down by 49% year-over-year as of june 2025.
+   Sources: techcrunch.com
+
+5. Fact Hash: 4f2073370371a1672ef8f9c02ec7c196b8d7ac64b1cd3b2f1a25fbff08d06213
+   Content: hawaii’s seasonally adjusted unemployment rate for july fell to 2.7% from 2.8% in june to mark its lowest level since before covid-19.
+   Sources: www.staradvertiser.com
+
+6. Fact Hash: 55cd5ad54aacf7c847e12c86be4e9530babc5848b145e585a17cf78970cd4ab2
+   Content: reuters photographer jon nazca has traveled to ronda in the southern spanish city of málaga to compare this year’s empty streets to the festivities seen in 2019 and 2018
+   Sources: elpais.com
+
+7. Fact Hash: 56846cad3c7e1ffb4362efeab033103a3a17b2d1bd03b297a86bde914fa705de
+   Content: the national weather service has issued a coastal flooding alert statewide, effective from tuesday afternoon to thursday afternoon.
+   Sources: www.staradvertiser.com
+
+8. Fact Hash: 7556e3996689effee600edb214f39166bf864f4de5f49eedc7c416f0729f781b
+   Content: cal true freshman jaron-keawe sagapolutele, a campbell high school standout, has won the starting quarterback job, golden bears coach justin wilcox announced today.
+   Sources: www.staradvertiser.com
+
+9. Fact Hash: 8739a10d67a32397ac5783cdbfc2c1e1de8b6533fcf449378cb3043f513f4df2
+   Content: softbank will pay $23 per share for intel common stock.
+   Sources: techcrunch.com
+
+10. Fact Hash: 91a6b7ac2b95ad2ef6fc439483a6e060c089820e7cd31d27944d0ee8bc484b8d
+   Content: texas attorney general ken paxton is investigating meta and characterai over claims they deceptively market chatbots as mental health tools, raising concerns about child safety, data privacy, and targeted advertising.
+   Sources: techcrunch.com
+
+11. Fact Hash: b7268f72dbdab89cfeb654e6170b9cd770e910c2e1fc8b74896d79b82baaa5b2
+   Content: this plan will offer 10x more messages and image generation than the free tier, among other benefits.
+   Sources: techcrunch.com
+
