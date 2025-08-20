@@ -20,7 +20,7 @@ class MockSpacyDoc:
     """A mock spaCy Doc object that supports symmetrical similarity for tests."""
 
     def __init__(
-        self, text: str, similarity_map: dict[str, float] | None = None
+        self, text: str, similarity_map: dict[str, float] | None = None,
     ):
         self.text = text
         self.similarity_map = similarity_map or {}
@@ -63,19 +63,19 @@ def test_find_corroborating_claims_success(mock_session: MagicMock):
 
     fact_to_verify = Fact(content=fact_to_verify_text, sources=[source1])
     fact_to_verify.get_semantics = MagicMock(
-        return_value={"doc": mock_doc_to_verify}
+        return_value={"doc": mock_doc_to_verify},
     )
 
     corroborating_fact = Fact(
-        content=corroborating_fact_text, sources=[source2]
+        content=corroborating_fact_text, sources=[source2],
     )
     corroborating_fact.get_semantics = MagicMock(
-        return_value={"doc": mock_doc_corroborating}
+        return_value={"doc": mock_doc_corroborating},
     )
 
     unrelated_fact = Fact(content=unrelated_fact_text, sources=[source2])
     unrelated_fact.get_semantics = MagicMock(
-        return_value={"doc": mock_doc_unrelated}
+        return_value={"doc": mock_doc_unrelated},
     )
 
     # Configure the mock session to return our test facts
@@ -109,13 +109,13 @@ def test_find_corroborating_claims_from_same_source(mock_session: MagicMock):
 
     fact_to_verify = Fact(content=fact_to_verify_text, sources=[source1])
     fact_to_verify.get_semantics = MagicMock(
-        return_value={"doc": mock_doc_to_verify}
+        return_value={"doc": mock_doc_to_verify},
     )
 
     # Note: this fact has the SAME source as the fact_to_verify
     similar_fact = Fact(content=similar_fact_text, sources=[source1])
     similar_fact.get_semantics = MagicMock(
-        return_value={"doc": MockSpacyDoc(similar_fact_text)}
+        return_value={"doc": MockSpacyDoc(similar_fact_text)},
     )
 
     mock_session.query(Fact).filter().all.return_value = [similar_fact]

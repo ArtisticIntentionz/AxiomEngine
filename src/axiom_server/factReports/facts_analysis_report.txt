@@ -45,4 +45,3 @@ Ingested & Awaiting Corroboration (7)
 7. Fact Hash: c857c1a85a5274d0ce8e62dd2268d1317e99ab8bc122fc02ed1b75dd63410c88
    Content: visitors have unearthed over 35,000 diamonds at crater of diamonds state park since 1972.
    Sources: arstechnica.com
-

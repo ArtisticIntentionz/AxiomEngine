@@ -124,7 +124,7 @@ class AxiomNode(P2PBaseNode):
         self.region = self._get_geo_region()
         self.is_validator = False
         self.is_syncing = True
-        self.known_network_height = 0 
+        self.known_network_height = 0
         self.pending_attestations: dict[str, dict] = {}
         self.attestation_lock = threading.Lock()
         self.active_proposals: dict[int, Proposal] = {}
@@ -151,8 +151,7 @@ class AxiomNode(P2PBaseNode):
             ).start()
 
     def broadcast_application_message(self, message: str) -> None:
-        """
-        Sends an application message to all connected peers in a thread-safe manner.
+        """Sends an application message to all connected peers in a thread-safe manner.
         """
         # A better pattern: acquire lock, copy the list, release lock.
         # This prevents holding the lock during slow network I/O.
@@ -165,7 +164,7 @@ class AxiomNode(P2PBaseNode):
         for link in peers_to_send_to:
             payload = {
                 "type": json.loads(message).get("type", "unknown"),
-                "data": json.loads(message).get("data", {})
+                "data": json.loads(message).get("data", {}),
             }
             # The actual sending is still done by the specific method
             self._send_specific_application_message(link, payload)
@@ -319,14 +318,15 @@ class AxiomNode(P2PBaseNode):
                 )
                 del self.pending_attestations[block_hash]
 
-    def _send_specific_application_message(self, link: PeerLink, payload: dict):
-        """
-        Formats and sends an application-specific message to a single peer.
+    def _send_specific_application_message(
+        self, link: PeerLink, payload: dict,
+    ):
+        """Formats and sends an application-specific message to a single peer.
         This is the definitive, low-level implementation.
         """
         # --- START MODIFICATION ---
         # Defensive check: Ensure the link still has an active socket before using it.
-        if not hasattr(link, 'sock') or not link.sock:
+        if not hasattr(link, "sock") or not link.sock:
             # This can happen in a race condition where the peer disconnected
             # just before this message was sent. We can safely ignore it.
             return
@@ -334,7 +334,7 @@ class AxiomNode(P2PBaseNode):
         try:
             # 1. Package the data correctly for the P2P protocol
             app_data = ApplicationData(
-                content_type="application/json", data=json.dumps(payload)
+                content_type="application/json", data=json.dumps(payload),
             )
 
             # 2. Manually construct the full message header and body
@@ -344,20 +344,20 @@ class AxiomNode(P2PBaseNode):
 
             # 3. Send the raw bytes DIRECTLY to the peer's socket.
             link.sock.sendall(message_to_send)
-        
+
         except OSError as e:
             # This handles cases where the socket was closed between our check
             # and the sendall() call (e.g., "Broken pipe").
             background_thread_logger.warning(
-                f"Could not send to {link.fmt_addr()}, socket error: {e}"
+                f"Could not send to {link.fmt_addr()}, socket error: {e}",
             )
             # You might want to trigger a cleanup of this peer link here.
-            link.close() # Assuming the PeerLink object has a close() method.
+            link.close()  # Assuming the PeerLink object has a close() method.
 
         except Exception as e:
             background_thread_logger.error(
                 f"FATAL: Could not send application message to {link.fmt_addr()}: {e}",
-                exc_info=True
+                exc_info=True,
             )
 
     def _discovery_loop(self) -> None:
@@ -466,19 +466,27 @@ class AxiomNode(P2PBaseNode):
                     current_slot,
                 )
 
-            if self.is_validator and not self.is_syncing and self.serialized_public_key.hex() == proposer_pubkey:
-                background_thread_logger.info(f"It is our turn to propose a block for slot {current_slot}.")
+            if (
+                self.is_validator
+                and not self.is_syncing
+                and self.serialized_public_key.hex() == proposer_pubkey
+            ):
+                background_thread_logger.info(
+                    f"It is our turn to propose a block for slot {current_slot}.",
+                )
                 self._propose_block()
 
             next_slot_time = (current_slot + 1) * SECONDS_PER_SLOT
             sleep_duration = max(0, next_slot_time - time.time())
             time.sleep(sleep_duration)
-    
+
     def _request_sync_with_peers(self):
         """Broadcasts a request to get the latest block from all known peers."""
         message = {"type": "get_latest_block_request"}
         self.broadcast_application_message(json.dumps(message))
-        background_thread_logger.info("Requesting synchronization with network...")
+        background_thread_logger.info(
+            "Requesting synchronization with network...",
+        )
 
     def _handle_latest_block_request(self, link: PeerLink):
         """Handles a peer's request for our latest block information."""
@@ -490,17 +498,17 @@ class AxiomNode(P2PBaseNode):
                     "data": {
                         "height": latest_block.height,
                         "hash": latest_block.hash,
-                        "api_url": f"http://{self.ip_address}:{API_PORT}"
-                    }
+                        "api_url": f"http://{self.ip_address}:{API_PORT}",
+                    },
                 }
-                
+
                 # Call our new, reliable, self-contained method
                 self._send_specific_application_message(link, response_payload)
 
     def _handle_latest_block_response(self, response_data: dict):
         """Handles a peer's response containing their latest block info."""
         peer_height = response_data.get("height", -1)
-        
+
         # --- ADD THIS BLOCK ---
         # Update our knowledge of the network's max height
         if peer_height > self.known_network_height:
@@ -508,7 +516,7 @@ class AxiomNode(P2PBaseNode):
         # --- END ADDITION ---
 
         if not self.is_syncing:
-            return # We are already synced.
+            return  # We are already synced.
         peer_api_url = response_data.get("api_url")
 
         with db_lock, SessionMaker() as session:
@@ -516,35 +524,50 @@ class AxiomNode(P2PBaseNode):
             my_height = my_latest_block.height if my_latest_block else -1
 
             if peer_height > my_height:
-                background_thread_logger.info(f"Peer is at height {peer_height}, we are at {my_height}. Starting download...")
+                background_thread_logger.info(
+                    f"Peer is at height {peer_height}, we are at {my_height}. Starting download...",
+                )
                 # Use the peer's API to get the missing blocks
                 try:
                     # In a real system, you'd download in batches. For here, one go is fine.
-                    res = requests.get(f"{peer_api_url}/get_blocks?since={my_height}", timeout=30)
+                    res = requests.get(
+                        f"{peer_api_url}/get_blocks?since={my_height}",
+                        timeout=30,
+                    )
                     res.raise_for_status()
                     blocks_to_add = res.json().get("blocks", [])
-                    
-                    for block_data in sorted(blocks_to_add, key=lambda b: b['height']):
+
+                    for block_data in sorted(
+                        blocks_to_add, key=lambda b: b["height"],
+                    ):
                         # We need a function to add peer blocks. Let's assume it exists in ledger.py
                         add_block_from_peer_data(session, block_data)
-                    
-                    background_thread_logger.info(f"Successfully downloaded and added {len(blocks_to_add)} blocks. Checking sync status again.")
+
+                    background_thread_logger.info(
+                        f"Successfully downloaded and added {len(blocks_to_add)} blocks. Checking sync status again.",
+                    )
                     # Re-check sync status
                     my_new_latest_block = get_latest_block(session)
-                    if my_new_latest_block and my_new_latest_block.height >= peer_height:
+                    if (
+                        my_new_latest_block
+                        and my_new_latest_block.height >= peer_height
+                    ):
                         self.is_syncing = False
-                        background_thread_logger.info("Synchronization complete! Node is now live.")
+                        background_thread_logger.info(
+                            "Synchronization complete! Node is now live.",
+                        )
 
                 except (requests.RequestException, ValueError, KeyError) as e:
-                    background_thread_logger.error(f"Error during block download: {e}")
+                    background_thread_logger.error(
+                        f"Error during block download: {e}",
+                    )
 
     def _conclude_syncing(self):
-        """
-        Periodically checks if the node has caught up to the known network height.
+        """Periodically checks if the node has caught up to the known network height.
         If so, it transitions to a live state. Otherwise, it stays in sync mode.
         """
         if not self.is_syncing:
-            return # Already live, do nothing.
+            return  # Already live, do nothing.
 
         with db_lock, SessionMaker() as session:
             my_latest_block = get_latest_block(session)
@@ -553,14 +576,14 @@ class AxiomNode(P2PBaseNode):
             # The crucial check:
             if my_height >= self.known_network_height:
                 background_thread_logger.info(
-                    f"Sync complete. Local height {my_height} matches network height {self.known_network_height}. Going live."
+                    f"Sync complete. Local height {my_height} matches network height {self.known_network_height}. Going live.",
                 )
                 self.is_syncing = False
             else:
                 # If we are still behind, we are not done syncing.
                 # Request another update and schedule this check to run again.
                 background_thread_logger.info(
-                    f"Still syncing... Local height: {my_height}, Network height: {self.known_network_height}."
+                    f"Still syncing... Local height: {my_height}, Network height: {self.known_network_height}.",
                 )
                 self._request_sync_with_peers()
                 threading.Timer(30.0, self._conclude_syncing).start()
@@ -857,7 +880,7 @@ def handle_stake() -> Response | tuple[Response, int]:
     ):
         return jsonify(
             {
-                "error": "Missing or invalid 'stake_amount' (must be an integer)"
+                "error": "Missing or invalid 'stake_amount' (must be an integer)",
             },
         ), 400
 

@@ -461,11 +461,13 @@ def add_block_from_peer_data(
 
     expected_height = latest_local_block.height + 1
     if block_data["height"] != expected_height:
-        raise ValueError(f"Block height mismatch. Expected {expected_height}, got {block_data['height']}.")
+        raise ValueError(
+            f"Block height mismatch. Expected {expected_height}, got {block_data['height']}.",
+        )
 
     if block_data["previous_hash"] != latest_local_block.hash:
         raise ValueError(
-            "Block integrity error: Peer block's previous_hash does not match local head."
+            "Block integrity error: Peer block's previous_hash does not match local head.",
         )
 
     # Create the Block object, ensuring fact_hashes is stored as a JSON string of a list.
@@ -475,7 +477,9 @@ def add_block_from_peer_data(
         previous_hash=block_data["previous_hash"],
         merkle_root=block_data["merkle_root"],
         timestamp=block_data["timestamp"],
-        proposer_pubkey=block_data.get("proposer_pubkey"), # Use .get for safety
+        proposer_pubkey=block_data.get(
+            "proposer_pubkey",
+        ),  # Use .get for safety
         # Ensure we store it correctly as a JSON string of a list
         fact_hashes=json.dumps(block_data.get("fact_hashes", [])),
     )
