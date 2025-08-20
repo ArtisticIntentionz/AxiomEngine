@@ -151,8 +151,7 @@ class AxiomNode(P2PBaseNode):
             ).start()
 
     def broadcast_application_message(self, message: str) -> None:
-        """Sends an application message to all connected peers in a thread-safe manner.
-        """
+        """Sends an application message to all connected peers in a thread-safe manner."""
         # A better pattern: acquire lock, copy the list, release lock.
         # This prevents holding the lock during slow network I/O.
         with self.peers_lock:
@@ -319,7 +318,9 @@ class AxiomNode(P2PBaseNode):
                 del self.pending_attestations[block_hash]
 
     def _send_specific_application_message(
-        self, link: PeerLink, payload: dict,
+        self,
+        link: PeerLink,
+        payload: dict,
     ):
         """Formats and sends an application-specific message to a single peer.
         This is the definitive, low-level implementation.
@@ -334,7 +335,8 @@ class AxiomNode(P2PBaseNode):
         try:
             # 1. Package the data correctly for the P2P protocol
             app_data = ApplicationData(
-                content_type="application/json", data=json.dumps(payload),
+                content_type="application/json",
+                data=json.dumps(payload),
             )
 
             # 2. Manually construct the full message header and body
@@ -538,7 +540,8 @@ class AxiomNode(P2PBaseNode):
                     blocks_to_add = res.json().get("blocks", [])
 
                     for block_data in sorted(
-                        blocks_to_add, key=lambda b: b["height"],
+                        blocks_to_add,
+                        key=lambda b: b["height"],
                     ):
                         # We need a function to add peer blocks. Let's assume it exists in ledger.py
                         add_block_from_peer_data(session, block_data)

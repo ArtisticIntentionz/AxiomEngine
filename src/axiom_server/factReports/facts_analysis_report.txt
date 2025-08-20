@@ -129,4 +129,3 @@ Ingested & Awaiting Corroboration (28)
 28. Fact Hash: e174a6131cd3693ec92673c6fd7a8936ed911c93f993bf8a77ac10d910c7f9f9
    Content: many people with little or no criminal record have been swept into the administration’s immigration dragnet since january, an analysis of deportation data shows.
    Sources: www.themarshallproject.org
-

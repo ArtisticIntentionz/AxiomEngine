@@ -20,7 +20,9 @@ class MockSpacyDoc:
     """A mock spaCy Doc object that supports symmetrical similarity for tests."""
 
     def __init__(
-        self, text: str, similarity_map: dict[str, float] | None = None,
+        self,
+        text: str,
+        similarity_map: dict[str, float] | None = None,
     ):
         self.text = text
         self.similarity_map = similarity_map or {}
@@ -67,7 +69,8 @@ def test_find_corroborating_claims_success(mock_session: MagicMock):
     )
 
     corroborating_fact = Fact(
-        content=corroborating_fact_text, sources=[source2],
+        content=corroborating_fact_text,
+        sources=[source2],
     )
     corroborating_fact.get_semantics = MagicMock(
         return_value={"doc": mock_doc_corroborating},
