@@ -54,7 +54,7 @@ from axiom_server.p2p.node import (
     PeerLink,
 )
 
-__version__ = "3.1.3"
+__version__ = "3.1.4"
 
 logger = logging.getLogger("axiom-node")
 logger.setLevel(logging.INFO)

@@ -63,131 +63,104 @@ Before you begin, ensure your system has no memory of previous installation atte
 
 **Phase 3: The "Gold Standard" Installation**
 
-This hybrid Conda/Pip approach is proven to work reliably.
+This hybrid approach is proven to work reliably. We use Conda for complex, pre-compiled libraries (like those for AI and cryptography) and Pip for pure-Python application dependencies.
 
-1.  **Install Heavy Binaries with Conda:** This installs pre-compiled packages that are guaranteed to be compatible.
-    ```bash
-    conda install -c conda-forge numpy scipy "spacy>=3.7.2,<3.8.0" cryptography beautifulsoup4 -y
-    ```
-2.  **Install Pure-Python Libraries with Pip:** This installs the remaining application-level dependencies.
-    ```bash
-    pip install Flask gunicorn requests sqlalchemy pydantic feedparser PyQt6 ruff mypy pytest pre-commit attrs types-requests
-    ```
-3.  **Install the AI Model:**
-    ```bash
-    # use this LARGE model instead:
-    python -m spacy download en_core_web_lg
-    # fallback to small model:
-    pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
-    ```
-4.  **Install the Axiom Project Itself:** This final step makes the `axiom_server` and `axiom_client` commands available in your terminal.
-    ```bash
-    pip install -e .
-    ```
+1. **Install Heavy Binaries with Conda:**
 
-**Phase 4: Final One-Time Setup (SSL)**
+    ``` conda install -c conda-forge numpy scipy "spacy>=3.7.2,<3.8.0" cryptography beautifulsoup4 -y ```
+2. **Install Pure-Python Libraries with Pip:**
 
-The P2P engine requires SSL certificates for secure communication between nodes.
+    ``` pip install Flask gunicorn requests sqlalchemy pydantic feedparser Flask-Cors ruff mypy pytest pre-commit attrs types-requests ```
+3. **Install the AI Model: We use a large, high-quality model for fact extraction.**
 
-1.  **Create the SSL Directory:**
-    ```bash
-    mkdir -p ssl
-    ```
-2.  **Generate the Certificates:**
-    ```bash
-    openssl req -new -x509 -days 365 -nodes -out ssl/node.crt -keyout ssl/node.key
-    ```
-    *(You will be prompted for information. You can press `Enter` for every question to accept the defaults.)*
+    ``` python -m spacy download en_core_web_lg ```
 
----
+4. **Install the Axiom Project Itself:** This final step makes the axiom_server module available and installs it in an "editable" mode (-e), so your code changes are immediately reflected.
 
-### Step 2: Launch the P2P Development Network
+    ``` pip install -e . ```
 
-Your environment is now complete. The Axiom network is a true peer-to-peer mesh. To develop locally, you need to simulate this by running at least two nodes: a **Bootstrap Server** (a simple meeting point) and one or more **Axiom Nodes**.
+**Step 2: One-Time Project Initialization (SSL)**
+The P2P engine requires SSL certificates for secure, encrypted communication between nodes.
 
-The launch process is done manually from the command line, giving you full control and clear, separated logs for each component.
+**Create the SSL Directory: From the project root (AxiomEngine/):**
 
-**Instructions:** Open three separate terminals. In each one, navigate to your `AxiomEngine` project directory and activate the Conda environment with `conda activate AxiomFork`.
+    ``` mkdir -p ssl ```
 
-**Bootstrap Server**
+**Generate the Certificates:**
+```
+openssl req -new -x509 -days 3650 -nodes -out ssl/node.crt -keyout ssl/node.key
+```
+(You will be prompted for information. You can press Enter for every question to accept the defaults.)
 
-The bootstrap server is a p2p node that introduce new nodes to each other. It doesn't process facts.
-If you need to set one up for testing purposes, all you have to do is run a p2p node at a known
-ip address and port, and remember to communicate those to the other nodes in your network.
+**Step 3: Launch a Local P2P Network**
+**Your environment is now complete. The Axiom network is a true peer-to-peer mesh. To develop locally, you need to simulate this by running at least two nodes. The first node you launch acts as the initial bootstrap peer (a rendezvous point) for any subsequent nodes.**
 
-1.  **Launch the server:**
-    ```bash
-    python -m axiom_server.run_node --default_bootstrap
-    ```
+**Instructions: Open two separate terminals.** In each one, navigate to your AxiomEngine project directory and activate the Conda environment: conda activate AxiomFork.
 
-**The Axiom Node**
+**Terminal 1: The First Peer**
 
-WORK IN PROGRESS!
+This node will start the network. Note the P2P port (5001), as the next node will need it to connect.
 
-This is a full Axiom node that will discover facts, seal blocks, and communicate with peers.
+**Launch the node:**
+```
+python -m axiom_server.node --p2p-port 5001 --api-port 8001
+```
+Observe the logs: You will see it initialize the database, start the API server, and begin listening for P2P connections on port 5001. Keep this terminal running.
+**Stake the bootstrap node:**
+```
+curl -X POST http://127.0.0.1:8001/validator/stake -H "Content-Type: application/json" -d '{"stake_amount": 100}'
+```
 
-1.  **Launch the node:** Replace `<bootstrap_port>` with the appropriate port.
-    ```bash
-    # P2P will run on port 5001, API on 8001
-    python -m axiom_server.node --p2p-port 5001 --api-port 8001 --bootstrap-peer http://127.0.0.1:<bootstrap_port>
-    ```
-2.  **Observe the logs.** You will see it initialize the Axiom engine and the P2P layer, and you should see connection logs appear in both Terminal 1 and Terminal 2.
-3.  **Keep this terminal running.**
+**Terminal 2: The Second Peer**
 
-**The Second Axiom Node (Optional but Recommended)**
+This node will join the network by connecting to the first peer.
 
-Running a second full node allows you to see the P2P gossip protocol in action.
+**Launch the node:** Use different ports for this node and point it to the first peer using the --bootstrap-peer flag.
+```
+python -m axiom_server.node --p2p-port 5002 --api-port 8002 --bootstrap-peer http://127.0.0.1:5001
+```
+Keep this terminal running. and stake this node to make it a sealer using the curl command.
+```
+curl -X POST http://127.0.0.1:8002/validator/stake -H "Content-Type: application/json" -d '{"stake_amount": 100}'
+```
 
-1.  **Launch the node:** Use different ports for this node.
-    ```bash
-    # P2P will run on port 5002, API on 8002
-    python -m axiom_server.node --p2p-port 5002 --api-port 8002 --bootstrap-peer http://127.0.0.1:<bootstrap_port>
-    ```
-2.  **Observe the logs.** This node will also connect to the bootstrap server and then discover and connect to the first Axiom node.
-3.  **Keep this terminal running.**
+**Verifying the Connection**
 
-**Verifying Success:** When Node 1 (in Terminal 2) seals a new block and broadcasts it, you will see a `SUCCESS: Validated and added new block #1 from peer.` message appear in the logs for Node 2 (in Terminal 3).
+You have a running local mesh! Look at the logs in both terminals to confirm they are communicating:
 
-You are now running a local Axiom mesh network and are ready to develop!
+In Terminal 2's logs, you'll see it connecting to 127.0.0.1:5001.
+In Terminal 1's logs, you'll see a message like 127.0.0.1:5002 requested we share peers with them....
+The ultimate test: Wait for one node to propose a block (e.g., It is our turn to propose a block...). A few seconds later, you should see a log in the other node's terminal indicating it received and processed that block proposal.
+You are now ready to develop on a live, local Axiom network!
 
----
+**Step 4: Branch, Code, and Validate**
+Create a New Branch: Never work directly on the main branch.
+```
+# Example for a new feature
+git checkout -b feature/improve-crucible-filter
+```
+**Write Your Code:** Make your changes. Please follow the existing style and add comments where your logic is complex.
+Run Quality Checks: Before committing, please run our automated quality checks to ensure your code meets project standards.
+```
+# Run the linter from the project root directory
 
-### Step 3: Make Your Changes
+ruff check .
 
-Once you have the system running, you can start developing.
+# Run the static type checker
+mypy .
+```
+**Step 5: Submit Your Contribution**
+Commit Your Changes: Once all checks pass, commit your changes with a clear message following the Conventional Commits standard.
+```
+git add .
+git commit -m "feat(Crucible): Add filter for subjective adverbs"
+```
+**Push to Your Fork:** Push your new branch to your personal fork on GitHub.
+```
+git push origin feature/improve-crucible-filter
+```
+**Open a Pull Request:** Go to your fork on the GitHub website. You will see a prompt to "Compare & pull request." Click it, give it a clear title and a detailed description of your changes, and submit it for review.
+**Step 6: Code Review**
+Your pull request will be reviewed by the core maintainers. This is a collaborative process where we may ask questions or request changes. Once approved, your code will be merged into the main AxiomEngine codebase.
 
-1.  **Create a New Branch:** Never work directly on the `main` branch. Create a new, descriptive branch for every feature or bug fix.
-    ```bash
-    # Example for a new feature
-    git checkout -b feature/improve-crucible-filter
-    ```
-2.  **Write Your Code:** Make your changes. Please try to follow the existing style and add comments where your logic is complex.
-
----
-
-### Step 4: Submit Your Contribution
-
-1.  **Run Quality Checks:** Before committing, please run the linter (`ruff`) and type checker (`mypy`) to ensure your changes follow the project's standards and haven't introduced any issues.
-    ```bash
-    # Run from the project root directory
-    ruff check .
-    mypy .
-    ```
-2.  **Commit Your Changes:** Once all checks pass, commit your changes with a clear and descriptive message following the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) standard.
-    ```bash
-    git add .
-    git commit -m "feat(Crucible): Add filter for subjective adverbs"
-    ```
-3.  **Push to Your Fork:** Push your new branch to your personal fork on GitHub.
-    ```bash
-    git push origin feature/improve-crucible-filter
-    ```
-4.  **Open a Pull Request:** Go to your fork on the GitHub website. You will see a prompt to "Compare & pull request." Click it, give it a clear title and a detailed description, and submit it for review.
-
----
-
-### Step 5: Code Review
-
-Once your pull request is submitted, it will be reviewed by the core maintainers. This is a collaborative process. We may ask questions or request changes. Once approved, your code will be merged into the main AxiomEngine codebase.
-
-**Congratulations, you are now an official Axiom contributor! Thank you for your work.**
+**Congratulations,** you are now an official Axiom contributor! Thank you for your work.
