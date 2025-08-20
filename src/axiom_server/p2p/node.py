@@ -537,7 +537,7 @@ class Node:
                 yield link
 
     def broadcast_application_message(self, data: str) -> None:
-        """Broadcast an application-level message to all connected peers.
+        """Broadcast an application-level def send_application_message to all connected peers.
 
         This method wraps the provided data in an application-specific message format
         and sends it to all peers connected to the node.

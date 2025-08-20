@@ -49,6 +49,7 @@ from axiom_server.p2p.constants import (
 )
 from axiom_server.p2p.node import (
     ApplicationData,
+    MessageType,
     Node as P2PBaseNode,
     PeerLink,
 )
@@ -67,7 +68,7 @@ if not logger.hasHandlers():
 logger.propagate = False
 background_thread_logger = logging.getLogger("axiom-node.background-thread")
 
-
+API_PORT = 0
 CORROBORATION_THRESHOLD = 2
 SECONDS_PER_SLOT = 12
 VOTING_THRESHOLD = 0.67
@@ -119,8 +120,11 @@ class AxiomNode(P2PBaseNode):
             server_socket=temp_p2p.server_socket,
         )
 
+        self.peers_lock = threading.Lock()
         self.region = self._get_geo_region()
         self.is_validator = False
+        self.is_syncing = True
+        self.known_network_height = 0 
         self.pending_attestations: dict[str, dict] = {}
         self.attestation_lock = threading.Lock()
         self.active_proposals: dict[int, Proposal] = {}
@@ -146,6 +150,26 @@ class AxiomNode(P2PBaseNode):
                 daemon=True,
             ).start()
 
+    def broadcast_application_message(self, message: str) -> None:
+        """
+        Sends an application message to all connected peers in a thread-safe manner.
+        """
+        # A better pattern: acquire lock, copy the list, release lock.
+        # This prevents holding the lock during slow network I/O.
+        with self.peers_lock:
+            # We must iterate over a copy, as the original list can be modified
+            # by the main network loop while we are sending.
+            peers_to_send_to = list(self.iter_links())
+
+        # Now, iterate over the safe copy without holding the lock.
+        for link in peers_to_send_to:
+            payload = {
+                "type": json.loads(message).get("type", "unknown"),
+                "data": json.loads(message).get("data", {})
+            }
+            # The actual sending is still done by the specific method
+            self._send_specific_application_message(link, payload)
+
     def _handle_application_message(
         self,
         _link: PeerLink,
@@ -158,6 +182,10 @@ class AxiomNode(P2PBaseNode):
                 self._handle_block_proposal(message["data"])
             elif msg_type == "attestation":
                 self._handle_attestation(message["data"])
+            elif msg_type == "get_latest_block_request":
+                self._handle_latest_block_request(_link)
+            elif msg_type == "get_latest_block_response":
+                self._handle_latest_block_response(message["data"])
         except Exception as exc:
             background_thread_logger.error(
                 f"Error processing peer message: {exc}",
@@ -291,6 +319,47 @@ class AxiomNode(P2PBaseNode):
                 )
                 del self.pending_attestations[block_hash]
 
+    def _send_specific_application_message(self, link: PeerLink, payload: dict):
+        """
+        Formats and sends an application-specific message to a single peer.
+        This is the definitive, low-level implementation.
+        """
+        # --- START MODIFICATION ---
+        # Defensive check: Ensure the link still has an active socket before using it.
+        if not hasattr(link, 'sock') or not link.sock:
+            # This can happen in a race condition where the peer disconnected
+            # just before this message was sent. We can safely ignore it.
+            return
+
+        try:
+            # 1. Package the data correctly for the P2P protocol
+            app_data = ApplicationData(
+                content_type="application/json", data=json.dumps(payload)
+            )
+
+            # 2. Manually construct the full message header and body
+            header = MessageType.APPLICATION.value.to_bytes(1, "big")
+            body = app_data.model_dump_json().encode("utf-8")
+            message_to_send = header + body
+
+            # 3. Send the raw bytes DIRECTLY to the peer's socket.
+            link.sock.sendall(message_to_send)
+        
+        except OSError as e:
+            # This handles cases where the socket was closed between our check
+            # and the sendall() call (e.g., "Broken pipe").
+            background_thread_logger.warning(
+                f"Could not send to {link.fmt_addr()}, socket error: {e}"
+            )
+            # You might want to trigger a cleanup of this peer link here.
+            link.close() # Assuming the PeerLink object has a close() method.
+
+        except Exception as e:
+            background_thread_logger.error(
+                f"FATAL: Could not send application message to {link.fmt_addr()}: {e}",
+                exc_info=True
+            )
+
     def _discovery_loop(self) -> None:
         """A slow, periodic loop for discovering, ingesting, and synthesizing new facts."""
         background_thread_logger.info("Starting autonomous discovery loop.")
@@ -397,18 +466,104 @@ class AxiomNode(P2PBaseNode):
                     current_slot,
                 )
 
-            if (
-                self.is_validator
-                and self.serialized_public_key.hex() == proposer_pubkey
-            ):
-                background_thread_logger.info(
-                    f"It is our turn to propose a block for slot {current_slot}.",
-                )
+            if self.is_validator and not self.is_syncing and self.serialized_public_key.hex() == proposer_pubkey:
+                background_thread_logger.info(f"It is our turn to propose a block for slot {current_slot}.")
                 self._propose_block()
 
             next_slot_time = (current_slot + 1) * SECONDS_PER_SLOT
             sleep_duration = max(0, next_slot_time - time.time())
             time.sleep(sleep_duration)
+    
+    def _request_sync_with_peers(self):
+        """Broadcasts a request to get the latest block from all known peers."""
+        message = {"type": "get_latest_block_request"}
+        self.broadcast_application_message(json.dumps(message))
+        background_thread_logger.info("Requesting synchronization with network...")
+
+    def _handle_latest_block_request(self, link: PeerLink):
+        """Handles a peer's request for our latest block information."""
+        with db_lock, SessionMaker() as session:
+            latest_block = get_latest_block(session)
+            if latest_block:
+                response_payload = {
+                    "type": "get_latest_block_response",
+                    "data": {
+                        "height": latest_block.height,
+                        "hash": latest_block.hash,
+                        "api_url": f"http://{self.ip_address}:{API_PORT}"
+                    }
+                }
+                
+                # Call our new, reliable, self-contained method
+                self._send_specific_application_message(link, response_payload)
+
+    def _handle_latest_block_response(self, response_data: dict):
+        """Handles a peer's response containing their latest block info."""
+        peer_height = response_data.get("height", -1)
+        
+        # --- ADD THIS BLOCK ---
+        # Update our knowledge of the network's max height
+        if peer_height > self.known_network_height:
+            self.known_network_height = peer_height
+        # --- END ADDITION ---
+
+        if not self.is_syncing:
+            return # We are already synced.
+        peer_api_url = response_data.get("api_url")
+
+        with db_lock, SessionMaker() as session:
+            my_latest_block = get_latest_block(session)
+            my_height = my_latest_block.height if my_latest_block else -1
+
+            if peer_height > my_height:
+                background_thread_logger.info(f"Peer is at height {peer_height}, we are at {my_height}. Starting download...")
+                # Use the peer's API to get the missing blocks
+                try:
+                    # In a real system, you'd download in batches. For here, one go is fine.
+                    res = requests.get(f"{peer_api_url}/get_blocks?since={my_height}", timeout=30)
+                    res.raise_for_status()
+                    blocks_to_add = res.json().get("blocks", [])
+                    
+                    for block_data in sorted(blocks_to_add, key=lambda b: b['height']):
+                        # We need a function to add peer blocks. Let's assume it exists in ledger.py
+                        add_block_from_peer_data(session, block_data)
+                    
+                    background_thread_logger.info(f"Successfully downloaded and added {len(blocks_to_add)} blocks. Checking sync status again.")
+                    # Re-check sync status
+                    my_new_latest_block = get_latest_block(session)
+                    if my_new_latest_block and my_new_latest_block.height >= peer_height:
+                        self.is_syncing = False
+                        background_thread_logger.info("Synchronization complete! Node is now live.")
+
+                except (requests.RequestException, ValueError, KeyError) as e:
+                    background_thread_logger.error(f"Error during block download: {e}")
+
+    def _conclude_syncing(self):
+        """
+        Periodically checks if the node has caught up to the known network height.
+        If so, it transitions to a live state. Otherwise, it stays in sync mode.
+        """
+        if not self.is_syncing:
+            return # Already live, do nothing.
+
+        with db_lock, SessionMaker() as session:
+            my_latest_block = get_latest_block(session)
+            my_height = my_latest_block.height if my_latest_block else -1
+
+            # The crucial check:
+            if my_height >= self.known_network_height:
+                background_thread_logger.info(
+                    f"Sync complete. Local height {my_height} matches network height {self.known_network_height}. Going live."
+                )
+                self.is_syncing = False
+            else:
+                # If we are still behind, we are not done syncing.
+                # Request another update and schedule this check to run again.
+                background_thread_logger.info(
+                    f"Still syncing... Local height: {my_height}, Network height: {self.known_network_height}."
+                )
+                self._request_sync_with_peers()
+                threading.Timer(30.0, self._conclude_syncing).start()
 
     def _propose_block(self) -> None:
         """Gathers facts, creates a block, marks facts as processed, and broadcasts."""
@@ -955,7 +1110,7 @@ def handle_get_fact_context(fact_hash: str) -> Response | tuple[Response, int]:
 
 def main() -> None:
     """Handle running an Axiom Node from the command line."""
-    global node_instance, fact_indexer
+    global node_instance, fact_indexer, API_PORT
 
     # 1. Setup the argument parser
     parser = argparse.ArgumentParser(description="Run an Axiom P2P Node.")
@@ -992,6 +1147,9 @@ def main() -> None:
             port=args.p2p_port,
             bootstrap_peer=args.bootstrap_peer,
         )
+
+        threading.Timer(5.0, node_instance._request_sync_with_peers).start()
+        threading.Timer(30.0, node_instance._conclude_syncing).start()
 
         logger.info("--- Initializing Fact Indexer for Hybrid Search ---")
         with SessionMaker() as db_session:

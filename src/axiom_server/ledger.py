@@ -128,6 +128,7 @@ class Block(Base):
                 "timestamp": self.timestamp,
                 "merkle_root": self.merkle_root,
                 "proposer_pubkey": self.proposer_pubkey,
+                "fact_hashes": list(json.loads(self.fact_hashes)),
             },
             sort_keys=True,
         ).encode()
@@ -453,60 +454,35 @@ def add_block_from_peer_data(
     session: Session,
     block_data: dict[str, Any],
 ) -> Block:
-    """Validate and add a new block received from a peer.
-
-    This is the core of blockchain synchronization. It ensures that a node
-    only accepts blocks that correctly extend its own version of the chain.
-
-    Args:
-        session: The active SQLAlchemy database session.
-        block_data: A dictionary containing the block header data from a peer.
-
-    Returns:
-        The newly added Block object.
-
-    Raises:
-        ValueError: If the block is invalid (e.g., wrong height, hash mismatch).
-        KeyError: If the peer data is missing required fields.
-
-    """
+    """Validate and add a new block received from a peer."""
     latest_local_block = get_latest_block(session)
     if not latest_local_block:
         raise LedgerError("Cannot add peer block: Local ledger has no blocks.")
 
-    # 1. CRITICAL VALIDATION: Is the new block the very next one in the sequence?
     expected_height = latest_local_block.height + 1
     if block_data["height"] != expected_height:
-        raise ValueError(
-            f"Block height mismatch. Expected {expected_height}, "
-            f"but peer sent {block_data['height']}. Node may be out of sync.",
-        )
+        raise ValueError(f"Block height mismatch. Expected {expected_height}, got {block_data['height']}.")
 
-    # 2. CRITICAL VALIDATION: Does the new block correctly chain to our latest block?
     if block_data["previous_hash"] != latest_local_block.hash:
         raise ValueError(
-            f"Block integrity error: Peer block's previous_hash "
-            f"({block_data['previous_hash']}) does not match local head "
-            f"({latest_local_block.hash}). A fork may have occurred.",
+            "Block integrity error: Peer block's previous_hash does not match local head."
         )
 
-    # 3. If validation passes, create the Block object from the peer data.
-    # Note: We trust the peer's nonce and hash, but a more secure system
-    # might re-verify the proof-of-work hash here as a defense against spam.
-    # For now, this is efficient.
+    # Create the Block object, ensuring fact_hashes is stored as a JSON string of a list.
     new_block = Block(
         height=block_data["height"],
         hash=block_data["hash"],
         previous_hash=block_data["previous_hash"],
         merkle_root=block_data["merkle_root"],
         timestamp=block_data["timestamp"],
-        nonce=block_data.get("nonce", 0),  # Use .get for safety
-        fact_hashes="[]",  # We don't have the full facts yet, just the header.
+        proposer_pubkey=block_data.get("proposer_pubkey"), # Use .get for safety
+        # Ensure we store it correctly as a JSON string of a list
+        fact_hashes=json.dumps(block_data.get("fact_hashes", [])),
     )
     session.add(new_block)
     session.commit()
     logger.info(
-        f"Added new block #{new_block.height} from peer to local ledger.",
+        f"Synced and added new block #{new_block.height} from peer to local ledger.",
     )
     return new_block
 
