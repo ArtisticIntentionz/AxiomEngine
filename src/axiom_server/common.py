@@ -59,3 +59,25 @@ SUBJECTIVITY_INDICATORS: Final = {
     "unwelcome",
     "flatly",
 }
+
+NARRATIVE_INDICATORS: Final = {
+    "i",
+    "we",
+    "my",
+    "our",
+    "me",
+    "us",
+    "he",
+    "she",
+    "his",
+    "her",
+    "story",
+    "episode",
+    "journey",
+    "experience",
+    "look back",
+    "recap",
+    "remember",
+    "in this article",
+    "we outline",
+}

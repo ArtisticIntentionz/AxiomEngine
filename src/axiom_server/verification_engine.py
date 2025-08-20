@@ -82,7 +82,10 @@ def verify_citations(fact_to_verify: Fact) -> list[dict[str, str]]:
     citations = []
 
     # Use a simple regex to find all URLs in the fact's text.
-    urls_found = re.findall(r'https?://[^\s<>"\'()]+', fact_to_verify.content)
+    urls_found = re.findall(
+        r"https?://(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,6}(?:/[^\s]*)?",
+        fact_to_verify.content,
+    )
 
     if not urls_found:
         return []

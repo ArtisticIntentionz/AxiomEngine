@@ -12,193 +12,207 @@ from concurrent.futures import (
     as_completed,
 )  # <-- NEW IMPORT
 from typing import Final
+from urllib.parse import urlparse
 
 import feedparser
 
 logger = logging.getLogger(__name__)
 
+BLACKLISTED_DOMAINS: Final[set[str]] = {
+    "www.fodors.com",  # Travel blog/forum
+    "www.lotterypost.com",  # Lottery results/forum
+    "www.nomadicmatt.com",  # Travel blog
+    "georgerrmartin.com",  # Author's personal blog
+    "freakonomics.com",  # Opinion/narrative content
+    "consequence.net",  # Music/entertainment news
+    "pitchfork.com",  # Music reviews
+    "www.brooklynvegan.com",  # Music blog
+    "www.rollingstone.com",  # Entertainment/culture magazine
+    "www.billboard.com",  # Music charts/news
+    "www.spin.com",  # Music magazine
+    "www.stereogum.com",  # Music blog
+    "adventure.com",  # Travel/adventure stories
+    "matadornetwork.com",  # Travel stories
+    "www.roadsandkingdoms.com",  # Travel stories
+    "www.smithsonianmag.com",  # Often contains long-form narrative stories
+    "www.atlasobscura.com",  # Often narrative/story-based
+}
+
 # Your curated and verified list of RSS feeds.
 RSS_FEEDS: Final[tuple[str, ...]] = (
-    # Major Global News
-    "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml",
-    "https://feeds.bbci.co.uk/news/rss.xml",
-    # # "https://www.reutersagency.com/feed/?best-topics=world-news&post_type=best",
-    # "https://web.archive.org/web/20120506093420/https://twitter.com/statuses/user_timeline/2467791.rss",
-    "https://www.theguardian.com/world/rss",
-    "https://www.aljazeera.com/xml/rss/all.xml",
-    "https://www.lemonde.fr/rss/une.xml",
-    "https://www.npr.org/rss/rss.php?id=1001",
-    "https://rss.dw.com/rdf/rss-en-all",
-    "https://foreignpolicy.com/feed/",
-    # --- Other Major Global Sources (for diverse perspectives) ---
-    "https://www.aljazeera.com/xml/rss/all.xml",  # Al Jazeera - All
-    # # "https://www.cbc.ca/rss/world",                        # CBC (Canada) - World News
-    "https://www.abc.net.au/news/feed/51120/rss.xml",  # ABC (Australia) - Top Stories
-    "https://www.spiegel.de/international/index.rss",  # Der Spiegel (Germany) - International
-    "https://www.lemonde.fr/rss/une.xml",  # Le Monde (France) - English Edition
-    "https://www.japantimes.co.jp/feed",  # The Japan Times
-    "https://timesofindia.indiatimes.com/rssfeedstopstories.cms",  # The Times of India
-    # US Focused
-    "https://apnews.my.id/feed",
-    "https://www.latimes.com/index.rss",
-    "https://chicago.suntimes.com/feed/",
+    "http://bismarcktribune.com/search/?f=rss&t=article&l=50&s=start_time&sd=desc&k%5B%5D=%23topstory",
+    "http://channels.feeddigest.com/rss/29291.xml",
+    "http://feeds.feedburner.com/Incatrailinfo",
+    "http://omaha.com/search/?f=rss&t=article&l=50&s=start_time&sd=desc&k%5B%5D=%23topstory",
+    "http://rapidcityjournal.com/search/?f=rss&t=article&l=50&s=start_time&sd=desc&k%5B%5D=%23topstory",
+    "http://richmond.com/search/?f=rss&t=article&l=50&s=start_time&sd=desc&k%5B%5D=%23topstory",
+    "http://trib.com/search/?f=rss&t=article&l=50&s=start_time&sd=desc&k%5B%5D=%23topstory",
+    "http://www.abqjournal.com/search/?f=rss&t=article&c=news&l=50&s=start_time&sd=desc",
+    "http://www.indianadg.net/feed/",
+    "http://www.stltoday.com/search/?f=rss&t=article&l=50&s=start_time&sd=desc&k%5B%5D=%23topstory",
+    "http://www.unionleader.com/search/?f=rss&t=article&c=weather&l=50&s=start_time&sd=desc",
+    "http://www.wvgazettemail.com/search/?f=rss&t=article&c=news&l=50&s=start_time&sd=desc",
+    "http://www.wyopress.org/search/?f=rss&t=article&c=&l=50&s=start_time&sd=desc",
+    "https://adventure.com/feed/",
     "https://api.axios.com/feed/",
-    # "https://www.politico.com/rss/politicopicks.xml",
-    "https://thehill.com/rss/syndicator/19110",
-    "https://www.cbsnews.com/latest/rss/main",
-    "https://feeds.nbcnews.com/nbcnews/public/news",
-    # Technology & Science
-    "https://www.wired.com/feed/rss",
-    "https://www.technologyreview.com/feed/",
-    "https://spectrum.ieee.org/rss/fulltext",
-    "https://www.scientificamerican.com/platform/syndication/rss/",
-    "https://www.nature.com/nature.rss",
-    "https://science.sciencemag.org/rss/current.xml",
-    "https://www.nasa.gov/rss/dyn/breaking_news.rss",
-    "https://www.technologyreview.com/feed/",
+    "https://apnews.my.id/feed",
     "https://arstechnica.com/feed/",
-    "https://techcrunch.com/feed/",
-    # Business & Finance
-    # # "https://www.economist.com/feeds/latest/full.xml",
-    "https://www.ft.com/rss/home/international",
-    "https://www.ft.com/rss/home",
-    "https://www.cnbc.com/id/100003114/device/rss/rss.html",
+    "https://arstechnica.com/science/feed/",
+    "https://billingsgazette.com/feeds",
+    "https://billingsgazette.com/search/?f=rss&t=article&c=news&l=50",
+    "https://bsky.app/profile/did:plc:465tbrqfeduj3lhludc6nbog/rss",
+    "https://bsky.app/profile/did:plc:pzt2hepn3ta77cjehoyec6xn/rss",
+    "https://carnegieendowment.org/rss/solr/feed",
+    "https://chicago.suntimes.com/feed/",
+    "https://consequence.net/feed/",
+    "https://discourse.32bit.cafe/t/useful-rss-feeds/723.rss",
+    "https://elpais.com/rss/elpais/inenglish.xml",
+    "https://feedly.com/new-features/feed.xml",
     "https://feeds.a.dj.com/rss/RSSWorldNews.xml",
-    # Investigative & Specialized
-    "https://www.propublica.org/feeds/propublica/main",
-    # # "https://feeds.revealnews.org/revealnews",
-    "https://www.themarshallproject.org/rss/recent",
-    "https://www.politifact.com/rss/all/",
-    "https://www.icij.org/feed/",
-    # # "https://www.transparency.org/news/feed",
-    # # "https://www.cfr.org/rss/current",
-    "https://www.bellingcat.com/feed/",
-    # Health & Environment
-    "https://www.statnews.com/feed/",
-    "https://www.sciencedaily.com/rss/all.xml",
-    # # "https://www.nih.gov/news-events/news-releases/rss",
-    # # "https://www.who.int/rss-feeds/news-english",
-    "https://www.nationalgeographic.cz/rss/vse.xml",
+    "https://feeds.bbci.co.uk/news/rss.xml",
+    "https://feeds.bbci.co.uk/news/world/rss.xml",
+    "https://feeds.nbcnews.com/nbcnews/public/news",
+    "https://flipboard.com/@IdahoStatesman.rss",
+    "https://foreignpolicy.com/feed/",
+    "https://freakonomics.com/feed/",
+    "https://georgerrmartin.com/notablog/feed/",
     "https://insideclimatenews.org/feed/",
-    # Additional Trusted Sources
+    "https://kuumbareport.com/feed/",
+    "https://lerpr.com/blog/feed/",
+    "https://lifehacker.com/rss",
+    "https://matadornetwork.com/feed/",
+    "https://milwaukeenns.org/feed/",
+    "https://newsloth.com/blog/rss.xml",
+    "https://omaha.com/search/?f=rss&t=article&c=news&l=50",
+    "https://pitchfork.com/feed/feed-news/rss",
+    "https://pulitzercenter.org/rss.xml",
+    "https://reliefweb.int/rss.xml",
+    "https://richmond.com/search/?f=rss&t=article&c=news&l=50",
     "https://rss.csmonitor.com/feeds/all",
-    "https://www.pbs.org/newshour/feeds/rss/headlines",
-    "https://www.afp.com/rss.xml",
+    "https://rss.dw.com/rdf/rss-en-all",
+    "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml",
+    "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
+    "https://science.sciencemag.org/rss/current.xml",
+    "https://spectrum.ieee.org/rss/fulltext",
+    "https://techcrunch.com/feed/",
+    "https://thehill.com/rss/syndicator/19110",
     "https://time.com/feed",
-    # 1 Trusted rss Source from each of the 50 US States
-    # Alabama
+    "https://time.com/feed/",
+    "https://timesofindia.indiatimes.com/rssfeedstopstories.cms",
+    "https://ukradiofeeds.co.uk/feed/",
+    "https://urlscan.io/blog/feed.xml",
+    "https://vtdigger.org/feed/",
+    "https://web.archive.org/web/20110523060846/http://www.dispatch.com/live/static/crt/2_rss_localnews.xml",
+    "https://web.archive.org/web/20120506093420/https://twitter.com/statuses/user_timeline/2467791.rss",
+    "https://www.abc.net.au/news/feed/51120/rss.xml",
+    "https://www.adiario.mx/feed/",
+    "https://www.adn.com/arc/outboundfeeds/rss/",
+    "https://www.afp.com/rss.xml",
     "https://www.al.com/arc/outboundfeeds/rss/?outputType=xml",
-    # Alaska
-    # "https://www.adiario.mx/feed/",
-    # Arizona
-    # # "https://www.azcentral.com/rss/",
-    # Arkansas
-    # # "https://www.arkansasonline.com/feed/",
-    # California
-    "https://www.latimes.com/index.rss",
-    # Colorado
-    "https://www.denverpost.com/feed/",
-    # Connecticut
-    # # "https://www.ctinsider.com/rss/",
-    # Delaware
-    # # "https://www.delawareonline.com/rss/",
-    # Florida
-    # # "https://www.miamiherald.com/latest-news/rss/",
-    # Georgia
-    # # "https://www.ajc.com/rss/",
-    # Hawaii
-    "https://www.staradvertiser.com/feed/",
-    # Idaho
-    # # "https://www.idahostatesman.com/latest-news/rss/",
-    # Illinois
+    "https://www.aljazeera.com/xml/rss/all.xml",
+    "https://www.arkansasonline.com/rss/headlines/",
+    "https://www.asahi.com/rss/asahi/newsheadlines.rdf",
+    "https://www.atlasobscura.com/feeds/latest",
+    "https://www.baltimoresun.com/feed/",
+    "https://www.baltimoresun.com/rss/",
+    "https://www.basementmedicine.org/feed/",
+    "https://www.bellingcat.com/feed/",
+    "https://www.billboard.com/feed/",
+    "https://www.boston.com/feed/",
+    "https://www.brooklynvegan.com/feed/",
+    "https://www.buenosairesherald.com/rss",
+    "https://www.cbsnews.com/latest/rss/main",
     "https://www.chicagotribune.com/rss",
     "https://www.chicagotribune.com/rss.xml",
-    # Indiana
-    # # "https://www.indystar.com/rss/",
-    # Iowa
-    # # "https://www.desmoinesregister.com/rss/",
-    # Kansas
-    # # "https://www.kansas.com/latest-news/rss/",
-    # Kentucky
-    # # "https://www.courier-journal.com/rss/",
-    # Louisiana
-    "http://www.nola.com/news/podcasts/?f=rss&t=article&c=&l=50&s=start_time&sd=desc",
-    # Maine
-    "https://www.pressherald.com/feed/",
-    # Maryland
-    "https://www.baltimoresun.com/feed/",
-    # Massachusetts
-    # # "https://www.bostonglobe.com/rss/",
-    # Michigan
-    # # "https://www.freep.com/rss/",
-    # Minnesota
-    "https://www.startribune.com/rss/",
-    # Mississippi
-    # # "https://www.clarionledger.com/rss/",
-    # Missouri
-    "http://www.stltoday.com/search/?f=rss&t=article&l=50&s=start_time&sd=desc&k%5B%5D=%23topstory",
-    # Montana
-    "https://billingsgazette.com/feeds",
-    # Nebraska
-    # "http://omaha.com/search/?f=rss&t=article&l=50&s=start_time&sd=desc&k%5B%5D=%23topstory",
-    # Nevada
-    # "https://www.youtube.com/feeds/videos.xml?channel_id=UCo30hbSt6D9z2ObnR4Goo0A",
-    # New Hampshire
-    # # "https://www.unionleader.com/rss",
-    # New Jersey
+    "https://www.cnbc.com/id/100003114/device/rss/rss.html",
+    "https://www.cntraveler.com/feed/rss",
+    "https://www.courant.com/feed/",
+    "https://www.cphpost.dk/feed/",
+    "https://www.cra-recycle.org/feed/",
+    "https://www.dallasnewscorporation.com/feed/",
+    "https://www.dawn.com/feeds/world",
+    "https://www.denverpost.com/feed/",
+    "https://www.euractiv.com/feed/",
+    "https://www.euronews.com/rss?format=mrss&level=vertical&name=world",
+    "https://www.fodors.com/community/external.php?type=RSS2",
+    "https://www.france24.com/en/rss",
+    "https://www.ft.com/rss/home",
+    "https://www.ft.com/rss/home/international",
+    "https://www.icij.org/feed/",
+    "https://www.iiss.org/rss",
+    "https://www.independent.co.uk/news/world/rss",
+    "https://www.inforum.com/topics/engagements.rss",
+    "https://www.inoreader.com/blog/feed",
+    "https://www.latimes.com/index.rss",
+    "https://www.latimes.com/world-nation/rss2.0.xml",
+    "https://www.lotterypost.com/rss/topic/144197",
+    "https://www.lowyinstitute.org/publications/rss.xml",
+    "https://www.musicbusinessworldwide.com/feed",
+    "https://www.nasa.gov/rss/dyn/breaking_news.rss",
+    "https://www.nasa.gov/rss/dyn/lg_image_of_the_day.rss",
+    "https://www.nature.com/nature.rss",
     "https://www.nj.com/arc/outboundfeeds/rss/?outputType=xml",
-    # New Mexico
-    "http://www.abqjournal.com/search/?f=rss&t=article&c=news&l=50&s=start_time&sd=desc",
-    # New York
+    "https://www.nomadicmatt.com/travel-blog/feed/",
+    "https://www.npr.org/rss/rss.php?id=1001",
+    "https://www.npr.org/rss/rss.php?id=1004",
+    "https://www.npr.org/rss/rss.php?id=1039",
     "https://www.nytimes.com/svc/collections/v1/publish/www.nytimes.com/section/nyregion/rss.xml",
-    # North Carolina
-    # # "https://www.newsobserver.com/latest-news/rss/",
-    # North Dakota
-    "http://bismarcktribune.com/search/?f=rss&t=article&l=50&s=start_time&sd=desc&k%5B%5D=%23topstory",
-    # Ohio
-    # # "https://www.dispatch.com/arc/outboundfeeds/rss/",
-    # Oklahoma
-    # # "https://www.oklahoman.com/feed/",
-    # Oregon
     "https://www.oregonlive.com/arc/outboundfeeds/rss/",
-    # Pennsylvania
-    # # "https://www.inquirer.com/arc/outboundfeeds/rss/",
-    # Rhode Island
-    # # "https://www.providencejournal.com/arc/outboundfeeds/rss/",
-    # South Carolina
+    "https://www.pbs.org/newshour/feeds/rss/headlines",
+    "https://www.politico.eu/feed/",
+    "https://www.politifact.com/rss/all/",
+    "https://www.postandcourier.com/search/?f=rss&t=article&c=news&l=50",
     "https://www.postandcourier.com/search/?f=rss&t=article&l=50&s=start_time&sd=desc&k%5B%5D=%23topstory",
-    # South Dakota
-    "http://rapidcityjournal.com/search/?f=rss&t=article&l=50&s=start_time&sd=desc&k%5B%5D=%23topstory",
-    # Tennessee
-    # # "https://www.tennessean.com/rss/",
-    # Texas
-    # # "https://www.dallasnews.com/feed/",
-    # Utah
-    "https://www.sltrib.com/arc/outboundfeeds/rss/?outputType=xml",
-    # Vermont
-    "https://vtdigger.org/feed/",
-    # Virginia
-    "http://richmond.com/search/?f=rss&t=article&l=50&s=start_time&sd=desc&k%5B%5D=%23topstory",
-    # Washington
+    "https://www.pressherald.com/feed/",
+    "https://www.pri.org/programs/the-world/feed",
+    "https://www.propublica.org/feeds/propublica/main",
+    "https://www.reviewjournal.com/feed/",
+    "https://www.rfi.fr/en/rss",
+    "https://www.roadsandkingdoms.com/feed",
+    "https://www.rollingstone.com/feed/",
+    "https://www.runnerspace.com/rss.php?t=e&id=42",
+    "https://www.sciencedaily.com/rss/all.xml",
+    "https://www.scientificamerican.com/platform/syndication/rss/",
+    "https://www.scmp.com/rss/91/feed",
     "https://www.seattletimes.com/feed/",
-    # West Virginia
-    "http://www.wvgazettemail.com/search/?f=rss&t=article&c=news&l=50&s=start_time&sd=desc",
-    # Wisconsin
-    # # "https://www.jsonline.com/rss/",
-    # Wyoming
-    "http://trib.com/search/?f=rss&t=article&l=50&s=start_time&sd=desc&k%5B%5D=%23topstory",
+    "https://www.sltrib.com/arc/outboundfeeds/rss/?outputType=xml",
+    "https://www.smh.com.au/rss/world.xml",
+    "https://www.smithsonianmag.com/rss/travel/",
+    "https://www.spiegel.de/international/index.rss",
+    "https://www.spin.com/feed/",
+    "https://www.staradvertiser.com/feed/",
+    "https://www.startribune.com/rss/",
+    "https://www.statnews.com/feed/",
+    "https://www.stereogum.com/category/news/feed/",
+    "https://www.stltoday.com/search/?f=rss&t=article&c=news&l=50",
+    "https://www.straitstimes.com/news/world/rss.xml",
+    "https://www.stripes.com/rss.xml",
+    "https://www.tampabay.com/arc/outboundfeeds/rss/category/news/?outputType=xml",
+    "https://www.technologyreview.com/feed/",
+    "https://www.theadvocate.com/search/?f=rss&t=article&c=news&l=50",
+    "https://www.theage.com.au/rss/world.xml",
+    "https://www.theatlantic.com/feed/channel/news/",
+    "https://www.theguardian.com/world/rss",
+    "https://www.thehindu.com/news/international/feeder/default.rss",
+    "https://www.thelocal.de/feed",
+    "https://www.themarshallproject.org/rss/recent",
+    "https://www.thenewhumanitarian.org/rss.xml",
+    "https://www.theridirectory.com/rssfeed.php",
+    "https://www.travelling-greece.com/feed/",
+    "https://www.un.org/press/en/feed",
+    "https://www.unionleader.com/search/?f=rss&t=article&c=news&l=50",
+    "https://www.voanews.com/api/",
+    "https://www.wired.com/feed/rss",
+    "https://www.wvgazettemail.com/search/?f=rss&t=article&c=news&l=50",
+    "https://www.youtube.com/feeds/videos.xml?channel_id=UCW39zufHfsuGgpLviKh297Q",
+    "https://www.youtube.com/feeds/videos.xml?channel_id=UCo30hbSt6D9z2ObnR4Goo0A",
 )
 
 
 def get_content_from_prioritized_feed(
     max_items: int = 5,
 ) -> list[dict[str, str]]:
-    """Select and processes a single, valid RSS feed to find new content.
-
-    This function is resilient: it shuffles the feeds and tries them one by
-    one until it finds a valid one to process, preventing a single broken
-    feed from stopping a fact-finding cycle.
-    """
+    """Select and processes a single, valid RSS feed to find new content."""
     shuffled_feeds = list(RSS_FEEDS)
     random.shuffle(shuffled_feeds)
 
@@ -207,6 +221,14 @@ def get_content_from_prioritized_feed(
         return []
 
     for feed_url in shuffled_feeds:
+        # --- NEW: Check against the blacklist before processing ---
+        try:
+            domain = urlparse(feed_url).netloc
+            if domain in BLACKLISTED_DOMAINS:
+                logger.debug(f"Skipping blacklisted feed: {feed_url}")
+                continue
+        except Exception:
+            continue
         logger.info(f"Attempting to process feed: {feed_url}")
         try:
             feed = feedparser.parse(feed_url)

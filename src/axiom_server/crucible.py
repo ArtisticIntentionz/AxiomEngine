@@ -16,7 +16,11 @@ from typing import TYPE_CHECKING, Generic, TypeVar
 # Third-party imports for HTML parsing
 from bs4 import BeautifulSoup
 
-from axiom_server.common import NLP_MODEL, SUBJECTIVITY_INDICATORS
+from axiom_server.common import (
+    NARRATIVE_INDICATORS,
+    NLP_MODEL,
+    SUBJECTIVITY_INDICATORS,
+)
 
 # Local application imports
 from axiom_server.ledger import (
@@ -194,6 +198,16 @@ SENTENCE_CHECKS: Pipeline[Span] = Pipeline(
             ),
             "sentence is objective (does not contain subjective wording)",
         ),
+        # --- THIS IS THE NEW CHECK ---
+        Check(
+            lambda sent: not any(
+                # Check for standalone pronouns or phrases
+                token.lemma_.lower() in NARRATIVE_INDICATORS
+                for token in sent
+            ),
+            "sentence is not a personal narrative or story",
+        ),
+        # --- END NEW ---
     ],
 )
 

@@ -1,0 +1,131 @@
+========================================
+      AxiomEngine Fact Analysis Report
+========================================
+Generated on: 2025-08-19T21:22:17.500319
+Total Facts Analyzed: 28
+
+----------------------------------------
+Disputed Facts (0)
+----------------------------------------
+No disputed facts found in the ledger.
+
+----------------------------------------
+Corroborated Facts (0)
+----------------------------------------
+No corroborated facts found. These are facts with a score > 0.
+
+----------------------------------------
+Ingested & Awaiting Corroboration (28)
+----------------------------------------
+
+1. Fact Hash: 056d20f3c647865d287f2e66e9d7a3c351dfb0a1836b4ffc37199c0a225d6bf4
+   Content: today (2/28/2024) duke energy indiana (dei) files their proposed purpa or cogeneration and alternative energy (including solar) with the indiana utility regulatory commission (iurc).
+   Sources: www.indianadg.net
+
+2. Fact Hash: 0c079cde4c39ba460a44a516579334da56e263f8e18cd9df80c8d4e201d777b5
+   Content: raphaël graven, also known as jeanpormanove, was found dead at a residence in contes, a village north of nice, prosecutors said.
+   Sources: www.bbc.com
+
+3. Fact Hash: 1631a47d0d61eb3359dc87405671f3ccc8011d3015c5abefe62f4476a11ef854
+   Content: uk design studios that produce bespoke clothing for grand hotels face complex demands
+   Sources: www.ft.com
+
+4. Fact Hash: 208643f3dd6e462a49327cc4b27e31bccd4cc0db2ab581f45ee0ad3d1ccab152
+   Content: indiana electric utilities have filed new rates for purpa facilities such as cogeneration, solar, wind and hydro.
+   Sources: www.indianadg.net
+
+5. Fact Hash: 2347269a95fbee2d1fea0fbecba0dd297e3e3bff790f735dec39a8b36641945d
+   Content: it comes a day after hamas said it accepted a proposal for a 60-day truce, during which around half of the 50 hostages would be freed.
+   Sources: www.bbc.com
+
+6. Fact Hash: 3ef07b42151b7c7e04f168561782c491998891d3c3ab25e963b777b58063c4cb
+   Content: chamoy, a vibrant and tangy family of sauces and condiments from mexico, is traditionally made with fruit and mild dried chiles.
+   Sources: www.denverpost.com
+
+7. Fact Hash: 50b0e98bd70c7d751cd3c148160a20a873ed4a3715ed96916ebd763ad0510ef2
+   Content: the senate is restoring science funding to normal levels; that may not be enough.
+   Sources: arstechnica.com
+
+8. Fact Hash: 57037fc2316170d8ea1cc981b2b0c23ec19eb505d55c6400d6b9029dd57f1960
+   Content: the 30-day filing is 50722 and can be found here: initial filing dei 2024 proposed purpa rate […]
+   Sources: www.indianadg.net
+
+9. Fact Hash: 6828973da2c1541d12f96031a073a7948102d5d05f2a25a0e52548d678fafd40
+   Content: without enough resources to meet their needs, families of homicide victims say, years later, they’re still struggling to cope.
+   Sources: www.themarshallproject.org
+
+10. Fact Hash: 6ec10b42eec6ab5cb885386a8ee6d92f8f5f3100da77304af8a3c5144b7136e2
+   Content: they’re tricky to catch, but carp anglers swear the reward of 15 pounds of flesh ripping line out of a reel is well worth the effort.
+   Sources: trib.com
+
+11. Fact Hash: 800621b2254953b2b94f2e0768893dc5d83705fd09fb555a13ccea0949df6f6b
+   Content: nature, published online: 19 august 2025; doi:10.1038/d41586-025-02586-8 rat-sized carnivore called the ampurta makes speedy comeback despite unprecedented drought.
+   Sources: www.nature.com
+
+12. Fact Hash: 8f8036b019430174b76054bbb5c4efdacb9920ff4e867084338b8196fe641758
+   Content: the rapids are in talks to sign u.s. men’s national team midfielder paxten aaronson from bundesliga club eintracht frankfurt, a source says.
+   Sources: www.denverpost.com
+
+13. Fact Hash: 919399c3da6b2d6df66b5ec5f62b2d590db2398bc9bc44a4ae7edb25dc0abaed
+   Content: with only two riding horses for company, two modern-day adventurers are on their way west from independence, missouri, along the original oregon trail to the coast.
+   Sources: trib.com
+
+14. Fact Hash: aa4238e930bb9e0a35e5ca6e57d1f817f65134f8799882d0c713884a038674fd
+   Content: _cei south_edg compliance filing_03012023 (1) (2) 45504_aes in_annual rate update compliance filing and submission of updated tariff_022723 (1) 45505_nipsco_compliance filing - updated marginal dg price_03012023 50625 - initial filing (i&m) 45508_dei's annual rate update compliance filing and updated tariff_030823
+   Sources: www.indianadg.net
+
+15. Fact Hash: b9c7cb6e354a2c2e955528d33fa14aec8979d4e94a3536dd4c7674a4fb1f9434
+   Content: nature, published online: 19 august 2025; doi:10.1038/d41586-025-02666-9 include indigenous knowledge systems in climate reports
+   Sources: www.nature.com
+
+16. Fact Hash: bb54c8ad1521221325edb7e7170a9ed55ebfaab1d129797ddc523d9e153e44eb
+   Content: america’s energy workforce added almost 300,000 jobs in 2022 with an increasing percent in clean energy, union employers invest more in diversity and inclusion efforts, and union employers report less difficulty hiring qualified workers washington, d.c.—the u.s. department of energy (doe) today released the 2023 u.s. energy and employment report (useer), a comprehensive study designed to […]
+   Sources: www.indianadg.net
+
+17. Fact Hash: c245c8365c11c9a09c89fed81a5e79355bdfdd4c9d66de1fe06470677cf023cf
+   Content: the e-edition – your digital replica of the newspaper!it’s new and ready for you to read first thing every morning, seven days a week.
+   Sources: trib.com
+
+18. Fact Hash: c77e5783565c5c8c05a762566b3326ffa64d322df4bc0afd042669ecf44cd261
+   Content: ukraine's leader has taken issue with the american map, because of the amount of control it gives russia.
+   Sources: www.bbc.com
+
+19. Fact Hash: c85afb81194fc4e7d88bff855493038c0f10f8df3b4cdaff41254774a1cf5a7c
+   Content: the sunday morning shootout at taste of the city lounge in crown heights happened after a gang-related dispute, the police said.
+   Sources: www.nytimes.com
+
+20. Fact Hash: f20df6016216efd407b31b47598478d2ae3fc16a8a41c73ca0c72cf54240f73e
+   Content: “when you grow up in a culture of violence, that doesn’t just disappear,” writes rashon venable.
+   Sources: www.themarshallproject.org
+
+21. Fact Hash: 1cadb514e6921f7eeec755c5e307082b7e43791eb25b8f4eb2eb55415eab4bfd
+   Content: meetings in alaska and washington were high on pomp and low on breakthroughs, but there were two potentially significant developments.
+   Sources: www.bbc.com
+
+22. Fact Hash: 35ad32f1708e721c77ee214d44b48e757537ee81097f6d4fedcfad58415e2882
+   Content: critics worry the policy will allow for subjective views of what is considered anti-american.
+   Sources: www.denverpost.com
+
+23. Fact Hash: 49bacef938c649b14265e5a37a51c56d61adc2992b5bbfb6970744bf4682b08e
+   Content: binskeep@citact.org cac calls for data center moratorium task force on new “hyperscaler” data centers needed to address enormous costs and risks -call for moratorium informed by shocking findings in cac testimony filed at iurc- indianapolis – citizens action coalition (“cac”) calls […]
+   Sources: www.indianadg.net
+
+24. Fact Hash: 54cee5cf125a7e739d637d0a3bd9ccf01f57968901d76ac3f740c8fa5d23f068
+   Content: the contract, which will award nearly $2 billion to construction firms, funds crucial aspects of the latest phase of the long-awaited subway expansion into east harlem.
+   Sources: www.nytimes.com
+
+25. Fact Hash: 8a622d40899825d877c4d1801a47a69d74e0432027e16d316d03e15e66360506
+   Content: federal reserve chair is under bombardment from trump and battling an insurgency within the central bank
+   Sources: www.ft.com
+
+26. Fact Hash: be46d0b2fedd13ebd1db080a4e206495084765afa129b2b9513d7b32207d0a04
+   Content: cogen-purpa rates table for comparison here are the 2022 purpa rates: 2022 cogen-purpa rates table
+   Sources: www.indianadg.net
+
+27. Fact Hash: c857c1a85a5274d0ce8e62dd2268d1317e99ab8bc122fc02ed1b75dd63410c88
+   Content: visitors have unearthed over 35,000 diamonds at crater of diamonds state park since 1972.
+   Sources: arstechnica.com
+
+28. Fact Hash: e174a6131cd3693ec92673c6fd7a8936ed911c93f993bf8a77ac10d910c7f9f9
+   Content: many people with little or no criminal record have been swept into the administration’s immigration dragnet since january, an analysis of deportation data shows.
+   Sources: www.themarshallproject.org
