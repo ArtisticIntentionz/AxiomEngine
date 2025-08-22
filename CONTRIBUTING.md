@@ -41,7 +41,7 @@ Before you begin, ensure your system has no memory of previous installation atte
 2.  **Close and Re-open Your Terminal:** Your new terminal prompt should now be clean, without a `(base)` prefix.
 3.  **(Optional but Recommended) Purge Old Environments:** If you have any old Axiom environments, destroy them to avoid conflicts.
     ```bash
-    conda env remove -n AxiomFork -y
+    conda env remove -n Axiom -y
     # Add any other old environment names you might have used
     ```
 
@@ -56,8 +56,8 @@ Before you begin, ensure your system has no memory of previous installation atte
 
 2.  **Create and Activate the Conda Environment:**
     ```bash
-    conda create -n AxiomFork python=3.11 -y
-    conda activate AxiomFork
+    conda create -n Axiom python=3.11 -y
+    conda activate Axiom
     ```
     Your terminal prompt will now correctly show `(AxiomFork)`.
 
@@ -67,7 +67,7 @@ This hybrid approach is proven to work reliably. We use Conda for complex, pre-c
 
 1. **Install Heavy Binaries with Conda:**
 
-    ``` conda install -c conda-forge numpy scipy "spacy>=3.7.2,<3.8.0" cryptography beautifulsoup4 -y ```
+    ``` conda install -c conda-forge numpy scipy "spacy>=3.7.2,<3.8.0" cryptography beautifulsoup4 sec_edgar_api-y ```
 2. **Install Pure-Python Libraries with Pip:**
 
     ``` pip install Flask gunicorn requests sqlalchemy pydantic feedparser Flask-Cors ruff mypy pytest pre-commit attrs types-requests ```
@@ -77,14 +77,15 @@ This hybrid approach is proven to work reliably. We use Conda for complex, pre-c
 
 4. **Install the Axiom Project Itself:** This final step makes the axiom_server module available and installs it in an "editable" mode (-e), so your code changes are immediately reflected.
 
-    ``` pip install -e . ```
+    ``` pip install -e ."[test]" ```
 
 **Step 2: One-Time Project Initialization (SSL)**
 The P2P engine requires SSL certificates for secure, encrypted communication between nodes.
 
 **Create the SSL Directory: From the project root (AxiomEngine/):**
-
-    ``` mkdir -p ssl ```
+```
+mkdir -p ssl
+```
 
 **Generate the Certificates:**
 ```
@@ -93,45 +94,31 @@ openssl req -new -x509 -days 3650 -nodes -out ssl/node.crt -keyout ssl/node.key
 (You will be prompted for information. You can press Enter for every question to accept the defaults.)
 
 **Step 3: Launch a Local P2P Network**
-**Your environment is now complete. The Axiom network is a true peer-to-peer mesh. To develop locally, you need to simulate this by running at least two nodes. The first node you launch acts as the initial bootstrap peer (a rendezvous point) for any subsequent nodes.**
 
-**Instructions: Open two separate terminals.** In each one, navigate to your AxiomEngine project directory and activate the Conda environment: conda activate AxiomFork.
+Your environment is now complete. To simplify local development, you can launch a multi-node Axiom test network using the provided script.
 
-**Terminal 1: The First Peer**
+**Instructions:**
 
-This node will start the network. Note the P2P port (5001), as the next node will need it to connect.
+1. From your project root directory, ensure your Conda environment is activated:
+    ```bash
+    conda activate Axiom
+    ```
 
-**Launch the node:**
-```
-python -m axiom_server.node --p2p-port 5001 --api-port 8001
-```
-Observe the logs: You will see it initialize the database, start the API server, and begin listening for P2P connections on port 5001. Keep this terminal running.
-**Stake the bootstrap node:**
-```
-curl -X POST http://127.0.0.1:8001/validator/stake -H "Content-Type: application/json" -d '{"stake_amount": 100}'
-```
+2. Run the node launch script:
+    ```bash
+    ./restart_nodes.sh
+    ```
 
-**Terminal 2: The Second Peer**
-
-This node will join the network by connecting to the first peer.
-
-**Launch the node:** Use different ports for this node and point it to the first peer using the --bootstrap-peer flag.
-```
-python -m axiom_server.node --p2p-port 5002 --api-port 8002 --bootstrap-peer http://127.0.0.1:5001
-```
-Keep this terminal running. and stake this node to make it a sealer using the curl command.
-```
-curl -X POST http://127.0.0.1:8002/validator/stake -H "Content-Type: application/json" -d '{"stake_amount": 100}'
-```
+This script will automatically start 2 Axiom nodes with the correct ports and bootstrap configuration. You will see logs for each node in your terminal, confirming that the local mesh network is running.
 
 **Verifying the Connection**
 
-You have a running local mesh! Look at the logs in both terminals to confirm they are communicating:
+- Check the logs to confirm nodes are communicating and proposing blocks.
+- The script handles staking and peer connections automatically.
+- Cd into factReports and use ``` python fact_reporter.py ``` to get a deep look at the recorded facts to verify quality etc.
+- from the root AxiomEngine use the command ``` python maintain_feeds.py ``` to autofix broken or malformed rss feeds. 
 
-In Terminal 2's logs, you'll see it connecting to 127.0.0.1:5001.
-In Terminal 1's logs, you'll see a message like 127.0.0.1:5002 requested we share peers with them....
-The ultimate test: Wait for one node to propose a block (e.g., It is our turn to propose a block...). A few seconds later, you should see a log in the other node's terminal indicating it received and processed that block proposal.
-You are now ready to develop on a live, local Axiom network!
+You are now ready to develop and test on a live, local Axiom network! **(Any changes made to your local setup will remain in your local environment and will not affect the main repo unles you contribute)**
 
 **Step 4: Branch, Code, and Validate**
 Create a New Branch: Never work directly on the main branch.

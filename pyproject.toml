@@ -51,6 +51,7 @@ dependencies = [
     "scipy",
     "feedparser==6.0.11",
     "ddgs",
+    "sec_edgar_api",
 
     # --- AI & Natural Language Processing ---
     "spacy==3.8.7",
