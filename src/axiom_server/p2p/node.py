@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import select
 import socket as socket_lib
 import ssl
@@ -268,13 +269,58 @@ def _serialize_public_key(key: rsa.RSAPublicKey) -> bytes:
 # the following is taken from https://elc.github.io/python-security/chapters/07_Asymmetric_Encryption.html#rsa-encryption
 
 
-def _generate_key_pair() -> tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
+def _generate_key_pair(
+    seed: str = "axiom_shared_key",
+) -> tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
+    """Generate or load a shared key pair for all nodes to use the same identity."""
+    # Use a shared key file to ensure all nodes have the same key pair
+    shared_key_file = os.path.join(
+        os.path.dirname(__file__), "..", "..", "shared_node_key.pem",
+    )
+
+    # Check if we should use shared keys (for testing/multi-node setup)
+    use_shared_keys = (
+        os.environ.get("AXIOM_SHARED_KEYS", "true").lower() == "true"
+    )
+
+    if use_shared_keys and os.path.exists(shared_key_file):
+        # Load existing shared key
+        try:
+            with open(shared_key_file, "rb") as f:
+                private_key = serialization.load_pem_private_key(
+                    f.read(),
+                    password=None,
+                )
+            public_key = private_key.public_key()
+            logger.info("Loaded shared key pair from file")
+            return private_key, public_key
+        except Exception as e:
+            logger.warning(
+                f"Failed to load shared key: {e}, generating new one",
+            )
+
+    # Generate new key pair
     private_key = rsa.generate_private_key(
         public_exponent=65537,
         key_size=KEY_SIZE,
     )
-
     public_key = private_key.public_key()
+
+    # Save the key if using shared keys
+    if use_shared_keys:
+        try:
+            with open(shared_key_file, "wb") as f:
+                f.write(
+                    private_key.private_bytes(
+                        encoding=serialization.Encoding.PEM,
+                        format=serialization.PrivateFormat.PKCS8,
+                        encryption_algorithm=serialization.NoEncryption(),
+                    ),
+                )
+            logger.info(f"Saved shared key pair to {shared_key_file}")
+        except Exception as e:
+            logger.warning(f"Failed to save shared key: {e}")
+
     return private_key, public_key
 
 
@@ -386,6 +432,12 @@ class Node:
 
         context.load_cert_chain(certfile=NODE_CERT_FILE, keyfile=NODE_KEY_FILE)
         server_socket = Socket(socket_lib.AF_INET, socket_lib.SOCK_STREAM)
+        # Allow quick restart without waiting for TIME_WAIT to expire
+        server_socket.setsockopt(
+            socket_lib.SOL_SOCKET,
+            socket_lib.SO_REUSEADDR,
+            1,
+        )
         server_socket.bind((ip_address, port))
         server_socket.listen(NODE_BACKLOG)
         secure_server_socket = context.wrap_socket(
@@ -798,8 +850,17 @@ class Node:
             message = f"found separator {SEPARATOR!r} in data to send, which is not permitted"
             logger.error(message)
             raise P2PRuntimeError(message)
-
-        link.socket.sendall(data + SEPARATOR)
+        try:
+            link.socket.sendall(data + SEPARATOR)
+        except (OSError, ssl.SSLError) as e:
+            logger.warning(
+                f"{link.fmt_addr()} send failed: {e}; closing link",
+            )
+            link.alive = False
+            try:
+                link.socket.close()
+            except Exception:
+                pass
 
     def _recv(self, link: PeerLink) -> None:
         chunk = link.socket.recv(NODE_CHUNK_SIZE)

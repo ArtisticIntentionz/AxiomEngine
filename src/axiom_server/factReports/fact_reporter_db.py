@@ -1,31 +1,22 @@
-# fact_reporter.py
-import concurrent.futures
+# fact_reporter_db.py - Direct database access version for maximum speed
 import json
 import os
 import sys
 import time
 from collections import defaultdict
 from datetime import datetime
-from typing import Dict, List, Optional, Set
-
-import requests
-
-# --- Configuration ---
-NODE_API_URL = (
-    "http://127.0.0.1:8001"  # The API port of one of your running nodes
-)
-REPORT_FILENAME = "facts_analysis_report.txt"
-
-# Performance tuning
-BATCH_SIZE = 100  # Increased from 20
-MAX_WORKERS = 4  # Parallel workers for API calls
-CACHE_FILE = "fact_cache.json"  # Cache for repeated runs
+from typing import Dict, List
 
 # Make sure we can import server-side helpers
 sys.path.append(
     os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")),
 )
+
+# Direct database imports
 from axiom_server.common import NLP_MODEL
+from axiom_server.ledger import Fact, SessionMaker
+
+REPORT_FILENAME = "facts_analysis_report_db.txt"
 
 # --- Lightweight NLP helpers (aligned with synthesizer.py) ---
 
@@ -53,7 +44,9 @@ def get_main_entities(doc):
 
 def get_fact_doc(fact):
     """Try to reconstruct a spaCy Doc from semantics if present; else parse content."""
-    semantics = fact.get("semantics")
+    semantics = (
+        fact.get("semantics") if isinstance(fact, dict) else fact.semantics
+    )
     if semantics:
         try:
             if isinstance(semantics, str):
@@ -67,7 +60,12 @@ def get_fact_doc(fact):
                 return NLP_MODEL(text)
         except Exception:
             pass
-    return NLP_MODEL(fact.get("content", ""))
+    content = (
+        fact.get("content", "")
+        if isinstance(fact, dict)
+        else (fact.content or "")
+    )
+    return NLP_MODEL(content)
 
 
 def find_related_facts(fact, all_facts, min_shared_entities: int = 1):
@@ -78,7 +76,13 @@ def find_related_facts(fact, all_facts, min_shared_entities: int = 1):
     if not base_entities:
         return related
     for other in all_facts:
-        if other is fact or other.get("hash") == fact.get("hash"):
+        fact_hash = (
+            fact.get("hash", "") if isinstance(fact, dict) else fact.hash
+        )
+        other_hash = (
+            other.get("hash", "") if isinstance(other, dict) else other.hash
+        )
+        if other is fact or other_hash == fact_hash:
             continue
         other_doc = get_fact_doc(other)
         other_entities = get_main_entities(other_doc)
@@ -88,13 +92,18 @@ def find_related_facts(fact, all_facts, min_shared_entities: int = 1):
 
 
 def reason_for_fact(fact, related):
-    if fact.get("disputed"):
+    disputed = (
+        fact.get("disputed") if isinstance(fact, dict) else fact.disputed
+    )
+    score = fact.get("score", 0) if isinstance(fact, dict) else fact.score
+
+    if disputed:
         return (
             f"Contradicted by {len(related)} related fact(s) with overlapping entities."
             if related
             else "Contradicted by at least one related fact."
         )
-    if fact.get("score", 0) > 0:
+    if score > 0:
         return (
             f"Corroborated by {len(related)} related fact(s) with overlapping entities."
             if related
@@ -108,8 +117,12 @@ def related_facts_summary(related, max_items: int = 3) -> str:
         return "None"
     parts = []
     for rf in related[:max_items]:
-        h = rf.get("hash", "N/A")
-        c = rf.get("content", "")
+        h = rf.get("hash", "") if isinstance(rf, dict) else rf.hash
+        c = (
+            rf.get("content", "")
+            if isinstance(rf, dict)
+            else (rf.content or "")
+        )
         snippet = c[:80] + ("..." if len(c) > 80 else "")
         parts.append(f"{h}: {snippet}")
     if len(related) > max_items:
@@ -117,147 +130,35 @@ def related_facts_summary(related, max_items: int = 3) -> str:
     return " | ".join(parts)
 
 
-def load_cache() -> Optional[Dict]:
-    """Load cached fact data if available and recent."""
-    if not os.path.exists(CACHE_FILE):
-        return None
-
-    try:
-        with open(CACHE_FILE) as f:
-            cache = json.load(f)
-
-        # Check if cache is recent (less than 1 hour old)
-        cache_time = cache.get("timestamp", 0)
-        if time.time() - cache_time < 3600:  # 1 hour
-            print(
-                f"  > Using cached data from {datetime.fromtimestamp(cache_time)}",
-            )
-            return cache
-    except Exception:
-        pass
-    return None
-
-
-def save_cache(facts: List[Dict], fact_hashes: Set[str]):
-    """Save fact data to cache for future runs."""
-    try:
-        cache_data = {
-            "timestamp": time.time(),
-            "fact_hashes": list(fact_hashes),
-            "facts": facts,
-        }
-        with open(CACHE_FILE, "w") as f:
-            json.dump(cache_data, f)
-        print(f"  > Cached {len(facts)} facts for future runs")
-    except Exception as e:
-        print(f"  > Warning: Could not save cache: {e}")
-
-
-def get_all_fact_hashes() -> set[str]:
-    """Queries the node for all blocks and extracts all unique fact hashes."""
-    print("Step 1: Fetching all blocks from the blockchain...")
-    try:
-        response = requests.get(
-            f"{NODE_API_URL}/get_blocks?since=-1",
-            timeout=120,
-        )
-        response.raise_for_status()
-        blocks_data = response.json()
-    except requests.RequestException as e:
-        print(
-            f"  [ERROR] Could not connect to the Axiom node at {NODE_API_URL}. Is it running?",
-        )
-        print(f"  Details: {e}")
-        return set()
-
-    all_hashes = set()
-    for block in blocks_data.get("blocks", []):
-        for fact_hash in block.get("fact_hashes", []):
-            if fact_hash:  # Ensure we don't add empty strings
-                all_hashes.add(fact_hash)
-
-    print(
-        f"  > Found {len(all_hashes)} unique fact hashes across {len(blocks_data.get('blocks', []))} blocks.",
-    )
-    return all_hashes
-
-
-def fetch_batch_parallel(batch: List[str]) -> List[Dict]:
-    """Fetch a batch of facts in parallel."""
-    try:
-        payload = {"fact_hashes": batch}
-        response = requests.post(
-            f"{NODE_API_URL}/get_facts_by_hash",
-            json=payload,
-            timeout=180,
-        )
-        response.raise_for_status()
-        facts_data = response.json()
-        return facts_data.get("facts", [])
-    except requests.RequestException as e:
-        print(f"  [ERROR] Batch failed: {e}")
-        return []
-
-
-def get_facts_details_optimized(fact_hashes: set[str]) -> list[dict]:
-    """Optimized fact fetching with parallel processing and caching."""
-    if not fact_hashes:
-        return []
-
-    # Try to load from cache first
-    cache = load_cache()
-    if cache and set(cache.get("fact_hashes", [])) == fact_hashes:
-        print(f"  > Using cached data for {len(cache['facts'])} facts")
-        return cache["facts"]
-
-    print(
-        f"\nStep 2: Fetching full details for {len(fact_hashes)} fact hashes in parallel batches...",
-    )
-
-    all_facts = []
-    hash_list = list(fact_hashes)
-    total_batches = (len(hash_list) + BATCH_SIZE - 1) // BATCH_SIZE
-
+def get_facts_from_database() -> List[Dict]:
+    """Direct database access for maximum speed."""
+    print("Step 1: Loading facts directly from database...")
     start_time = time.time()
 
-    # Process batches in parallel
-    with concurrent.futures.ThreadPoolExecutor(
-        max_workers=MAX_WORKERS,
-    ) as executor:
-        # Create batches
-        batches = [
-            hash_list[i : i + BATCH_SIZE]
-            for i in range(0, len(hash_list), BATCH_SIZE)
-        ]
+    with SessionMaker() as session:
+        # Get all facts with their sources
+        facts = session.query(Fact).all()
 
-        # Submit all batches
-        future_to_batch = {
-            executor.submit(fetch_batch_parallel, batch): i + 1
-            for i, batch in enumerate(batches)
-        }
-
-        # Collect results as they complete
-        for future in concurrent.futures.as_completed(future_to_batch):
-            batch_num = future_to_batch[future]
-            try:
-                batch_facts = future.result()
-                all_facts.extend(batch_facts)
-                elapsed = time.time() - start_time
-                print(
-                    f"  > Completed batch {batch_num}/{total_batches} ({len(batch_facts)} facts) - {elapsed:.1f}s elapsed",
-                )
-            except Exception as e:
-                print(f"  > Batch {batch_num} failed: {e}")
+        # Convert to dict format for compatibility
+        facts_data = []
+        for fact in facts:
+            fact_dict = {
+                "hash": fact.hash,
+                "content": fact.content,
+                "score": fact.score,
+                "disputed": fact.disputed,
+                "semantics": fact.semantics,
+                "sources": [source.domain for source in fact.sources]
+                if fact.sources
+                else [],
+            }
+            facts_data.append(fact_dict)
 
     elapsed = time.time() - start_time
     print(
-        f"  > Successfully retrieved details for {len(all_facts)} total facts in {elapsed:.1f}s",
+        f"  > Loaded {len(facts_data)} facts from database in {elapsed:.1f}s",
     )
-
-    # Save to cache for future runs
-    save_cache(all_facts, fact_hashes)
-
-    return all_facts
+    return facts_data
 
 
 def generate_report_optimized(facts: list[dict]):
@@ -266,7 +167,7 @@ def generate_report_optimized(facts: list[dict]):
         print("\nNo facts to analyze. Report will not be generated.")
         return
 
-    print(f"\nStep 3: Generating report '{REPORT_FILENAME}'...")
+    print(f"\nStep 2: Generating report '{REPORT_FILENAME}'...")
     start_time = time.time()
 
     # Categorize and summarize relationships
@@ -305,7 +206,8 @@ def generate_report_optimized(facts: list[dict]):
         f.write("      AxiomEngine Fact Analysis Report\n")
         f.write("========================================\n")
         f.write(f"Generated on: {datetime.now().isoformat()}\n")
-        f.write(f"Total Facts Analyzed: {len(facts)}\n\n")
+        f.write(f"Total Facts Analyzed: {len(facts)}\n")
+        f.write("Method: Direct Database Access\n\n")
 
         # --- Summary Section ---
         f.write("----------------------------------------\n")
@@ -403,10 +305,16 @@ def main():
     """Main function to run the fact extraction and reporting process."""
     start_time = time.time()
 
-    all_hashes = get_all_fact_hashes()
-    if all_hashes:
-        all_facts = get_facts_details_optimized(all_hashes)
+    try:
+        all_facts = get_facts_from_database()
         generate_report_optimized(all_facts)
+    except Exception as e:
+        print(f"Error accessing database: {e}")
+        print(
+            "Make sure you're running this from the same environment as the Axiom node",
+        )
+        print("and that the database file is accessible.")
+        return
 
     total_time = time.time() - start_time
     print(f"\nTotal execution time: {total_time:.1f}s")

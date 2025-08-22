@@ -22,6 +22,7 @@ from flask_cors import CORS
 from axiom_server import (
     crucible,
     discovery_rss,
+    discovery_sec,
     merkle,
     synthesizer,
     verification_engine,
@@ -39,9 +40,11 @@ from axiom_server.ledger import (
     SessionMaker,
     Source,
     Validator,
+    add_block_from_peer_data,
     create_genesis_block,
     get_latest_block,
     initialize_database,
+    mark_fact_objects_as_disputed,
 )
 from axiom_server.p2p.constants import (
     BOOTSTRAP_IP_ADDR,
@@ -49,7 +52,7 @@ from axiom_server.p2p.constants import (
 )
 from axiom_server.p2p.node import (
     ApplicationData,
-    MessageType,
+    Message,
     Node as P2PBaseNode,
     PeerLink,
 )
@@ -73,6 +76,11 @@ CORROBORATION_THRESHOLD = 2
 SECONDS_PER_SLOT = 12
 VOTING_THRESHOLD = 0.67
 MAX_SEALERS_PER_REGION = 20
+
+# Reward scaling: store fractional stake in integer micro-units to avoid DB migration
+# 1 unit = 1e-7 stake. A cycle reward of 0.0000007 equals 7 units per cycle.
+REWARD_SCALE = 10_000_000  # 1e-7 units
+CYCLE_REWARD = 0.0000007  # stake per discovery cycle
 
 # This lock ensures only one thread can access the database at a time.
 db_lock = threading.Lock()
@@ -119,6 +127,12 @@ class AxiomNode(P2PBaseNode):
             peer_links=temp_p2p.peer_links,
             server_socket=temp_p2p.server_socket,
         )
+
+        logger.info("=" * 60)
+        logger.info("            NODE IDENTITY INITIALIZED")
+        pubkey_hex = self.serialized_public_key.hex()
+        logger.info(f"  Public Key: {pubkey_hex[:16]}...{pubkey_hex[-16:]}")
+        logger.info("=" * 60)
 
         self.peers_lock = threading.Lock()
         self.region = self._get_geo_region()
@@ -211,7 +225,9 @@ class AxiomNode(P2PBaseNode):
         for region_name, validators_in_region in regions.items():
 
             def get_combined_score(validator):
-                total_stake = validator.stake_amount + validator.rewards
+                # Convert rewards from scaled integer units to float stake
+                rewards_as_stake = (validator.rewards or 0) / REWARD_SCALE
+                total_stake = (validator.stake_amount or 0) + rewards_as_stake
                 return total_stake * validator.reputation_score
 
             validators_in_region.sort(key=get_combined_score, reverse=True)
@@ -240,47 +256,76 @@ class AxiomNode(P2PBaseNode):
         return weighted_sealers[idx]
 
     def _handle_block_proposal(self, proposal_data: dict) -> None:
-        if not self.is_validator:
-            return
-
+        """Handles a block proposal from a peer. All nodes validate and add the block
+        to their ledger, but only validators send an attestation.
+        """
         block_data = proposal_data["block"]
         proposer_pubkey = block_data["proposer_pubkey"]
+        block_hash = block_data["hash"]
 
-        # This database block is critical for thread safety
+        # Use a single, locked database session for the whole operation.
         with db_lock, SessionMaker() as session:
+            # Step 1: Validate the block's legitimacy (ALL nodes do this).
             current_slot = int(block_data["timestamp"] / SECONDS_PER_SLOT)
             expected_proposer = self._get_proposer_for_slot(
-                session,
-                current_slot,
+                session, current_slot,
             )
             if proposer_pubkey != expected_proposer:
                 background_thread_logger.warning(
-                    "Received block from wrong proposer.",
+                    f"Rejected block {block_hash[:8]} from wrong proposer. Expected {expected_proposer[:8]}, got {proposer_pubkey[:8]}.",
                 )
                 return
 
             latest_block = get_latest_block(session)
-            if (
-                not latest_block
-                or block_data["height"] != latest_block.height + 1
-            ):
+            if not latest_block:
                 background_thread_logger.warning(
-                    "Received block with invalid height.",
+                    f"Rejected block {block_hash[:8]} - no local blocks found.",
                 )
                 return
 
-            block_hash = block_data["hash"]
-            attestation = {
-                "type": "attestation",
-                "data": {
-                    "block_hash": block_hash,
-                    "voter_pubkey": self.serialized_public_key.hex(),
-                },
-            }
-            self.broadcast_application_message(json.dumps(attestation))
+            expected_height = latest_block.height + 1
+            received_height = block_data["height"]
+
+            # Allow for slight synchronization issues (within 1 block)
+            if abs(received_height - expected_height) > 1:
+                background_thread_logger.warning(
+                    f"Rejected block {block_hash[:8]} with height {received_height}. "
+                    f"Our height is {latest_block.height}, expected {expected_height}. "
+                    f"Height difference too large.",
+                )
+                return
+            if received_height != expected_height:
+                background_thread_logger.info(
+                    f"Accepting block {block_hash[:8]} with height {received_height} "
+                    f"(expected {expected_height}) - minor sync issue.",
+                )
+
+            # Log that we received it *before* adding it.
             background_thread_logger.info(
-                f"Attested to block {block_hash[:8]}",
+                f"Received valid block proposal #{block_data['height']} from peer.",
             )
+
+            # Step 2: Add the valid block to our local ledger (ALL nodes do this).
+            # We need the `add_block_from_peer_data` function from ledger.py for this.
+            add_block_from_peer_data(session, block_data)
+            session.commit()
+            background_thread_logger.info(
+                f"Added Block #{block_data['height']} from peer to local ledger.",
+            )
+
+            # Step 3: If we are a validator, attest to the block (VALIDATORS ONLY).
+            if self.is_validator:
+                attestation = {
+                    "type": "attestation",
+                    "data": {
+                        "block_hash": block_hash,
+                        "voter_pubkey": self.serialized_public_key.hex(),
+                    },
+                }
+                self.broadcast_application_message(json.dumps(attestation))
+                background_thread_logger.info(
+                    f"Attested to block {block_hash[:8]}",
+                )
 
     def _handle_attestation(self, attestation_data: dict) -> None:
         block_hash = attestation_data["block_hash"]
@@ -325,42 +370,37 @@ class AxiomNode(P2PBaseNode):
         """Formats and sends an application-specific message to a single peer.
         This is the definitive, low-level implementation.
         """
-        # --- START MODIFICATION ---
-        # Defensive check: Ensure the link still has an active socket before using it.
-        if not hasattr(link, "sock") or not link.sock:
-            # This can happen in a race condition where the peer disconnected
-            # just before this message was sent. We can safely ignore it.
+        # Ensure the link still has an active socket before using it.
+        if (
+            not hasattr(link, "socket")
+            or link.socket is None
+            or not getattr(link, "alive", True)
+        ):
             return
 
         try:
-            # 1. Package the data correctly for the P2P protocol
-            app_data = ApplicationData(
-                content_type="application/json",
-                data=json.dumps(payload),
-            )
+            # Only send after handshake is complete to avoid confusing the
+            # remote's handshake parser (which expects public key then port).
+            if (
+                link.peer is None
+                or link.peer.public_key is None
+                or link.peer.port is None
+            ):
+                return
 
-            # 2. Manually construct the full message header and body
-            header = MessageType.APPLICATION.value.to_bytes(1, "big")
-            body = app_data.model_dump_json().encode("utf-8")
-            message_to_send = header + body
-
-            # 3. Send the raw bytes DIRECTLY to the peer's socket.
-            link.sock.sendall(message_to_send)
-
-        except OSError as e:
-            # This handles cases where the socket was closed between our check
-            # and the sendall() call (e.g., "Broken pipe").
-            background_thread_logger.warning(
-                f"Could not send to {link.fmt_addr()}, socket error: {e}",
-            )
-            # You might want to trigger a cleanup of this peer link here.
-            link.close()  # Assuming the PeerLink object has a close() method.
-
+            # Build a signed, framed P2P message using the base protocol
+            message = Message.application_data(json.dumps(payload))
+            self._send_message(link, message)
         except Exception as e:
-            background_thread_logger.error(
-                f"FATAL: Could not send application message to {link.fmt_addr()}: {e}",
-                exc_info=True,
+            background_thread_logger.warning(
+                f"Could not send to {link.fmt_addr()}, error: {e}; closing link",
             )
+            try:
+                link.alive = False
+                if hasattr(link, "socket") and link.socket:
+                    link.socket.close()
+            except Exception:
+                pass
 
     def _discovery_loop(self) -> None:
         """A slow, periodic loop for discovering, ingesting, and synthesizing new facts."""
@@ -372,9 +412,17 @@ class AxiomNode(P2PBaseNode):
                 "Discovery cycle started: seeking new information.",
             )
             try:
-                content_list = (
-                    discovery_rss.get_content_from_prioritized_feed()
-                )
+                # --- START OF THE ONLY CHANGE YOU NEED IN THIS FUNCTION ---
+
+                # 1. Gather content from ALL discovery agents
+                rss_content = discovery_rss.get_content_from_prioritized_feed()
+                sec_content = discovery_sec.get_financial_facts_from_edgar()
+
+                # 2. Combine them into one list to be processed
+                content_list = rss_content + sec_content
+
+                # --- END OF CHANGE ---
+
                 if not content_list:
                     background_thread_logger.info(
                         "Discovery cycle: No new content found from feeds.",
@@ -390,8 +438,24 @@ class AxiomNode(P2PBaseNode):
                                 .one_or_none()
                             )
                             if not source:
-                                source = Source(domain=domain)
+                                # --- ADD THIS IF/ELSE BLOCK FOR SOURCE CREDIBILITY ---
+                                if "sec.gov" in domain:
+                                    source = Source(
+                                        domain=domain,
+                                        source_type="primary",
+                                        credibility_score=10.0,
+                                    )
+                                    background_thread_logger.info(
+                                        f"Created new PRIMARY source: {domain} with score 10.0",
+                                    )
+                                else:
+                                    source = Source(
+                                        domain=domain,
+                                        source_type="secondary",
+                                        credibility_score=1.0,
+                                    )
                                 session.add(source)
+                                # --- END OF ADDITION ---
 
                             new_fact_objects = (
                                 crucible.extract_facts_from_text(
@@ -426,6 +490,17 @@ class AxiomNode(P2PBaseNode):
                             )
 
                         session.commit()
+                        # After commit, update the live search index with new facts
+                        try:
+                            with fact_indexer_lock:
+                                if newly_ingested_facts:
+                                    fact_indexer.add_facts(
+                                        newly_ingested_facts,
+                                    )
+                        except Exception as e:
+                            background_thread_logger.warning(
+                                f"Unable to update live index after ingestion: {e}",
+                            )
             except Exception as exc:
                 background_thread_logger.error(
                     f"Error during discovery cycle: {exc}",
@@ -433,19 +508,32 @@ class AxiomNode(P2PBaseNode):
                 )
 
             # --- Step 4: Time-Based Stake ---
-            # The status log is now GONE from here. We only award the time-based stake.
             with db_lock, SessionMaker() as session:
-                if self.is_validator:
-                    validator = session.get(
-                        Validator,
-                        self.serialized_public_key.hex(),
+                pubkey = self.serialized_public_key.hex()
+                validator = session.get(Validator, pubkey)
+                if not validator:
+                    # Auto-activate this node as a validator with zero base stake
+                    validator = Validator(
+                        public_key=pubkey,
+                        region=self.region,
+                        stake_amount=0,
+                        is_active=True,
                     )
-                    if validator:
-                        validator.rewards += 5
-                        background_thread_logger.info(
-                            "Awarded 5 time-based stake for an hour of uptime.",
-                        )
-                        session.commit()
+                    session.add(validator)
+                    background_thread_logger.info(
+                        "Auto-activated validator record for this node (initial stake 0).",
+                    )
+
+                # Award scaled time-based stake units
+                reward_units = int(CYCLE_REWARD * REWARD_SCALE)
+                validator.rewards = (validator.rewards or 0) + reward_units
+                session.commit()
+
+                # Mark local state as validator so proposer logic engages
+                self.is_validator = True
+                background_thread_logger.info(
+                    f"Awarded time-based stake: +{CYCLE_REWARD:.7f}. Total time stake: {(validator.rewards / REWARD_SCALE):.7f}",
+                )
 
             background_thread_logger.info(
                 "Discovery cycle finished. Sleeping for 1 hour.",
@@ -468,15 +556,17 @@ class AxiomNode(P2PBaseNode):
                     current_slot,
                 )
 
-            if (
-                self.is_validator
-                and not self.is_syncing
-                and self.serialized_public_key.hex() == proposer_pubkey
-            ):
-                background_thread_logger.info(
-                    f"It is our turn to propose a block for slot {current_slot}.",
-                )
-                self._propose_block()
+            if self.is_validator and not self.is_syncing:
+                if self.serialized_public_key.hex() == proposer_pubkey:
+                    background_thread_logger.info(
+                        f"It is our turn to propose a block for slot {current_slot}.",
+                    )
+                    self._propose_block()
+                else:
+                    # Reduce noise: only debug if it's not our turn
+                    background_thread_logger.debug(
+                        f"Not proposer for slot {current_slot}.",
+                    )
 
             next_slot_time = (current_slot + 1) * SECONDS_PER_SLOT
             sleep_duration = max(0, next_slot_time - time.time())
@@ -643,12 +733,20 @@ class AxiomNode(P2PBaseNode):
 
             # --- ADD THIS FINAL BLOCK OF CODE ---
             if proposer_validator:
+                rewards_units = proposer_validator.rewards or 0
+                rewards_as_stake = rewards_units / REWARD_SCALE
+                total_effective_stake = (
+                    proposer_validator.stake_amount or 0
+                ) + rewards_as_stake
                 background_thread_logger.info("--- NODE STATUS UPDATE ---")
                 background_thread_logger.info(
                     f"  Initial Stake: {proposer_validator.stake_amount}",
                 )
                 background_thread_logger.info(
-                    f"  Time-Based Stake: {proposer_validator.rewards}",
+                    f"  Time-Based Stake: {rewards_as_stake:.7f} ({rewards_units} units)",
+                )
+                background_thread_logger.info(
+                    f"  Total Effective Stake: {total_effective_stake:.7f}",
                 )
                 background_thread_logger.info(
                     f"  Reputation Score: {proposer_validator.reputation_score:.7f}",
@@ -788,6 +886,37 @@ def handle_chat_query() -> Response | tuple[Response, int]:
 
     # Return the results to the client.
     return jsonify({"results": closest_facts})
+
+
+@app.route("/dao/dispute_fact", methods=["POST"])
+def handle_dispute_fact():
+    data = request.get_json()
+    if not data or "fact1_hash" not in data or "fact2_hash" not in data:
+        return jsonify(
+            {"error": "Request must include 'fact1_hash' and 'fact2_hash'"},
+        ), 400
+
+    with db_lock, SessionMaker() as session:
+        fact1 = (
+            session.query(Fact)
+            .filter(Fact.hash == data["fact1_hash"])
+            .one_or_none()
+        )
+        fact2 = (
+            session.query(Fact)
+            .filter(Fact.hash == data["fact2_hash"])
+            .one_or_none()
+        )
+
+        if not fact1 or not fact2:
+            return jsonify({"error": "One or both facts not found"}), 404
+
+        mark_fact_objects_as_disputed(session, fact1, fact2)
+        session.commit()
+
+    return jsonify(
+        {"status": "success", "message": "Facts have been marked as disputed."},
+    )
 
 
 @app.route("/get_timeline/<topic>", methods=["GET"])
@@ -1132,6 +1261,105 @@ def handle_get_fact_context(fact_hash: str) -> Response | tuple[Response, int]:
                 "related_facts": related_facts_data,
             },
         )
+
+
+@app.route("/explorer/node_stats", methods=["GET"])
+def handle_get_node_stats() -> Response:
+    """Provides detailed statistics for this specific node."""
+    with db_lock, SessionMaker() as session:
+        pubkey = node_instance.serialized_public_key.hex()
+        validator = session.get(Validator, pubkey)
+
+        if not validator:
+            return jsonify(
+                {
+                    "public_key": pubkey,
+                    "is_validator": False,
+                    "region": node_instance.region,
+                },
+            )
+
+        # Count blocks proposed by this validator
+        blocks_proposed_count = (
+            session.query(Block)
+            .filter(Block.proposer_pubkey == pubkey)
+            .count()
+        )
+
+        # In a real system, uptime would be tracked, here we simulate it
+        # This is a placeholder for a real uptime tracking mechanism
+        uptime_percentage = 99.8
+
+        return jsonify(
+            {
+                "public_key": pubkey,
+                "is_validator": True,
+                "region": validator.region,
+                "stake_amount": validator.stake_amount,
+                "reputation_score": validator.reputation_score,
+                "rewards_earned": validator.rewards,
+                "blocks_proposed": blocks_proposed_count,
+                "uptime_percentage": uptime_percentage,
+            },
+        )
+
+
+@app.route("/explorer/network_stats", methods=["GET"])
+def handle_get_network_stats() -> Response:
+    """Provides aggregate statistics for the entire network as seen by this node."""
+    with db_lock, SessionMaker() as session:
+        total_facts = session.query(Fact).count()
+        corroborated_facts = session.query(Fact).filter(Fact.score > 0).count()
+        disputed_facts = (
+            session.query(Fact).filter(Fact.disputed == True).count()
+        )
+        total_validators = (
+            session.query(Validator)
+            .filter(Validator.is_active == True)
+            .count()
+        )
+        latest_block = get_latest_block(session)
+
+        return jsonify(
+            {
+                "current_block_height": latest_block.height
+                if latest_block
+                else 0,
+                "total_facts_grounded": total_facts,
+                "corroborated_facts": corroborated_facts,
+                "disputed_facts": disputed_facts,
+                "active_validators": total_validators,
+            },
+        )
+
+
+@app.route("/explorer/ledger_growth", methods=["GET"])
+def handle_get_ledger_growth() -> Response:
+    """Provides data for charting the growth of facts and blocks over time."""
+    with db_lock, SessionMaker() as session:
+        # Query blocks and their timestamps
+        blocks = (
+            session.query(Block.height, Block.timestamp)
+            .order_by(Block.height)
+            .all()
+        )
+
+        # In a more advanced system, we'd query fact creation dates.
+        # For now, we can approximate fact growth by counting facts per block.
+        fact_growth_data = []
+        total_facts = 0
+        for block in blocks:
+            fact_hashes = json.loads(block.fact_hashes)
+            total_facts += len(fact_hashes)
+            fact_growth_data.append(
+                {
+                    "height": block.height,
+                    "timestamp": block.timestamp,
+                    "total_facts": total_facts,
+                },
+            )
+
+        return jsonify(fact_growth_data)
 
 
 def main() -> None:
