@@ -1,22 +1,25 @@
 # fact_reporter_db.py - Direct database access version for maximum speed
-from datetime import datetime
-from collections import defaultdict
 import json
 import os
 import sys
 import time
-from typing import List, Dict, Set
+from collections import defaultdict
+from datetime import datetime
+from typing import Dict, List
 
 # Make sure we can import server-side helpers
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+sys.path.append(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")),
+)
 
 # Direct database imports
-from axiom_server.ledger import SessionMaker, Fact, Block, Source
 from axiom_server.common import NLP_MODEL
+from axiom_server.ledger import Fact, SessionMaker
 
 REPORT_FILENAME = "facts_analysis_report_db.txt"
 
 # --- Lightweight NLP helpers (aligned with synthesizer.py) ---
+
 
 def classify_fact_type(doc):
     text = doc.text.lower()
@@ -32,12 +35,18 @@ def classify_fact_type(doc):
 
 
 def get_main_entities(doc):
-    return {ent.lemma_.lower() for ent in doc.ents if ent.label_ in ["PERSON", "ORG", "GPE", "EVENT"]}
+    return {
+        ent.lemma_.lower()
+        for ent in doc.ents
+        if ent.label_ in ["PERSON", "ORG", "GPE", "EVENT"]
+    }
 
 
 def get_fact_doc(fact):
     """Try to reconstruct a spaCy Doc from semantics if present; else parse content."""
-    semantics = fact.get("semantics") if isinstance(fact, dict) else fact.semantics
+    semantics = (
+        fact.get("semantics") if isinstance(fact, dict) else fact.semantics
+    )
     if semantics:
         try:
             if isinstance(semantics, str):
@@ -51,7 +60,11 @@ def get_fact_doc(fact):
                 return NLP_MODEL(text)
         except Exception:
             pass
-    content = fact.get("content", "") if isinstance(fact, dict) else (fact.content or "")
+    content = (
+        fact.get("content", "")
+        if isinstance(fact, dict)
+        else (fact.content or "")
+    )
     return NLP_MODEL(content)
 
 
@@ -63,8 +76,12 @@ def find_related_facts(fact, all_facts, min_shared_entities: int = 1):
     if not base_entities:
         return related
     for other in all_facts:
-        fact_hash = fact.get("hash", "") if isinstance(fact, dict) else fact.hash
-        other_hash = other.get("hash", "") if isinstance(other, dict) else other.hash
+        fact_hash = (
+            fact.get("hash", "") if isinstance(fact, dict) else fact.hash
+        )
+        other_hash = (
+            other.get("hash", "") if isinstance(other, dict) else other.hash
+        )
         if other is fact or other_hash == fact_hash:
             continue
         other_doc = get_fact_doc(other)
@@ -75,9 +92,11 @@ def find_related_facts(fact, all_facts, min_shared_entities: int = 1):
 
 
 def reason_for_fact(fact, related):
-    disputed = fact.get("disputed") if isinstance(fact, dict) else fact.disputed
+    disputed = (
+        fact.get("disputed") if isinstance(fact, dict) else fact.disputed
+    )
     score = fact.get("score", 0) if isinstance(fact, dict) else fact.score
-    
+
     if disputed:
         return (
             f"Contradicted by {len(related)} related fact(s) with overlapping entities."
@@ -99,11 +118,15 @@ def related_facts_summary(related, max_items: int = 3) -> str:
     parts = []
     for rf in related[:max_items]:
         h = rf.get("hash", "") if isinstance(rf, dict) else rf.hash
-        c = rf.get("content", "") if isinstance(rf, dict) else (rf.content or "")
+        c = (
+            rf.get("content", "")
+            if isinstance(rf, dict)
+            else (rf.content or "")
+        )
         snippet = c[:80] + ("..." if len(c) > 80 else "")
         parts.append(f"{h}: {snippet}")
     if len(related) > max_items:
-        parts.append(f"(+{len(related)-max_items} more)")
+        parts.append(f"(+{len(related) - max_items} more)")
     return " | ".join(parts)
 
 
@@ -111,26 +134,30 @@ def get_facts_from_database() -> List[Dict]:
     """Direct database access for maximum speed."""
     print("Step 1: Loading facts directly from database...")
     start_time = time.time()
-    
+
     with SessionMaker() as session:
         # Get all facts with their sources
         facts = session.query(Fact).all()
-        
+
         # Convert to dict format for compatibility
         facts_data = []
         for fact in facts:
             fact_dict = {
-                'hash': fact.hash,
-                'content': fact.content,
-                'score': fact.score,
-                'disputed': fact.disputed,
-                'semantics': fact.semantics,
-                'sources': [source.domain for source in fact.sources] if fact.sources else []
+                "hash": fact.hash,
+                "content": fact.content,
+                "score": fact.score,
+                "disputed": fact.disputed,
+                "semantics": fact.semantics,
+                "sources": [source.domain for source in fact.sources]
+                if fact.sources
+                else [],
             }
             facts_data.append(fact_dict)
-    
+
     elapsed = time.time() - start_time
-    print(f"  > Loaded {len(facts_data)} facts from database in {elapsed:.1f}s")
+    print(
+        f"  > Loaded {len(facts_data)} facts from database in {elapsed:.1f}s",
+    )
     return facts_data
 
 
@@ -154,7 +181,7 @@ def generate_report_optimized(facts: list[dict]):
     for i, fact in enumerate(facts):
         if i % 100 == 0:
             print(f"    Processed {i}/{len(facts)} facts...")
-            
+
         if fact.get("disputed"):
             disputed_facts.append(fact)
             relationship_counts["contradiction"] += 1
@@ -186,8 +213,7 @@ def generate_report_optimized(facts: list[dict]):
         f.write("----------------------------------------\n")
         f.write("Summary of Relationships\n")
         f.write("----------------------------------------\n")
-        for rel_type, count in relationship_counts.items():
-            f.write(f"{rel_type.title()}: {count}\n")
+        f.writelines(f"{rel_type.title()}: {count}\n" for rel_type, count in relationship_counts.items())
         f.write("\n")
 
         # --- Disputed Facts Section ---
@@ -203,12 +229,16 @@ def generate_report_optimized(facts: list[dict]):
                 f.write(f"   Sources: {', '.join(fact.get('sources', []))}\n")
                 related = related_map.get(fact.get("hash", ""), [])
                 f.write(f"   Reason: {reason_for_fact(fact, related)}\n")
-                f.write(f"   Related Fact(s): {related_facts_summary(related)}\n")
+                f.write(
+                    f"   Related Fact(s): {related_facts_summary(related)}\n",
+                )
         f.write("\n")
 
         # --- Potential Contradictions Section ---
         f.write("----------------------------------------\n")
-        f.write(f"Potential Contradictions ({len(potential_contradictions)})\n")
+        f.write(
+            f"Potential Contradictions ({len(potential_contradictions)})\n",
+        )
         f.write("----------------------------------------\n")
         if not potential_contradictions:
             f.write("No potential contradictions flagged.\n")
@@ -219,7 +249,9 @@ def generate_report_optimized(facts: list[dict]):
                 f.write(f"   Sources: {', '.join(fact.get('sources', []))}\n")
                 related = related_map.get(fact.get("hash", ""), [])
                 f.write(f"   Reason: {reason_for_fact(fact, related)}\n")
-                f.write(f"   Related Fact(s): {related_facts_summary(related)}\n")
+                f.write(
+                    f"   Related Fact(s): {related_facts_summary(related)}\n",
+                )
         f.write("\n")
 
         # --- Corroborated Facts Section ---
@@ -238,7 +270,9 @@ def generate_report_optimized(facts: list[dict]):
                 f.write(f"   Sources: {', '.join(fact.get('sources', []))}\n")
                 related = related_map.get(fact.get("hash", ""), [])
                 f.write(f"   Reason: {reason_for_fact(fact, related)}\n")
-                f.write(f"   Related Fact(s): {related_facts_summary(related)}\n")
+                f.write(
+                    f"   Related Fact(s): {related_facts_summary(related)}\n",
+                )
         f.write("\n")
 
         # --- Ingested Facts Section ---
@@ -256,26 +290,32 @@ def generate_report_optimized(facts: list[dict]):
                 fact_type = classify_fact_type(doc)
                 main_entities = get_main_entities(doc)
                 f.write(f"   Fact Type: {fact_type}\n")
-                f.write(f"   Main Entities: {', '.join(main_entities) if main_entities else 'None'}\n")
+                f.write(
+                    f"   Main Entities: {', '.join(main_entities) if main_entities else 'None'}\n",
+                )
         f.write("\n")
 
     elapsed = time.time() - start_time
-    print(f"  > Report successfully written to {REPORT_FILENAME} in {elapsed:.1f}s")
+    print(
+        f"  > Report successfully written to {REPORT_FILENAME} in {elapsed:.1f}s",
+    )
 
 
 def main():
     """Main function to run the fact extraction and reporting process."""
     start_time = time.time()
-    
+
     try:
         all_facts = get_facts_from_database()
         generate_report_optimized(all_facts)
     except Exception as e:
         print(f"Error accessing database: {e}")
-        print("Make sure you're running this from the same environment as the Axiom node")
+        print(
+            "Make sure you're running this from the same environment as the Axiom node",
+        )
         print("and that the database file is accessible.")
         return
-    
+
     total_time = time.time() - start_time
     print(f"\nTotal execution time: {total_time:.1f}s")
 

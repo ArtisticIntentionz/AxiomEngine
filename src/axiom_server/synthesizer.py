@@ -5,21 +5,29 @@ from __future__ import annotations
 # Copyright (C) 2025 The Axiom Contributors
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.
-
 import logging
-import re # Add this import for regular expressions
+import re  # Add this import for regular expressions
 import sys
-from typing import TYPE_CHECKING
-from spacy.tokens import Token, Span
-from axiom_server.ledger import Fact, RelationshipType, insert_relationship_object, mark_fact_objects_as_disputed
 from collections import defaultdict
+
+from axiom_server.ledger import (
+    Fact,
+    RelationshipType,
+    insert_relationship_object,
+    mark_fact_objects_as_disputed,
+)
+
 
 # Helper function to find all numbers (digits, decimals, percentages) in a text
 def find_numbers(text: str) -> list[float]:
     """Extracts all integer and floating-point numbers from a string."""
     # This regex finds integers, decimals, and numbers with commas.
     # It will not handle currency symbols, so it's a good starting point.
-    return [float(num.replace(',', '')) for num in re.findall(r'-?\d[\d,]*\.?\d*', text)]
+    return [
+        float(num.replace(",", ""))
+        for num in re.findall(r"-?\d[\d,]*\.?\d*", text)
+    ]
+
 
 # --- Numeric tolerance helper ---
 def numbers_are_close(a: float, b: float, rel_tol=0.05, abs_tol=2.0) -> bool:
@@ -27,6 +35,7 @@ def numbers_are_close(a: float, b: float, rel_tol=0.05, abs_tol=2.0) -> bool:
     if a == 0 or b == 0:
         return abs(a - b) <= abs_tol
     return abs(a - b) <= abs_tol or abs(a - b) / max(abs(a), abs(b)) <= rel_tol
+
 
 # --- Fact type classifier (very simple heuristic) ---
 def classify_fact_type(doc):
@@ -43,10 +52,16 @@ def classify_fact_type(doc):
         return "location"
     return "general"
 
+
 # --- Entity extraction helper ---
 def get_main_entities(doc):
     """Return set of main entities (ORG, PERSON, GPE, EVENT) in lowercase."""
-    return {ent.lemma_.lower() for ent in doc.ents if ent.label_ in ["PERSON", "ORG", "GPE", "EVENT"]}
+    return {
+        ent.lemma_.lower()
+        for ent in doc.ents
+        if ent.label_ in ["PERSON", "ORG", "GPE", "EVENT"]
+    }
+
 
 logger = logging.getLogger("synthesizer")
 stdout_handler = logging.StreamHandler(stream=sys.stdout)
@@ -59,11 +74,11 @@ logger.addHandler(stdout_handler)
 logger.setLevel(logging.INFO)
 logger.propagate = False
 
-SIMILARITY_THRESHOLD = 0.85 
+SIMILARITY_THRESHOLD = 0.85
 
-def get_numeric_entities(doc: "Doc") -> dict[str, float]:
-    """
-    Finds numbers in a document and attempts to identify the noun they describe.
+
+def get_numeric_entities(doc: Doc) -> dict[str, float]:
+    """Finds numbers in a document and attempts to identify the noun they describe.
     Returns a dictionary mapping the noun's lemma to the number.
     Example: "110mph wind" -> {"wind": 110.0}
     """
@@ -75,15 +90,17 @@ def get_numeric_entities(doc: "Doc") -> dict[str, float]:
                 head = ent.root.head
                 if head.pos_ == "NOUN":
                     # Use the lemma for consistency (e.g., "miles" -> "mile")
-                    numeric_entities[head.lemma_] = float(ent.text.replace(',', ''))
+                    numeric_entities[head.lemma_] = float(
+                        ent.text.replace(",", ""),
+                    )
             except (ValueError, AttributeError):
                 continue
     return numeric_entities
 
+
 # --- Improved contradiction check with tolerance, fact type, and explainability ---
 def checkForContradiction(doc1, doc2):
-    """
-    Analyzes two highly similar documents to find specific, high-confidence contradictions.
+    """Analyzes two highly similar documents to find specific, high-confidence contradictions.
     Returns (is_contradiction: bool, is_potential: bool, reason: str)
     """
     contradiction_score = 0
@@ -91,12 +108,16 @@ def checkForContradiction(doc1, doc2):
     # --- 1. Conflicting Numerical Data (with tolerance) ---
     numeric_entities1 = get_numeric_entities(doc1)
     numeric_entities2 = get_numeric_entities(doc2)
-    shared_subjects = set(numeric_entities1.keys()).intersection(set(numeric_entities2.keys()))
+    shared_subjects = set(numeric_entities1.keys()).intersection(
+        set(numeric_entities2.keys()),
+    )
     for subject in shared_subjects:
         n1 = numeric_entities1[subject]
         n2 = numeric_entities2[subject]
         if not numbers_are_close(n1, n2):
-            reasons.append(f"Conflicting numbers for subject '{subject}': {n1} vs {n2}")
+            reasons.append(
+                f"Conflicting numbers for subject '{subject}': {n1} vs {n2}",
+            )
             contradiction_score += 3
     # --- 2. Conflicting Dates/Times for the Same Event (improved) ---
     verbs1 = {token.lemma_.lower() for token in doc1 if token.pos_ == "VERB"}
@@ -110,13 +131,21 @@ def checkForContradiction(doc1, doc2):
             years1 = {d for d in dates1 if any(c.isdigit() for c in d)}
             years2 = {d for d in dates2 if any(c.isdigit() for c in d)}
             if years1 and years2 and not years1.intersection(years2):
-                reasons.append(f"Different years for similar events: {years1} vs {years2}")
+                reasons.append(
+                    f"Different years for similar events: {years1} vs {years2}",
+                )
                 contradiction_score += 2
     # --- 3. Negation Detection (More Precise) ---
     shared_verbs = verbs1.intersection(verbs2)
     for verb in shared_verbs:
-        negated_in_1 = any(tok.dep_ == "neg" and tok.head.lemma_.lower() == verb for tok in doc1)
-        negated_in_2 = any(tok.dep_ == "neg" and tok.head.lemma_.lower() == verb for tok in doc2)
+        negated_in_1 = any(
+            tok.dep_ == "neg" and tok.head.lemma_.lower() == verb
+            for tok in doc1
+        )
+        negated_in_2 = any(
+            tok.dep_ == "neg" and tok.head.lemma_.lower() == verb
+            for tok in doc2
+        )
         if negated_in_1 != negated_in_2:
             reasons.append(f"Negation of shared verb '{verb}'.")
             contradiction_score += 1
@@ -129,13 +158,14 @@ def checkForContradiction(doc1, doc2):
     # --- Final Decision ---
     if contradiction_score >= 3:
         return True, False, "; ".join(reasons)
-    elif contradiction_score == 2:
+    if contradiction_score == 2:
         return False, True, "; ".join(reasons)
     return False, False, "; ".join(reasons)
 
+
 # --- Main linking function with entity pre-filter and explainability ---
 def link_related_facts(
-    session: "Session",
+    session: Session,
     new_facts_batch: list[Fact],
 ) -> None:
     logger.info("beginning Knowledge Graph linking...")
@@ -161,7 +191,10 @@ def link_related_facts(
         compared_facts = set()
         for ent in new_entities:
             for existing_fact in entity_to_facts.get(ent, []):
-                if existing_fact.id == new_fact.id or (new_fact.id, existing_fact.id) in compared_facts:
+                if (
+                    existing_fact.id == new_fact.id
+                    or (new_fact.id, existing_fact.id) in compared_facts
+                ):
                     continue
                 compared_facts.add((new_fact.id, existing_fact.id))
                 existing_semantics = existing_fact.get_semantics()
@@ -169,13 +202,17 @@ def link_related_facts(
                 if not new_doc.has_vector or not existing_doc.has_vector:
                     continue
                 # Priority 1: Check for a high-confidence contradiction.
-                is_contradiction, is_potential, reason = checkForContradiction(new_doc, existing_doc)
+                is_contradiction, is_potential, reason = checkForContradiction(
+                    new_doc, existing_doc,
+                )
                 if is_contradiction:
                     logger.info(f"CONFIRMED CONTRADICTION: {reason}")
-                    mark_fact_objects_as_disputed(session, new_fact, existing_fact)
+                    mark_fact_objects_as_disputed(
+                        session, new_fact, existing_fact,
+                    )
                     disputes_found += 1
                     continue
-                elif is_potential:
+                if is_potential:
                     logger.info(f"POTENTIAL CONTRADICTION: {reason}")
                     # Optionally, store as a soft-flag in a review table or log
                     continue
@@ -187,23 +224,39 @@ def link_related_facts(
                 if similarity > 0.90:
                     correlation_score += 1
                 existing_entities = get_main_entities(existing_doc)
-                shared_entities_count = len(new_entities.intersection(existing_entities))
+                shared_entities_count = len(
+                    new_entities.intersection(existing_entities),
+                )
                 if shared_entities_count > 0:
                     correlation_score += shared_entities_count * 2
-                new_nouns = {token.lemma_.lower() for token in new_doc if token.pos_ == "NOUN" and not token.is_stop}
-                existing_nouns = {token.lemma_.lower() for token in existing_doc if token.pos_ == "NOUN" and not token.is_stop}
-                shared_nouns_count = len(new_nouns.intersection(existing_nouns))
+                new_nouns = {
+                    token.lemma_.lower()
+                    for token in new_doc
+                    if token.pos_ == "NOUN" and not token.is_stop
+                }
+                existing_nouns = {
+                    token.lemma_.lower()
+                    for token in existing_doc
+                    if token.pos_ == "NOUN" and not token.is_stop
+                }
+                shared_nouns_count = len(
+                    new_nouns.intersection(existing_nouns),
+                )
                 if shared_nouns_count > 2:
                     correlation_score += 1
                 CORRELATION_THRESHOLD = 3
                 if correlation_score >= CORRELATION_THRESHOLD:
                     if existing_fact.sources:
-                        source_credibility_weight = max(s.credibility_score for s in existing_fact.sources)
+                        source_credibility_weight = max(
+                            s.credibility_score for s in existing_fact.sources
+                        )
                     else:
                         source_credibility_weight = 1.0
-                    final_weighted_score = correlation_score * int(source_credibility_weight)
+                    final_weighted_score = correlation_score * int(
+                        source_credibility_weight,
+                    )
                     logger.info(
-                        f"Correlation found. Base score: {correlation_score}, Source Weight: {source_credibility_weight}, Final Score: {final_weighted_score} | Reason: shared entities: {new_entities.intersection(existing_entities)}, shared nouns: {shared_nouns_count}, similarity: {similarity:.2f}"
+                        f"Correlation found. Base score: {correlation_score}, Source Weight: {source_credibility_weight}, Final Score: {final_weighted_score} | Reason: shared entities: {new_entities.intersection(existing_entities)}, shared nouns: {shared_nouns_count}, similarity: {similarity:.2f}",
                     )
                     new_fact.score += final_weighted_score
                     existing_fact.score += final_weighted_score
@@ -212,7 +265,7 @@ def link_related_facts(
                         new_fact,
                         existing_fact,
                         final_weighted_score,
-                        RelationshipType.CORRELATION
+                        RelationshipType.CORRELATION,
                     )
                     links_found += 1
     logger.info(

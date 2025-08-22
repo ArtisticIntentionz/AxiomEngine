@@ -27,7 +27,6 @@ from axiom_server.ledger import (
     Fact,
     RelationshipType,
     Semantics,
-    add_fact_object_corroboration,
     insert_relationship_object,
     mark_fact_objects_as_disputed,
 )
@@ -181,10 +180,9 @@ SENTENCE_CHECKS: Pipeline[Span] = Pipeline(
     [
         # --- NEW CHECK 1: Reject anything that still looks like code/markup ---
         Check(
-            lambda sent: '<' not in sent.text and '>' not in sent.text,
+            lambda sent: "<" not in sent.text and ">" not in sent.text,
             "sentence must not contain HTML-like characters",
         ),
-        
         # --- NEW CHECK 2: Reject short, non-informative sentences ---
         Check(
             lambda sent: len(sent.text.split()) >= 7,
@@ -194,14 +192,14 @@ SENTENCE_CHECKS: Pipeline[Span] = Pipeline(
             lambda sent: len(sent.text.split()) <= 100,
             "sentence maximal length (100 words)",
         ),
-
         # --- NEW CHECK 3: Must have at least one verb to be a statement ---
         Check(
             lambda sent: any(token.pos_ == "VERB" for token in sent),
             "sentence must contain a verb",
         ),
         Check(
-            lambda sent: len(sent.ents) > 0 or any(t.pos_ in {"PROPN","NOUN"} for t in sent),
+            lambda sent: len(sent.ents) > 0
+            or any(t.pos_ in {"PROPN", "NOUN"} for t in sent),
             "sentence must contain named entities or salient nouns",
         ),
         Check(
@@ -213,8 +211,7 @@ SENTENCE_CHECKS: Pipeline[Span] = Pipeline(
         ),
         Check(
             lambda sent: not any(
-                token.lemma_.lower() in NARRATIVE_INDICATORS
-                for token in sent
+                token.lemma_.lower() in NARRATIVE_INDICATORS for token in sent
             ),
             "sentence is not a personal narrative",
         ),
@@ -346,15 +343,25 @@ def _entities_match(fact1: Fact, fact2: Fact) -> bool:
     if not doc1 or not doc2:
         return False
     # Compare main entity names (subject or first entity)
-    ents1 = {ent.text.lower() for ent in doc1.ents if ent.label_ in {"ORG", "PERSON", "GPE", "LOC"}}
-    ents2 = {ent.text.lower() for ent in doc2.ents if ent.label_ in {"ORG", "PERSON", "GPE", "LOC"}}
+    ents1 = {
+        ent.text.lower()
+        for ent in doc1.ents
+        if ent.label_ in {"ORG", "PERSON", "GPE", "LOC"}
+    }
+    ents2 = {
+        ent.text.lower()
+        for ent in doc2.ents
+        if ent.label_ in {"ORG", "PERSON", "GPE", "LOC"}
+    }
     # Require at least one strong overlap
     return bool(ents1 & ents2)
 
+
 # --- Relationship inference with entity match and stricter thresholds ---
-def _infer_relationship(fact1: Fact, fact2: Fact) -> tuple[RelationshipType, float, str] | None:
-    """
-    Analyzes two facts and infers their relationship, confidence, and reason.
+def _infer_relationship(
+    fact1: Fact, fact2: Fact,
+) -> tuple[RelationshipType, float, str] | None:
+    """Analyzes two facts and infers their relationship, confidence, and reason.
     Uses a powerful NLI model for logical inference.
     """
     try:
@@ -375,32 +382,67 @@ def _infer_relationship(fact1: Fact, fact2: Fact) -> tuple[RelationshipType, flo
         # --- Decision Logic ---
         # 1. High-Confidence Contradiction (Top Priority)
         # Require very high confidence and entity match
-        if (result1['labels'][0] == 'contradiction' and result1['scores'][0] > 0.98) or \
-           (result2['labels'][0] == 'contradiction' and result2['scores'][0] > 0.98):
-            confidence = max(result1['scores'][0], result2['scores'][0])
-            return RelationshipType.CONTRADICTION, confidence, "strong contradiction (entity match)"
+        if (
+            result1["labels"][0] == "contradiction"
+            and result1["scores"][0] > 0.98
+        ) or (
+            result2["labels"][0] == "contradiction"
+            and result2["scores"][0] > 0.98
+        ):
+            confidence = max(result1["scores"][0], result2["scores"][0])
+            return (
+                RelationshipType.CONTRADICTION,
+                confidence,
+                "strong contradiction (entity match)",
+            )
         # 1b. Potential Contradiction (flag, but don't dispute)
-        if (result1['labels'][0] == 'contradiction' and result1['scores'][0] > 0.92) or \
-           (result2['labels'][0] == 'contradiction' and result2['scores'][0] > 0.92):
-            confidence = max(result1['scores'][0], result2['scores'][0])
-            return RelationshipType.CONTRADICTION, confidence, "potential contradiction (borderline confidence)"
+        if (
+            result1["labels"][0] == "contradiction"
+            and result1["scores"][0] > 0.92
+        ) or (
+            result2["labels"][0] == "contradiction"
+            and result2["scores"][0] > 0.92
+        ):
+            confidence = max(result1["scores"][0], result2["scores"][0])
+            return (
+                RelationshipType.CONTRADICTION,
+                confidence,
+                "potential contradiction (borderline confidence)",
+            )
         # 2. High-Confidence Corroboration (Entailment)
-        if (result1['labels'][0] == 'entailment' and result1['scores'][0] > 0.90) or \
-           (result2['labels'][0] == 'entailment' and result2['scores'][0] > 0.90):
-            confidence = max(result1['scores'][0], result2['scores'][0])
-            return RelationshipType.CORRELATION, confidence, "entailment/corroboration"
+        if (
+            result1["labels"][0] == "entailment"
+            and result1["scores"][0] > 0.90
+        ) or (
+            result2["labels"][0] == "entailment"
+            and result2["scores"][0] > 0.90
+        ):
+            confidence = max(result1["scores"][0], result2["scores"][0])
+            return (
+                RelationshipType.CORRELATION,
+                confidence,
+                "entailment/corroboration",
+            )
         # 3. Chronology Check (if not logically related)
         dates1 = _extract_dates(fact1.content)
         dates2 = _extract_dates(fact2.content)
         if dates1 and dates2 and min(dates1) != min(dates2):
-            return RelationshipType.CHRONOLOGY, 0.75, "chronology (different dates)"
+            return (
+                RelationshipType.CHRONOLOGY,
+                0.75,
+                "chronology (different dates)",
+            )
         # 4. Elaboration Check (Default for highly similar, non-conflicting facts)
-        doc1 = fact1.get_semantics()['doc']
-        doc2 = fact2.get_semantics()['doc']
+        doc1 = fact1.get_semantics()["doc"]
+        doc2 = fact2.get_semantics()["doc"]
         if doc1.has_vector and doc2.has_vector:
             similarity = doc1.similarity(doc2)
             if similarity > 0.85:
-                return RelationshipType.ELABORATION, similarity, "elaboration (high similarity)"
+                return (
+                    RelationshipType.ELABORATION,
+                    similarity,
+                    "elaboration (high similarity)",
+                )
     except Exception as e:
         logger.warning(f"Could not perform NLI check due to error: {e}")
     return None
@@ -409,26 +451,31 @@ def _infer_relationship(fact1: Fact, fact2: Fact) -> tuple[RelationshipType, flo
 @dataclass
 class CrucibleFactAdder:
     """Processes a new fact against the existing knowledge base efficiently."""
+
     session: Session
     fact_indexer: FactIndexer
-    
+
     def add(self, fact: Fact) -> None:
         """Adds and processes a fact against the database and updates the search index."""
         # Use a sub-pipeline for post-ingestion processing
         processing_pipeline = Pipeline(
             "Crucible Fact Processing",
             [
-                Transformation(self._process_relationships, "Find and store relationships"),
+                Transformation(
+                    self._process_relationships, "Find and store relationships",
+                ),
             ],
         )
-        
+
         processed_fact = processing_pipeline.run(fact)
-        
+
         if processed_fact:
             # If processing was successful and the fact wasn't disputed and removed, add it to the index.
             self.fact_indexer.add_fact(processed_fact)
-            logger.info(f"Fact {processed_fact.id} successfully processed and added to search index.")
-        
+            logger.info(
+                f"Fact {processed_fact.id} successfully processed and added to search index.",
+            )
+
         self.session.commit()
 
     def _process_relationships(self, new_fact: Fact) -> Fact | None:
@@ -446,6 +493,7 @@ class CrucibleFactAdder:
             Fact.disputed == False,  # noqa: E712
         )
         from sqlalchemy import or_
+
         entity_filters = [
             Fact.content.ilike(f"%{entity}%") for entity in new_entities
         ]
@@ -460,19 +508,38 @@ class CrucibleFactAdder:
             relationship_type, score, reason = inference
             if relationship_type == RelationshipType.CONTRADICTION:
                 if score > 0.98:
-                    logger.info(f"Contradiction found (strong, entity match) between new fact {new_fact.id} and existing fact {existing_fact.id}: {reason}")
-                    mark_fact_objects_as_disputed(self.session, existing_fact, new_fact)
-                    return None # Signal that this fact should not be indexed
-                else:
-                    logger.info(f"Potential contradiction (not disputed) between new fact {new_fact.id} and existing fact {existing_fact.id}: {reason}")
-                    # Optionally, flag for review or log for future analysis
-                    continue
-            elif relationship_type == RelationshipType.CORRELATION:
-                logger.info(f"Corroboration found between new fact {new_fact.id} and existing fact {existing_fact.id}")
+                    logger.info(
+                        f"Contradiction found (strong, entity match) between new fact {new_fact.id} and existing fact {existing_fact.id}: {reason}",
+                    )
+                    mark_fact_objects_as_disputed(
+                        self.session, existing_fact, new_fact,
+                    )
+                    return None  # Signal that this fact should not be indexed
+                logger.info(
+                    f"Potential contradiction (not disputed) between new fact {new_fact.id} and existing fact {existing_fact.id}: {reason}",
+                )
+                # Optionally, flag for review or log for future analysis
+                continue
+            if relationship_type == RelationshipType.CORRELATION:
+                logger.info(
+                    f"Corroboration found between new fact {new_fact.id} and existing fact {existing_fact.id}",
+                )
                 score_increase = int(score * 5)
                 new_fact.score += score_increase
                 existing_fact.score += score_increase
-                insert_relationship_object(self.session, new_fact, existing_fact, score_increase, relationship_type)
+                insert_relationship_object(
+                    self.session,
+                    new_fact,
+                    existing_fact,
+                    score_increase,
+                    relationship_type,
+                )
             else:
-                insert_relationship_object(self.session, new_fact, existing_fact, int(score * 5), relationship_type)
+                insert_relationship_object(
+                    self.session,
+                    new_fact,
+                    existing_fact,
+                    int(score * 5),
+                    relationship_type,
+                )
         return new_fact

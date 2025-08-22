@@ -16,7 +16,7 @@ The original `fact_reporter.py` was very slow for large ledgers because it:
 
 ### 2. **Larger Batch Sizes**
 - **Before**: 20 facts per batch
-- **After**: 100 facts per batch  
+- **After**: 100 facts per batch
 - **Speedup**: ~5x fewer API calls
 
 ### 3. **Caching System**
@@ -52,7 +52,7 @@ python3 fact_reporter.py
 
 ### For maximum speed (direct database access):
 ```bash
-cd src/axiom_server/factReports  
+cd src/axiom_server/factReports
 python3 fact_reporter_db.py
 ```
 

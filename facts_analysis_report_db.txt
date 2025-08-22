@@ -302,7 +302,7 @@ Corroborated Facts (198)
    Content: donald trump has proposed that the u.s. create a sovereign wealth fund.
    Sources: www.staradvertiser.com
    Reason: Corroborated by 23 related fact(s) with overlapping entities.
-   Related Fact(s): 04de577ec5f2d6ff0b9c2698e1c60c26a90a0770c6f5f306e83701ebd533103a: donald trump's continued attacks on federal reserve chief jerome powell threaten... | 7b341525dade1d1951556d1730968444da11335e64ad1989d65e1be6a6ed6f48: data: pew research center ; chart: axios visuals the number of unauthorized immi... | a51c6e1a63a0f81a1dc3a71d820a7d2f7f98be776d6e97b91ba6b836a0ddfa63: the big picture: leading up to the 2024 election, polls showed increasing suppor... | (+20 more)
+   Related Fact(s): 04de577ec5f2d6ff0b9c2698e1c60c26a90a0770c6f5f306e83701ebd533103a: donald trump's continued attacks on federal reserve chief jerome powell threaten... | 7b341525dade1d1951556d1730968444da11335e64ad1989d65e1be6a6ed6f48: data: pew research center ; chart: axios visuals the number of unauthorized immi... | a51c6e1a63a0f81a1dc3a71d820a7d2f7f98be776d6e97b91ba6b836a0ddfa63: the big picture: leading up to the 2024 election, polls showed increasing support... | (+20 more)
 
 41. Fact Hash: 814fcfb5b6dded143535c1a38e82bbc631fc61cecb2664e648d42bd0be9f0e60
    Score: 24
@@ -421,7 +421,7 @@ Corroborated Facts (198)
    Content: data: pew research center ; chart: axios visuals the number of unauthorized immigrants in the u.s. rose to a record 14 million in 2023, sparked by migration from countries other than mexico, a new pew research center analysis says.
    Sources: www.axios.com
    Reason: Corroborated by 18 related fact(s) with overlapping entities.
-   Related Fact(s): 1591d6df99ca5797fa102ff1bea11322f8134940d0b4e9861fcd734e3668322a: donald trump has proposed that the u.s. create a sovereign wealth fund. | 04de577ec5f2d6ff0b9c2698e1c60c26a90a0770c6f5f306e83701ebd533103a: donald trump's continued attacks on federal reserve chief jerome powell threaten... | a51c6e1a63a0f81a1dc3a71d820a7d2f7f98be776d6e97b91ba6b836a0ddfa63: the big picture: leading up to the 2024 election, polls showed increasing suppor... | (+15 more)
+   Related Fact(s): 1591d6df99ca5797fa102ff1bea11322f8134940d0b4e9861fcd734e3668322a: donald trump has proposed that the u.s. create a sovereign wealth fund. | 04de577ec5f2d6ff0b9c2698e1c60c26a90a0770c6f5f306e83701ebd533103a: donald trump's continued attacks on federal reserve chief jerome powell threaten... | a51c6e1a63a0f81a1dc3a71d820a7d2f7f98be776d6e97b91ba6b836a0ddfa63: the big picture: leading up to the 2024 election, polls showed increasing support... | (+15 more)
 
 58. Fact Hash: dc92862a7efd4d4ce7387073c8ea0383d03b357fec8f002cb937cc7b69992c73
    Score: 4
@@ -505,7 +505,7 @@ Corroborated Facts (198)
    Content: yes, but: those semantics don't matter to the general public since all voters saw was a massive rise in " unauthorized immigrants," mike madrid, a california gop political consultant and frequent trump critic, told axios.
    Sources: www.axios.com
    Reason: Corroborated by 4 related fact(s) with overlapping entities.
-   Related Fact(s): f1d19e350471bed6abbd52e4af453c1cf16501ca850ed0b8873ef58e5a8753a8: why it matters: trump's unrealistic vision of a republican supermajority in the ... | d9606376ddeea951881b452e695e7ca10bd89845637afcff2e8bf1e2d11b468b: officials in a large north texas county decided this week to cut more than 100 e... | b2daef18a6e4aa1ce7c11d048fa63baa56661122721f4627554aedc65892662c: and commissioners prohibited outside organizations from registering voters insid... | (+1 more)
+   Related Fact(s): f1d19e350471bed6abbd52e4af453c1cf16501ca850ed0b8873ef58e5a8753a8: why it matters: trump's unrealistic vision of a republican supermajority in the ... | d9606376ddeea951881b452e695e7ca10bd89845637afcff2e8bf1e2d11b468b: officials in a large north texas county decided this week to cut more than 100 e... | b2daef18a6e4aa1ce7c11d048fa63baa56661122721f4627554aedc65892662c: and commissioners prohibited outside organizations from registering voters inside... | (+1 more)
 
 70. Fact Hash: 1c4e34ae2ad066a3e483899b4e7833087f28548502b3e66d2f178bcd5ba80083
    Score: 34
@@ -855,7 +855,7 @@ Corroborated Facts (198)
    Content: officials in a large north texas county decided this week to cut more than 100 election day polling sites and reduce the number of early voting locations, amid growing concern about gop efforts to limit voting access ahead of next year’s midterm elections.
    Sources: www.propublica.org
    Reason: Corroborated by 4 related fact(s) with overlapping entities.
-   Related Fact(s): f1d19e350471bed6abbd52e4af453c1cf16501ca850ed0b8873ef58e5a8753a8: why it matters: trump's unrealistic vision of a republican supermajority in the ... | 2e3d1630cd0726dc16ddb16cb8c33f2cc3e621d24ce3f775491651030e6ecf8e: yes, but: those semantics don't matter to the general public since all voters sa... | b2daef18a6e4aa1ce7c11d048fa63baa56661122721f4627554aedc65892662c: and commissioners prohibited outside organizations from registering voters insid... | (+1 more)
+   Related Fact(s): f1d19e350471bed6abbd52e4af453c1cf16501ca850ed0b8873ef58e5a8753a8: why it matters: trump's unrealistic vision of a republican supermajority in the ... | 2e3d1630cd0726dc16ddb16cb8c33f2cc3e621d24ce3f775491651030e6ecf8e: yes, but: those semantics don't matter to the general public since all voters sa... | b2daef18a6e4aa1ce7c11d048fa63baa56661122721f4627554aedc65892662c: and commissioners prohibited outside organizations from registering voters inside... | (+1 more)
 
 120. Fact Hash: 789f9eaca45d598d3ea898dfd4a7f595974a9b9aa326926afeed61db8fa005a9
    Score: 15
@@ -1198,7 +1198,7 @@ Corroborated Facts (198)
    Content: in fact, the microsoft plan viewed by propublica makes no reference to the company’s china-based operations or foreign engineers at all.
    Sources: www.propublica.org
    Reason: Corroborated by 21 related fact(s) with overlapping entities.
-   Related Fact(s): b72dce66f4979535b0d3734ea5855b7983c270b0810f4e237bc1c69b3622b24c: microsoft, as a provider of cloud services to the u.s. government, is required t... | c77de3faad99322ec4686c088096ee8d3f12188d023cca5769880afb7d68d203: yet in a 2025 submission to the defense department, the tech giant left out key ... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrang... | (+18 more)
+   Related Fact(s): b72dce66f4979535b0d3734ea5855b7983c270b0810f4e237bc1c69b3622b24c: microsoft, as a provider of cloud services to the u.s. government, is required t... | c77de3faad99322ec4686c088096ee8d3f12188d023cca5769880afb7d68d203: yet in a 2025 submission to the defense department, the tech giant left out key ... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrange... | (+18 more)
 
 169. Fact Hash: 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f
    Score: 168
@@ -1212,7 +1212,7 @@ Corroborated Facts (198)
    Content: the pentagon has been investigating the use of foreign personnel by it contractors in the wake of reporting by propublica last month that exposed microsoft’s practice.
    Sources: www.propublica.org
    Reason: Corroborated by 18 related fact(s) with overlapping entities.
-   Related Fact(s): b72dce66f4979535b0d3734ea5855b7983c270b0810f4e237bc1c69b3622b24c: microsoft, as a provider of cloud services to the u.s. government, is required t... | 1e131c3d60bc33fbd930434bcad6bb2f61886d82baf72b7824c03326e95f109c: in fact, the microsoft plan viewed by propublica makes no reference to the compa... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrang... | (+15 more)
+   Related Fact(s): b72dce66f4979535b0d3734ea5855b7983c270b0810f4e237bc1c69b3622b24c: microsoft, as a provider of cloud services to the u.s. government, is required t... | 1e131c3d60bc33fbd930434bcad6bb2f61886d82baf72b7824c03326e95f109c: in fact, the microsoft plan viewed by propublica makes no reference to the compa... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrange... | (+15 more)
 
 171. Fact Hash: 9bd1e21e83c18ce23fae49a4802f781368816a72bff5f62c178ffd37f4c77d51
    Score: 42
@@ -1226,28 +1226,28 @@ Corroborated Facts (198)
    Content: microsoft’s security plan, dated feb. 28 and submitted to the department’s it agency, distinguishes between personnel who have undergone and passed background screenings to access its azure government cloud platform and those who have not.
    Sources: www.propublica.org
    Reason: Corroborated by 17 related fact(s) with overlapping entities.
-   Related Fact(s): b72dce66f4979535b0d3734ea5855b7983c270b0810f4e237bc1c69b3622b24c: microsoft, as a provider of cloud services to the u.s. government, is required t... | 1e131c3d60bc33fbd930434bcad6bb2f61886d82baf72b7824c03326e95f109c: in fact, the microsoft plan viewed by propublica makes no reference to the compa... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrang... | (+14 more)
+   Related Fact(s): b72dce66f4979535b0d3734ea5855b7983c270b0810f4e237bc1c69b3622b24c: microsoft, as a provider of cloud services to the u.s. government, is required t... | 1e131c3d60bc33fbd930434bcad6bb2f61886d82baf72b7824c03326e95f109c: in fact, the microsoft plan viewed by propublica makes no reference to the compa... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrange... | (+14 more)
 
 173. Fact Hash: c94ca3fe084b15ed99c923108df56ccd73c28aaee4341a2d0c404086689ffba6
    Score: 60
    Content: microsoft has told propublica that escorts “are provided specific training on protecting sensitive data” and preventing harm.
    Sources: www.propublica.org
    Reason: Corroborated by 17 related fact(s) with overlapping entities.
-   Related Fact(s): b72dce66f4979535b0d3734ea5855b7983c270b0810f4e237bc1c69b3622b24c: microsoft, as a provider of cloud services to the u.s. government, is required t... | 1e131c3d60bc33fbd930434bcad6bb2f61886d82baf72b7824c03326e95f109c: in fact, the microsoft plan viewed by propublica makes no reference to the compa... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrang... | (+14 more)
+   Related Fact(s): b72dce66f4979535b0d3734ea5855b7983c270b0810f4e237bc1c69b3622b24c: microsoft, as a provider of cloud services to the u.s. government, is required t... | 1e131c3d60bc33fbd930434bcad6bb2f61886d82baf72b7824c03326e95f109c: in fact, the microsoft plan viewed by propublica makes no reference to the compa... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrange... | (+14 more)
 
 174. Fact Hash: 2f983827078e28e8d4163f3420b98c38d2c6b001e80230d878a9f0c2db3b5327
    Score: 104
    Content: microsoft’s reference to the escort model comes two-thirds of the way into the 125-page document, known as a “system security plan,” in several paragraphs under the heading “escorted access.”
    Sources: www.propublica.org
    Reason: Corroborated by 17 related fact(s) with overlapping entities.
-   Related Fact(s): b72dce66f4979535b0d3734ea5855b7983c270b0810f4e237bc1c69b3622b24c: microsoft, as a provider of cloud services to the u.s. government, is required t... | 1e131c3d60bc33fbd930434bcad6bb2f61886d82baf72b7824c03326e95f109c: in fact, the microsoft plan viewed by propublica makes no reference to the compa... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrang... | (+14 more)
+   Related Fact(s): b72dce66f4979535b0d3734ea5855b7983c270b0810f4e237bc1c69b3622b24c: microsoft, as a provider of cloud services to the u.s. government, is required t... | 1e131c3d60bc33fbd930434bcad6bb2f61886d82baf72b7824c03326e95f109c: in fact, the microsoft plan viewed by propublica makes no reference to the compa... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrange... | (+14 more)
 
 175. Fact Hash: 429373e4c7e6080a5cc564f08deca1cd6691a29da78c12b901a45c301be5625d
    Score: 118
    Content: in interviews with propublica, microsoft has maintained that it disclosed the digital escorting arrangement in the plan, and that the government approved it.
    Sources: www.propublica.org
    Reason: Corroborated by 17 related fact(s) with overlapping entities.
-   Related Fact(s): b72dce66f4979535b0d3734ea5855b7983c270b0810f4e237bc1c69b3622b24c: microsoft, as a provider of cloud services to the u.s. government, is required t... | 1e131c3d60bc33fbd930434bcad6bb2f61886d82baf72b7824c03326e95f109c: in fact, the microsoft plan viewed by propublica makes no reference to the compa... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrang... | (+14 more)
+   Related Fact(s): b72dce66f4979535b0d3734ea5855b7983c270b0810f4e237bc1c69b3622b24c: microsoft, as a provider of cloud services to the u.s. government, is required t... | 1e131c3d60bc33fbd930434bcad6bb2f61886d82baf72b7824c03326e95f109c: in fact, the microsoft plan viewed by propublica makes no reference to the compa... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrange... | (+14 more)
 
 176. Fact Hash: 9ed8f27a0a1a89d68f2e7c74eb37d06926e8d734a3368ba29ce58bc76c5169f1
    Score: 152
@@ -1261,7 +1261,7 @@ Corroborated Facts (198)
    Content: microsoft previously told propublica that its security documentation to the government, going back years, contained similar wording regarding escorts.
    Sources: www.propublica.org
    Reason: Corroborated by 17 related fact(s) with overlapping entities.
-   Related Fact(s): b72dce66f4979535b0d3734ea5855b7983c270b0810f4e237bc1c69b3622b24c: microsoft, as a provider of cloud services to the u.s. government, is required t... | 1e131c3d60bc33fbd930434bcad6bb2f61886d82baf72b7824c03326e95f109c: in fact, the microsoft plan viewed by propublica makes no reference to the compa... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrang... | (+14 more)
+   Related Fact(s): b72dce66f4979535b0d3734ea5855b7983c270b0810f4e237bc1c69b3622b24c: microsoft, as a provider of cloud services to the u.s. government, is required t... | 1e131c3d60bc33fbd930434bcad6bb2f61886d82baf72b7824c03326e95f109c: in fact, the microsoft plan viewed by propublica makes no reference to the compa... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrange... | (+14 more)
 
 178. Fact Hash: 24c73c8390f08a643423462ae2bc082aaa0fd07f6f9a4b4f1bf8529f18eb1df9
    Score: 106
@@ -1296,28 +1296,28 @@ Corroborated Facts (198)
    Content: sen. tom cotton, a republican who chairs the senate select committee on intelligence, wrote to hegseth last month suggesting that the defense department needed to strengthen oversight of its contractors and that current processes “fail to account for the growing chinese threat.”
    Sources: www.propublica.org
    Reason: Corroborated by 6 related fact(s) with overlapping entities.
-   Related Fact(s): c77de3faad99322ec4686c088096ee8d3f12188d023cca5769880afb7d68d203: yet in a 2025 submission to the defense department, the tech giant left out key ... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrang... | 9ed8f27a0a1a89d68f2e7c74eb37d06926e8d734a3368ba29ce58bc76c5169f1: none of the parties involved, including microsoft and the defense department, co... | (+3 more)
+   Related Fact(s): c77de3faad99322ec4686c088096ee8d3f12188d023cca5769880afb7d68d203: yet in a 2025 submission to the defense department, the tech giant left out key ... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrange... | 9ed8f27a0a1a89d68f2e7c74eb37d06926e8d734a3368ba29ce58bc76c5169f1: none of the parties involved, including microsoft and the defense department, co... | (+3 more)
 
 183. Fact Hash: 3a99c054a62822edf782ca1eed948a761d40ec2ef60a446891ebd64b8b081a6e
    Score: 44
    Content: the defense department also has its own guidelines, which include the citizenship requirement for people handling sensitive data.
    Sources: www.propublica.org
    Reason: Corroborated by 6 related fact(s) with overlapping entities.
-   Related Fact(s): c77de3faad99322ec4686c088096ee8d3f12188d023cca5769880afb7d68d203: yet in a 2025 submission to the defense department, the tech giant left out key ... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrang... | 9ed8f27a0a1a89d68f2e7c74eb37d06926e8d734a3368ba29ce58bc76c5169f1: none of the parties involved, including microsoft and the defense department, co... | (+3 more)
+   Related Fact(s): c77de3faad99322ec4686c088096ee8d3f12188d023cca5769880afb7d68d203: yet in a 2025 submission to the defense department, the tech giant left out key ... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrange... | 9ed8f27a0a1a89d68f2e7c74eb37d06926e8d734a3368ba29ce58bc76c5169f1: none of the parties involved, including microsoft and the defense department, co... | (+3 more)
 
 184. Fact Hash: f05c45d9b6a89cad51fd10668abab2a535f530e6c373df90246aed84ae6846bf
    Score: 44
    Content: both fedramp and the defense department rely on “third party assessment organizations” to evaluate whether vendors meet the government’s cloud security requirements.
    Sources: www.propublica.org
    Reason: Corroborated by 6 related fact(s) with overlapping entities.
-   Related Fact(s): c77de3faad99322ec4686c088096ee8d3f12188d023cca5769880afb7d68d203: yet in a 2025 submission to the defense department, the tech giant left out key ... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrang... | 9ed8f27a0a1a89d68f2e7c74eb37d06926e8d734a3368ba29ce58bc76c5169f1: none of the parties involved, including microsoft and the defense department, co... | (+3 more)
+   Related Fact(s): c77de3faad99322ec4686c088096ee8d3f12188d023cca5769880afb7d68d203: yet in a 2025 submission to the defense department, the tech giant left out key ... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrange... | 9ed8f27a0a1a89d68f2e7c74eb37d06926e8d734a3368ba29ce58bc76c5169f1: none of the parties involved, including microsoft and the defense department, co... | (+3 more)
 
 185. Fact Hash: e20ec3b252b5490d33134ad3aee53c05e575772c24032e9098a2d29e0c9f3094
    Score: 118
    Content: microsoft, for example, told propublica that it enlisted a company called kratos to shepherd it through the initial fedramp and defense department authorization processes and to handle annual assessments after winning federal contracts.
    Sources: www.propublica.org
    Reason: Corroborated by 17 related fact(s) with overlapping entities.
-   Related Fact(s): b72dce66f4979535b0d3734ea5855b7983c270b0810f4e237bc1c69b3622b24c: microsoft, as a provider of cloud services to the u.s. government, is required t... | 1e131c3d60bc33fbd930434bcad6bb2f61886d82baf72b7824c03326e95f109c: in fact, the microsoft plan viewed by propublica makes no reference to the compa... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrang... | (+14 more)
+   Related Fact(s): b72dce66f4979535b0d3734ea5855b7983c270b0810f4e237bc1c69b3622b24c: microsoft, as a provider of cloud services to the u.s. government, is required t... | 1e131c3d60bc33fbd930434bcad6bb2f61886d82baf72b7824c03326e95f109c: in fact, the microsoft plan viewed by propublica makes no reference to the compa... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrange... | (+14 more)
 
 186. Fact Hash: ad9fc2cfa061c1a877dd65513fe49a5afc078e4f5c86532e462d9f13e21bca94
    Score: 168
@@ -1331,14 +1331,14 @@ Corroborated Facts (198)
    Content: microsoft told propublica that it has given demonstrations of the escort process to kratos but not directly to federal officials.
    Sources: www.propublica.org
    Reason: Corroborated by 17 related fact(s) with overlapping entities.
-   Related Fact(s): b72dce66f4979535b0d3734ea5855b7983c270b0810f4e237bc1c69b3622b24c: microsoft, as a provider of cloud services to the u.s. government, is required t... | 1e131c3d60bc33fbd930434bcad6bb2f61886d82baf72b7824c03326e95f109c: in fact, the microsoft plan viewed by propublica makes no reference to the compa... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrang... | (+14 more)
+   Related Fact(s): b72dce66f4979535b0d3734ea5855b7983c270b0810f4e237bc1c69b3622b24c: microsoft, as a provider of cloud services to the u.s. government, is required t... | 1e131c3d60bc33fbd930434bcad6bb2f61886d82baf72b7824c03326e95f109c: in fact, the microsoft plan viewed by propublica makes no reference to the compa... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrange... | (+14 more)
 
 188. Fact Hash: 558adf0b0bae7a9118eac00060675b4c76f755575b9c4ff2ec4735a2655ad490
    Score: 116
    Content: a former microsoft employee who worked with kratos through several fedramp accreditations compared microsoft’s role in the process to “leading the witness” to the desired outcome.
    Sources: www.propublica.org
    Reason: Corroborated by 17 related fact(s) with overlapping entities.
-   Related Fact(s): b72dce66f4979535b0d3734ea5855b7983c270b0810f4e237bc1c69b3622b24c: microsoft, as a provider of cloud services to the u.s. government, is required t... | 1e131c3d60bc33fbd930434bcad6bb2f61886d82baf72b7824c03326e95f109c: in fact, the microsoft plan viewed by propublica makes no reference to the compa... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrang... | (+14 more)
+   Related Fact(s): b72dce66f4979535b0d3734ea5855b7983c270b0810f4e237bc1c69b3622b24c: microsoft, as a provider of cloud services to the u.s. government, is required t... | 1e131c3d60bc33fbd930434bcad6bb2f61886d82baf72b7824c03326e95f109c: in fact, the microsoft plan viewed by propublica makes no reference to the compa... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrange... | (+14 more)
 
 189. Fact Hash: d9d137e52d8283f85c17922a33804f390a07df3d827813ca33389c72b5cc0621
    Score: 172
@@ -1352,7 +1352,7 @@ Corroborated Facts (198)
    Content: a spokesperson also did not directly respond to questions about microsoft’s system security plan but in an emailed statement said the information in such plans is considered proprietary.
    Sources: www.propublica.org
    Reason: Corroborated by 17 related fact(s) with overlapping entities.
-   Related Fact(s): b72dce66f4979535b0d3734ea5855b7983c270b0810f4e237bc1c69b3622b24c: microsoft, as a provider of cloud services to the u.s. government, is required t... | 1e131c3d60bc33fbd930434bcad6bb2f61886d82baf72b7824c03326e95f109c: in fact, the microsoft plan viewed by propublica makes no reference to the compa... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrang... | (+14 more)
+   Related Fact(s): b72dce66f4979535b0d3734ea5855b7983c270b0810f4e237bc1c69b3622b24c: microsoft, as a provider of cloud services to the u.s. government, is required t... | 1e131c3d60bc33fbd930434bcad6bb2f61886d82baf72b7824c03326e95f109c: in fact, the microsoft plan viewed by propublica makes no reference to the compa... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrange... | (+14 more)
 
 191. Fact Hash: a4bd508e2f16ace813337292ccfe7b2f869478a1e3d779beda8416c098ac5a1e
    Score: 143
@@ -1415,7 +1415,7 @@ Ingested & Awaiting Corroboration (386)
 ----------------------------------------
 
 1. Fact Hash: d474fa680a79966ceaa39df6133b9d80ca2487de69ddadd99bfc4d835a920a4d
-   Content: threat intelligence webinar: visualize attack chains from threat reports automatically wednesday, august 27th, 8:00am pt shawn jaques on aug 14, 2025 register now security teams are overwhelmed by dense threat reports.
+   Content: threat intelligence webinar: visualize attack chains from threat reports automatically wednesday, august 27th, 8:00am pt shawn jacques on aug 14, 2025 register now security teams are overwhelmed by dense threat reports.
    Sources: feedly.com
    Fact Type: general
    Main Entities: None
@@ -1830,25 +1830,25 @@ Ingested & Awaiting Corroboration (386)
 
 70. Fact Hash: 5494d5e9fa4e7a21111eef45b8d87e30179475a5f16932f30e8270be8bb207e1
    Content: the alaska volcano observatory in march warned of a potentially imminent eruption.
-   Sources: www.adn.com
+   Sources: www.and.com
    Fact Type: location
    Main Entities: alaska
 
 71. Fact Hash: f59a7dfb1e502266cad430674c509c3f5d78baa091ea3514bada6fc35cefdf7a
    Content: on wednesday, the alert level dropped to green, signifying a return to normal conditions.
-   Sources: www.adn.com
+   Sources: www.and.com
    Fact Type: general
    Main Entities: None
 
 72. Fact Hash: 3379aa5ce197f979c7d9b0e10ab87bc34c7f9184e1474ed898b167e9af9606eb
    Content: the company disputed the commission’s initial findings of violations, arguing that the flaring was necessary for safety.
-   Sources: www.adn.com
+   Sources: www.and.com
    Fact Type: general
    Main Entities: None
 
 73. Fact Hash: 5f04c5a7dc7f40e07977c123eea8eb3d14b3459b783f7217a44bc0cd9a59d074
    Content: jacksonville’s trevor lawrence, who signed a massive contract, has struggled with injuries.
-   Sources: www.adn.com
+   Sources: www.and.com
    Fact Type: location
    Main Entities: jacksonville, trevor lawrence
 
@@ -3729,4 +3729,3 @@ Ingested & Awaiting Corroboration (386)
    Sources: www.politifact.com
    Fact Type: general
    Main Entities: None
-

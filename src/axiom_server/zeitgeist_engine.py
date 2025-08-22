@@ -29,9 +29,10 @@ logger.setLevel(logging.INFO)
 logger.propagate = False
 
 
-def normalize_and_count_topics(entities: list[str], similarity_threshold=0.90) -> Counter:
-    """
-    Normalizes a list of entities by grouping semantically similar ones,
+def normalize_and_count_topics(
+    entities: list[str], similarity_threshold=0.90,
+) -> Counter:
+    """Normalizes a list of entities by grouping semantically similar ones,
     then returns a Counter with the aggregated counts.
     (This function is a dependency for the main logic and remains unchanged from Upgrade 2)
     """
@@ -40,7 +41,7 @@ def normalize_and_count_topics(entities: list[str], similarity_threshold=0.90) -
 
     unique_entities = sorted(list(set(entities)))
     entity_docs = {name: NLP_MODEL(name) for name in unique_entities}
-    
+
     merged_topics = {}
     topic_map = {}
 
@@ -51,11 +52,14 @@ def normalize_and_count_topics(entities: list[str], similarity_threshold=0.90) -
         merged_topics[canonical_name] = [canonical_name]
         topic_map[canonical_name] = canonical_name
         doc1 = entity_docs[name1]
-        if not doc1.has_vector: continue
-        for name2 in unique_entities[i+1:]:
-            if name2 in topic_map: continue
+        if not doc1.has_vector:
+            continue
+        for name2 in unique_entities[i + 1 :]:
+            if name2 in topic_map:
+                continue
             doc2 = entity_docs[name2]
-            if not doc2.has_vector: continue
+            if not doc2.has_vector:
+                continue
             if doc1.similarity(doc2) > similarity_threshold:
                 merged_topics[canonical_name].append(name2)
                 topic_map[name2] = canonical_name
@@ -64,13 +68,12 @@ def normalize_and_count_topics(entities: list[str], similarity_threshold=0.90) -
     for entity in entities:
         canonical_form = topic_map.get(entity, entity)
         final_counts[canonical_form] += 1
-    
+
     return final_counts
 
 
 def get_trending_topics(top_n: int = 5) -> dict:
-    """
-    Fetch recent news headlines, analyze them for context, and return a dictionary
+    """Fetch recent news headlines, analyze them for context, and return a dictionary
     of the top trending topics with their associated terms.
     """
     logger.info("Discovering trending topics with context...")
@@ -101,54 +104,73 @@ def get_trending_topics(top_n: int = 5) -> dict:
 
         if not checked_span:
             continue
-            
+
         # --- CONTEXT GATHERING LOGIC ---
-        
+
         # 1. Identify all entities and verbs in the headline
         headline_entities = []
         for ent in checked_span.ents:
             if ent.label_ in ["ORG", "PERSON", "GPE", "EVENT", "PRODUCT"]:
                 headline_entities.append(ent.lemma_.lower())
-        
+
         headline_verbs = [
-            token.lemma_.lower() for token in checked_span 
+            token.lemma_.lower()
+            for token in checked_span
             if token.pos_ == "VERB" and not token.is_stop
         ]
-        
+
         # 2. Add to the context dictionary
         # Each entity in the headline becomes a key, and all other terms become its context.
         for primary_entity in headline_entities:
-            all_primary_entities.append(primary_entity) # For overall trend counting
-            
+            all_primary_entities.append(
+                primary_entity,
+            )  # For overall trend counting
+
             # Associate verbs with this entity
             topic_context[primary_entity]["verbs"].extend(headline_verbs)
-            
+
             # Associate other co-occurring entities
             for other_entity in headline_entities:
                 if primary_entity != other_entity:
-                    topic_context[primary_entity]["entities"].append(other_entity)
+                    topic_context[primary_entity]["entities"].append(
+                        other_entity,
+                    )
 
     if not all_primary_entities:
-        logger.warning("No significant entities found in high-quality headlines.")
+        logger.warning(
+            "No significant entities found in high-quality headlines.",
+        )
         return {}
 
     # --- POST-PROCESSING AND RANKING ---
 
     # 1. Get the top N trending topics after normalization
     normalized_topic_counts = normalize_and_count_topics(all_primary_entities)
-    top_topics = [topic for topic, count in normalized_topic_counts.most_common(top_n)]
+    top_topics = [
+        topic for topic, count in normalized_topic_counts.most_common(top_n)
+    ]
 
     # 2. Build the final, structured result
     zeitgeist_report = {}
     for topic in top_topics:
         # Get the most common associated terms for this topic
-        associated_verbs = [verb for verb, count in Counter(topic_context[topic]["verbs"]).most_common(5)]
-        associated_entities = [entity for entity, count in Counter(topic_context[topic]["entities"]).most_common(5)]
-        
+        associated_verbs = [
+            verb
+            for verb, count in Counter(
+                topic_context[topic]["verbs"],
+            ).most_common(5)
+        ]
+        associated_entities = [
+            entity
+            for entity, count in Counter(
+                topic_context[topic]["entities"],
+            ).most_common(5)
+        ]
+
         zeitgeist_report[topic] = {
             "count": normalized_topic_counts[topic],
             "associated_verbs": associated_verbs,
-            "associated_entities": associated_entities
+            "associated_entities": associated_entities,
         }
 
     logger.info(f"Top trending topics discovered: {zeitgeist_report}")

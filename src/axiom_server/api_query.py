@@ -1,20 +1,23 @@
 """API Query - Find facts from database using scalable hybrid search."""
 
 from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import numpy as np
 from scipy.spatial.distance import cosine
 from sqlalchemy import or_
-from typing import TYPE_CHECKING
 
 from axiom_server.common import NLP_MODEL
 from axiom_server.crucible import TEXT_SANITIZATION
-from axiom_server.ledger import Fact, FactStatus, FactVector
-from axiom_server.nlp_utils import extract_keywords # --- NEW IMPORT ---
+from axiom_server.ledger import Fact, FactStatus
+from axiom_server.nlp_utils import extract_keywords  # --- NEW IMPORT ---
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
 # The old keyword_search_ledger is now obsolete and can be removed.
+
 
 def semantic_search_ledger(
     session: Session,
@@ -23,8 +26,7 @@ def semantic_search_ledger(
     top_n: int = 10,
     similarity_threshold: float = 0.65,
 ) -> list[Fact]:
-    """
-    Performs a scalable, hybrid semantic search on the database.
+    """Performs a scalable, hybrid semantic search on the database.
     1. Pre-filters facts using keywords for performance.
     2. Ranks the filtered candidates by vector similarity.
     3. Filters the final results by status and threshold.
@@ -39,16 +41,16 @@ def semantic_search_ledger(
     # --- Step 1: Hybrid Search Pre-filtering ---
     keywords = extract_keywords(sanitized_term)
     if not keywords:
-        return [] # Can't search without keywords
+        return []  # Can't search without keywords
 
     keyword_filters = [Fact.content.ilike(f"%{key}%") for key in keywords]
-    
+
     # Build the base query to find candidate facts
     candidate_query = (
         session.query(Fact)
-        .join(Fact.vector_data) # Ensure we only get facts that have a vector
+        .join(Fact.vector_data)  # Ensure we only get facts that have a vector
         .filter(or_(*keyword_filters))
-        .filter(Fact.disputed == False) # noqa: E712
+        .filter(Fact.disputed == False)  # noqa: E712
     )
 
     # Pre-fetch candidate facts and their vectors from the database in one efficient query
@@ -63,7 +65,7 @@ def semantic_search_ledger(
     for fact in candidate_facts:
         # The fact's vector is already loaded due to the join and relationship
         db_vector = np.frombuffer(fact.vector_data.vector, dtype=np.float32)
-        
+
         if query_vector.shape != db_vector.shape:
             continue
 
@@ -74,25 +76,35 @@ def semantic_search_ledger(
 
     # Sort the candidates by similarity score
     scored_facts.sort(key=lambda x: x[0], reverse=True)
-    
+
     # --- Step 3: Final Filtering by Status and top_n ---
-    
+
     # Get the top N facts after similarity ranking
     top_ranked_facts = [fact for _, fact in scored_facts[:top_n]]
 
     try:
-        status_hierarchy = ("ingested", "proposed", "corroborated", "empirically_verified")
+        status_hierarchy = (
+            "ingested",
+            "proposed",
+            "corroborated",
+            "empirically_verified",
+        )
         min_status_index = status_hierarchy.index(min_status.lower())
-        
+
         # Get all valid statuses from the enum that are at or above the minimum required level
         valid_statuses = {
-            s for i, s_name in enumerate(status_hierarchy) if i >= min_status_index
-            for s in FactStatus if s.value == s_name
+            s
+            for i, s_name in enumerate(status_hierarchy)
+            if i >= min_status_index
+            for s in FactStatus
+            if s.value == s_name
         }
 
         # Filter the top N ranked facts by our desired quality level
-        final_results = [fact for fact in top_ranked_facts if fact.status in valid_statuses]
+        final_results = [
+            fact for fact in top_ranked_facts if fact.status in valid_statuses
+        ]
         return final_results
-    
+
     except (ValueError, IndexError):
-        return [] # Return empty if an invalid status is requested
+        return []  # Return empty if an invalid status is requested

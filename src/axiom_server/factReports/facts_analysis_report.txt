@@ -189,7 +189,7 @@ Corroborated Facts (198)
    Content: sen. tom cotton, a republican who chairs the senate select committee on intelligence, wrote to hegseth last month suggesting that the defense department needed to strengthen oversight of its contractors and that current processes “fail to account for the growing chinese threat.”
    Sources: www.propublica.org
    Reason: Corroborated by 6 related fact(s) with overlapping entities.
-   Related Fact(s): f05c45d9b6a89cad51fd10668abab2a535f530e6c373df90246aed84ae6846bf: both fedramp and the defense department rely on “third party assessment organiza... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrang... | 9ed8f27a0a1a89d68f2e7c74eb37d06926e8d734a3368ba29ce58bc76c5169f1: none of the parties involved, including microsoft and the defense department, co... | (+3 more)
+   Related Fact(s): f05c45d9b6a89cad51fd10668abab2a535f530e6c373df90246aed84ae6846bf: both fedramp and the defense department rely on “third party assessment organiza... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrange... | 9ed8f27a0a1a89d68f2e7c74eb37d06926e8d734a3368ba29ce58bc76c5169f1: none of the parties involved, including microsoft and the defense department, co... | (+3 more)
 
 25. Fact Hash: e116f7f8d1e5cbfed56273af51d0a446e19a9c966873b9eddb12309241efc47e
    Score: 132
@@ -217,14 +217,14 @@ Corroborated Facts (198)
    Content: both fedramp and the defense department rely on “third party assessment organizations” to evaluate whether vendors meet the government’s cloud security requirements.
    Sources: www.propublica.org
    Reason: Corroborated by 6 related fact(s) with overlapping entities.
-   Related Fact(s): c91e065876c958c11d07be12df00afc90da4dbc9908aaa7419e602ea61abfba9: sen. tom cotton, a republican who chairs the senate select committee on intellig... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrang... | 9ed8f27a0a1a89d68f2e7c74eb37d06926e8d734a3368ba29ce58bc76c5169f1: none of the parties involved, including microsoft and the defense department, co... | (+3 more)
+   Related Fact(s): c91e065876c958c11d07be12df00afc90da4dbc9908aaa7419e602ea61abfba9: sen. tom cotton, a republican who chairs the senate select committee on intellig... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrange... | 9ed8f27a0a1a89d68f2e7c74eb37d06926e8d734a3368ba29ce58bc76c5169f1: none of the parties involved, including microsoft and the defense department, co... | (+3 more)
 
 29. Fact Hash: f1d19e350471bed6abbd52e4af453c1cf16501ca850ed0b8873ef58e5a8753a8
    Score: 33
    Content: why it matters: trump's unrealistic vision of a republican supermajority in the house relies on a combination of gop-led states redistricting out democrats and ending mail-in balloting nationwide.
    Sources: www.axios.com
    Reason: Corroborated by 9 related fact(s) with overlapping entities.
-   Related Fact(s): ea0f03c4b91f1a0cb64a8cd3150d2eb5e77bb361a4c664a7a567c3bf771c3c15: some had been awarded to universities the administration is now targeting, while... | b2daef18a6e4aa1ce7c11d048fa63baa56661122721f4627554aedc65892662c: and commissioners prohibited outside organizations from registering voters insid... | d9606376ddeea951881b452e695e7ca10bd89845637afcff2e8bf1e2d11b468b: officials in a large north texas county decided this week to cut more than 100 e... | (+6 more)
+   Related Fact(s): ea0f03c4b91f1a0cb64a8cd3150d2eb5e77bb361a4c664a7a567c3bf771c3c15: some had been awarded to universities the administration is now targeting, while... | b2daef18a6e4aa1ce7c11d048fa63baa56661122721f4627554aedc65892662c: and commissioners prohibited outside organizations from registering voters inside... | d9606376ddeea951881b452e695e7ca10bd89845637afcff2e8bf1e2d11b468b: officials in a large north texas county decided this week to cut more than 100 e... | (+6 more)
 
 30. Fact Hash: 07be8da0930d12dbee25613df80850c6d2007d0faa9f2c2f75e335a63159c634
    Score: 8
@@ -406,7 +406,7 @@ Corroborated Facts (198)
    Content: officials in a large north texas county decided this week to cut more than 100 election day polling sites and reduce the number of early voting locations, amid growing concern about gop efforts to limit voting access ahead of next year’s midterm elections.
    Sources: www.propublica.org
    Reason: Corroborated by 4 related fact(s) with overlapping entities.
-   Related Fact(s): f1d19e350471bed6abbd52e4af453c1cf16501ca850ed0b8873ef58e5a8753a8: why it matters: trump's unrealistic vision of a republican supermajority in the ... | b2daef18a6e4aa1ce7c11d048fa63baa56661122721f4627554aedc65892662c: and commissioners prohibited outside organizations from registering voters insid... | 673b04b09ac84af501392a6f3c6b0624655d209b7bae4cb9e0c1fd95f6df16cd: on wednesday, the gop-led texas house took an initial vote adopting a new map de... | (+1 more)
+   Related Fact(s): f1d19e350471bed6abbd52e4af453c1cf16501ca850ed0b8873ef58e5a8753a8: why it matters: trump's unrealistic vision of a republican supermajority in the ... | b2daef18a6e4aa1ce7c11d048fa63baa56661122721f4627554aedc65892662c: and commissioners prohibited outside organizations from registering voters inside... | 673b04b09ac84af501392a6f3c6b0624655d209b7bae4cb9e0c1fd95f6df16cd: on wednesday, the gop-led texas house took an initial vote adopting a new map de... | (+1 more)
 
 56. Fact Hash: e20ec3b252b5490d33134ad3aee53c05e575772c24032e9098a2d29e0c9f3094
    Score: 118
@@ -994,7 +994,7 @@ Corroborated Facts (198)
    Content: the defense department also has its own guidelines, which include the citizenship requirement for people handling sensitive data.
    Sources: www.propublica.org
    Reason: Corroborated by 6 related fact(s) with overlapping entities.
-   Related Fact(s): c91e065876c958c11d07be12df00afc90da4dbc9908aaa7419e602ea61abfba9: sen. tom cotton, a republican who chairs the senate select committee on intellig... | f05c45d9b6a89cad51fd10668abab2a535f530e6c373df90246aed84ae6846bf: both fedramp and the defense department rely on “third party assessment organiza... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrang... | (+3 more)
+   Related Fact(s): c91e065876c958c11d07be12df00afc90da4dbc9908aaa7419e602ea61abfba9: sen. tom cotton, a republican who chairs the senate select committee on intellig... | f05c45d9b6a89cad51fd10668abab2a535f530e6c373df90246aed84ae6846bf: both fedramp and the defense department rely on “third party assessment organiza... | 27c650a54fec8210d2bcaba1b2b4cc86a544430e18b8869131e9a8dcd4960c3f: the document belies microsoft’s repeated assertions that it disclosed the arrange... | (+3 more)
 
 140. Fact Hash: 40d09f7d0e15010f479749043b09c5fe4e46e1bbedf33f71e706d6f578a30bc7
    Score: 80
@@ -1169,7 +1169,7 @@ Corroborated Facts (198)
    Content: yes, but: those semantics don't matter to the general public since all voters saw was a massive rise in " unauthorized immigrants," mike madrid, a california gop political consultant and frequent trump critic, told axios.
    Sources: www.axios.com
    Reason: Corroborated by 4 related fact(s) with overlapping entities.
-   Related Fact(s): f1d19e350471bed6abbd52e4af453c1cf16501ca850ed0b8873ef58e5a8753a8: why it matters: trump's unrealistic vision of a republican supermajority in the ... | b2daef18a6e4aa1ce7c11d048fa63baa56661122721f4627554aedc65892662c: and commissioners prohibited outside organizations from registering voters insid... | d9606376ddeea951881b452e695e7ca10bd89845637afcff2e8bf1e2d11b468b: officials in a large north texas county decided this week to cut more than 100 e... | (+1 more)
+   Related Fact(s): f1d19e350471bed6abbd52e4af453c1cf16501ca850ed0b8873ef58e5a8753a8: why it matters: trump's unrealistic vision of a republican supermajority in the ... | b2daef18a6e4aa1ce7c11d048fa63baa56661122721f4627554aedc65892662c: and commissioners prohibited outside organizations from registering voters inside... | d9606376ddeea951881b452e695e7ca10bd89845637afcff2e8bf1e2d11b468b: officials in a large north texas county decided this week to cut more than 100 e... | (+1 more)
 
 165. Fact Hash: 3336f99ac416d396764902a504a51b4e4d0f68ed6f8d5793a166bb320a959d07
    Score: 26
@@ -1535,7 +1535,7 @@ Ingested & Awaiting Corroboration (386)
 
 21. Fact Hash: 5494d5e9fa4e7a21111eef45b8d87e30179475a5f16932f30e8270be8bb207e1
    Content: the alaska volcano observatory in march warned of a potentially imminent eruption.
-   Sources: www.adn.com
+   Sources: www.and.com
    Fact Type: location
    Main Entities: alaska
 
@@ -1901,7 +1901,7 @@ Ingested & Awaiting Corroboration (386)
 
 82. Fact Hash: 3379aa5ce197f979c7d9b0e10ab87bc34c7f9184e1474ed898b167e9af9606eb
    Content: the company disputed the commission’s initial findings of violations, arguing that the flaring was necessary for safety.
-   Sources: www.adn.com
+   Sources: www.and.com
    Fact Type: general
    Main Entities: None
 
@@ -2134,7 +2134,7 @@ Ingested & Awaiting Corroboration (386)
    Main Entities: white house
 
 121. Fact Hash: d474fa680a79966ceaa39df6133b9d80ca2487de69ddadd99bfc4d835a920a4d
-   Content: threat intelligence webinar: visualize attack chains from threat reports automatically wednesday, august 27th, 8:00am pt shawn jaques on aug 14, 2025 register now security teams are overwhelmed by dense threat reports.
+   Content: threat intelligence webinar: visualize attack chains from threat reports automatically wednesday, august 27th, 8:00am pt shawn jacques on aug 14, 2025 register now security teams are overwhelmed by dense threat reports.
    Sources: feedly.com
    Fact Type: general
    Main Entities: None
@@ -3347,7 +3347,7 @@ Ingested & Awaiting Corroboration (386)
 
 323. Fact Hash: f59a7dfb1e502266cad430674c509c3f5d78baa091ea3514bada6fc35cefdf7a
    Content: on wednesday, the alert level dropped to green, signifying a return to normal conditions.
-   Sources: www.adn.com
+   Sources: www.and.com
    Fact Type: general
    Main Entities: None
 
@@ -3509,7 +3509,7 @@ Ingested & Awaiting Corroboration (386)
 
 350. Fact Hash: 5f04c5a7dc7f40e07977c123eea8eb3d14b3459b783f7217a44bc0cd9a59d074
    Content: jacksonville’s trevor lawrence, who signed a massive contract, has struggled with injuries.
-   Sources: www.adn.com
+   Sources: www.and.com
    Fact Type: location
    Main Entities: jacksonville, trevor lawrence
 
@@ -3728,4 +3728,3 @@ Ingested & Awaiting Corroboration (386)
    Sources: www.thenewhumanitarian.org
    Fact Type: general
    Main Entities: iom
-

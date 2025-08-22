@@ -9,7 +9,11 @@ import numpy as np
 from sqlalchemy import or_
 
 from axiom_server.common import NLP_MODEL
-from axiom_server.ledger import Fact, Block, SessionMaker # --- ADDED Block and SessionMaker ---
+from axiom_server.ledger import (
+    Block,
+    Fact,
+    SessionMaker,
+)  # --- ADDED Block and SessionMaker ---
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -60,9 +64,13 @@ class FactIndexer:
         if self.vector_matrix is None:
             self.vector_matrix = new_vector_row
         else:
-            self.vector_matrix = np.vstack([self.vector_matrix, new_vector_row])
+            self.vector_matrix = np.vstack(
+                [self.vector_matrix, new_vector_row],
+            )
 
-        logger.info(f"Successfully added Fact ID {fact.id} to the live chat index.")
+        logger.info(
+            f"Successfully added Fact ID {fact.id} to the live chat index.",
+        )
 
     def add_facts(self, facts: list[Fact]) -> None:
         """Add multiple facts efficiently and log a concise summary."""
@@ -88,7 +96,9 @@ class FactIndexer:
         """Read all non-disputed facts from the database and builds the index."""
         logger.info("Starting to index facts from the ledger...")
 
-        facts_to_index = self.session.query(Fact).filter(Fact.disputed == False).all()  # noqa: E712
+        facts_to_index = (
+            self.session.query(Fact).filter(Fact.disputed == False).all()
+        )
 
         if not facts_to_index:
             logger.warning("No facts found in the database to index.")
@@ -101,11 +111,17 @@ class FactIndexer:
             self.fact_ids.append(fact.id)
 
         if self.fact_ids:
-            self.vector_matrix = np.vstack([self.fact_id_to_vector[fid] for fid in self.fact_ids])
+            self.vector_matrix = np.vstack(
+                [self.fact_id_to_vector[fid] for fid in self.fact_ids],
+            )
 
-        logger.info(f"Indexing complete. {len(self.fact_ids)} facts are now searchable.")
+        logger.info(
+            f"Indexing complete. {len(self.fact_ids)} facts are now searchable.",
+        )
 
-    def find_closest_facts(self, query_text: str, top_n: int = 3) -> list[dict]:
+    def find_closest_facts(
+        self, query_text: str, top_n: int = 3,
+    ) -> list[dict]:
         """Perform a HYBRID search and enriches results with blockchain data."""
         keywords = _extract_keywords(query_text)
         if not keywords:
@@ -127,14 +143,22 @@ class FactIndexer:
             return []
 
         candidate_ids = [fact.id for fact in pre_filtered_facts]
-        
+
         try:
-            candidate_indices = [self.fact_ids.index(fid) for fid in candidate_ids if fid in self.fact_ids]
+            candidate_indices = [
+                self.fact_ids.index(fid)
+                for fid in candidate_ids
+                if fid in self.fact_ids
+            ]
             if not candidate_indices:
-                logger.warning("Pre-filtered facts are not yet in the live index.")
+                logger.warning(
+                    "Pre-filtered facts are not yet in the live index.",
+                )
                 return []
         except ValueError:
-            logger.warning("Mismatch between database and live index. Index may be syncing.")
+            logger.warning(
+                "Mismatch between database and live index. Index may be syncing.",
+            )
             return []
 
         candidate_matrix = self.vector_matrix[candidate_indices, :]
@@ -156,16 +180,21 @@ class FactIndexer:
             for i in top_candidate_indices:
                 original_index = candidate_indices[i]
                 fact_id = self.fact_ids[original_index]
-                fact = next((f for f in pre_filtered_facts if f.id == fact_id), None)
-                if not fact: continue
+                fact = next(
+                    (f for f in pre_filtered_facts if f.id == fact_id), None,
+                )
+                if not fact:
+                    continue
 
                 # --- START OF MODIFICATION ---
-                
+
                 # Find the block this fact was proposed in.
                 # This query looks for the fact's hash within the JSON list of fact_hashes in each block.
-                block_containing_fact = session.query(Block).filter(
-                    Block.fact_hashes.like(f'%"{fact.hash}"%')
-                ).first()
+                block_containing_fact = (
+                    session.query(Block)
+                    .filter(Block.fact_hashes.like(f'%"{fact.hash}"%'))
+                    .first()
+                )
 
                 results.append(
                     {
@@ -176,8 +205,10 @@ class FactIndexer:
                         "sources": [source.domain for source in fact.sources],
                         # --- NEW FIELDS FOR VERIFICATION ---
                         "fact_hash": fact.hash,
-                        "block_height": block_containing_fact.height if block_containing_fact else None,
-                    }
+                        "block_height": block_containing_fact.height
+                        if block_containing_fact
+                        else None,
+                    },
                 )
                 # --- END OF MODIFICATION ---
 

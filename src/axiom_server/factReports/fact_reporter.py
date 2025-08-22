@@ -1,13 +1,14 @@
 # fact_reporter.py
-from datetime import datetime
-from collections import defaultdict
 import concurrent.futures
-import requests
 import json
 import os
 import sys
 import time
-from typing import List, Dict, Set, Optional
+from collections import defaultdict
+from datetime import datetime
+from typing import Dict, List, Optional, Set
+
+import requests
 
 # --- Configuration ---
 NODE_API_URL = (
@@ -17,14 +18,17 @@ REPORT_FILENAME = "facts_analysis_report.txt"
 
 # Performance tuning
 BATCH_SIZE = 100  # Increased from 20
-MAX_WORKERS = 4   # Parallel workers for API calls
+MAX_WORKERS = 4  # Parallel workers for API calls
 CACHE_FILE = "fact_cache.json"  # Cache for repeated runs
 
 # Make sure we can import server-side helpers
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+sys.path.append(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")),
+)
 from axiom_server.common import NLP_MODEL
 
 # --- Lightweight NLP helpers (aligned with synthesizer.py) ---
+
 
 def classify_fact_type(doc):
     text = doc.text.lower()
@@ -40,7 +44,11 @@ def classify_fact_type(doc):
 
 
 def get_main_entities(doc):
-    return {ent.lemma_.lower() for ent in doc.ents if ent.label_ in ["PERSON", "ORG", "GPE", "EVENT"]}
+    return {
+        ent.lemma_.lower()
+        for ent in doc.ents
+        if ent.label_ in ["PERSON", "ORG", "GPE", "EVENT"]
+    }
 
 
 def get_fact_doc(fact):
@@ -105,7 +113,7 @@ def related_facts_summary(related, max_items: int = 3) -> str:
         snippet = c[:80] + ("..." if len(c) > 80 else "")
         parts.append(f"{h}: {snippet}")
     if len(related) > max_items:
-        parts.append(f"(+{len(related)-max_items} more)")
+        parts.append(f"(+{len(related) - max_items} more)")
     return " | ".join(parts)
 
 
@@ -113,15 +121,17 @@ def load_cache() -> Optional[Dict]:
     """Load cached fact data if available and recent."""
     if not os.path.exists(CACHE_FILE):
         return None
-    
+
     try:
-        with open(CACHE_FILE, 'r') as f:
+        with open(CACHE_FILE) as f:
             cache = json.load(f)
-        
+
         # Check if cache is recent (less than 1 hour old)
-        cache_time = cache.get('timestamp', 0)
+        cache_time = cache.get("timestamp", 0)
         if time.time() - cache_time < 3600:  # 1 hour
-            print(f"  > Using cached data from {datetime.fromtimestamp(cache_time)}")
+            print(
+                f"  > Using cached data from {datetime.fromtimestamp(cache_time)}",
+            )
             return cache
     except Exception:
         pass
@@ -132,11 +142,11 @@ def save_cache(facts: List[Dict], fact_hashes: Set[str]):
     """Save fact data to cache for future runs."""
     try:
         cache_data = {
-            'timestamp': time.time(),
-            'fact_hashes': list(fact_hashes),
-            'facts': facts
+            "timestamp": time.time(),
+            "fact_hashes": list(fact_hashes),
+            "facts": facts,
         }
-        with open(CACHE_FILE, 'w') as f:
+        with open(CACHE_FILE, "w") as f:
             json.dump(cache_data, f)
         print(f"  > Cached {len(facts)} facts for future runs")
     except Exception as e:
@@ -196,29 +206,36 @@ def get_facts_details_optimized(fact_hashes: set[str]) -> list[dict]:
 
     # Try to load from cache first
     cache = load_cache()
-    if cache and set(cache.get('fact_hashes', [])) == fact_hashes:
+    if cache and set(cache.get("fact_hashes", [])) == fact_hashes:
         print(f"  > Using cached data for {len(cache['facts'])} facts")
-        return cache['facts']
+        return cache["facts"]
 
     print(
         f"\nStep 2: Fetching full details for {len(fact_hashes)} fact hashes in parallel batches...",
     )
-    
+
     all_facts = []
     hash_list = list(fact_hashes)
     total_batches = (len(hash_list) + BATCH_SIZE - 1) // BATCH_SIZE
-    
+
     start_time = time.time()
-    
+
     # Process batches in parallel
-    with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+    with concurrent.futures.ThreadPoolExecutor(
+        max_workers=MAX_WORKERS,
+    ) as executor:
         # Create batches
-        batches = [hash_list[i:i + BATCH_SIZE] for i in range(0, len(hash_list), BATCH_SIZE)]
-        
+        batches = [
+            hash_list[i : i + BATCH_SIZE]
+            for i in range(0, len(hash_list), BATCH_SIZE)
+        ]
+
         # Submit all batches
-        future_to_batch = {executor.submit(fetch_batch_parallel, batch): i+1 
-                          for i, batch in enumerate(batches)}
-        
+        future_to_batch = {
+            executor.submit(fetch_batch_parallel, batch): i + 1
+            for i, batch in enumerate(batches)
+        }
+
         # Collect results as they complete
         for future in concurrent.futures.as_completed(future_to_batch):
             batch_num = future_to_batch[future]
@@ -226,7 +243,9 @@ def get_facts_details_optimized(fact_hashes: set[str]) -> list[dict]:
                 batch_facts = future.result()
                 all_facts.extend(batch_facts)
                 elapsed = time.time() - start_time
-                print(f"  > Completed batch {batch_num}/{total_batches} ({len(batch_facts)} facts) - {elapsed:.1f}s elapsed")
+                print(
+                    f"  > Completed batch {batch_num}/{total_batches} ({len(batch_facts)} facts) - {elapsed:.1f}s elapsed",
+                )
             except Exception as e:
                 print(f"  > Batch {batch_num} failed: {e}")
 
@@ -234,10 +253,10 @@ def get_facts_details_optimized(fact_hashes: set[str]) -> list[dict]:
     print(
         f"  > Successfully retrieved details for {len(all_facts)} total facts in {elapsed:.1f}s",
     )
-    
+
     # Save to cache for future runs
     save_cache(all_facts, fact_hashes)
-    
+
     return all_facts
 
 
@@ -261,7 +280,7 @@ def generate_report_optimized(facts: list[dict]):
     for i, fact in enumerate(facts):
         if i % 100 == 0:
             print(f"    Processed {i}/{len(facts)} facts...")
-            
+
         if fact.get("disputed"):
             disputed_facts.append(fact)
             relationship_counts["contradiction"] += 1
@@ -292,8 +311,7 @@ def generate_report_optimized(facts: list[dict]):
         f.write("----------------------------------------\n")
         f.write("Summary of Relationships\n")
         f.write("----------------------------------------\n")
-        for rel_type, count in relationship_counts.items():
-            f.write(f"{rel_type.title()}: {count}\n")
+        f.writelines(f"{rel_type.title()}: {count}\n" for rel_type, count in relationship_counts.items())
         f.write("\n")
 
         # --- Disputed Facts Section ---
@@ -309,12 +327,16 @@ def generate_report_optimized(facts: list[dict]):
                 f.write(f"   Sources: {', '.join(fact.get('sources', []))}\n")
                 related = related_map.get(fact.get("hash", ""), [])
                 f.write(f"   Reason: {reason_for_fact(fact, related)}\n")
-                f.write(f"   Related Fact(s): {related_facts_summary(related)}\n")
+                f.write(
+                    f"   Related Fact(s): {related_facts_summary(related)}\n",
+                )
         f.write("\n")
 
         # --- Potential Contradictions Section ---
         f.write("----------------------------------------\n")
-        f.write(f"Potential Contradictions ({len(potential_contradictions)})\n")
+        f.write(
+            f"Potential Contradictions ({len(potential_contradictions)})\n",
+        )
         f.write("----------------------------------------\n")
         if not potential_contradictions:
             f.write("No potential contradictions flagged.\n")
@@ -325,7 +347,9 @@ def generate_report_optimized(facts: list[dict]):
                 f.write(f"   Sources: {', '.join(fact.get('sources', []))}\n")
                 related = related_map.get(fact.get("hash", ""), [])
                 f.write(f"   Reason: {reason_for_fact(fact, related)}\n")
-                f.write(f"   Related Fact(s): {related_facts_summary(related)}\n")
+                f.write(
+                    f"   Related Fact(s): {related_facts_summary(related)}\n",
+                )
         f.write("\n")
 
         # --- Corroborated Facts Section ---
@@ -344,7 +368,9 @@ def generate_report_optimized(facts: list[dict]):
                 f.write(f"   Sources: {', '.join(fact.get('sources', []))}\n")
                 related = related_map.get(fact.get("hash", ""), [])
                 f.write(f"   Reason: {reason_for_fact(fact, related)}\n")
-                f.write(f"   Related Fact(s): {related_facts_summary(related)}\n")
+                f.write(
+                    f"   Related Fact(s): {related_facts_summary(related)}\n",
+                )
         f.write("\n")
 
         # --- Ingested Facts Section ---
@@ -362,22 +388,26 @@ def generate_report_optimized(facts: list[dict]):
                 fact_type = classify_fact_type(doc)
                 main_entities = get_main_entities(doc)
                 f.write(f"   Fact Type: {fact_type}\n")
-                f.write(f"   Main Entities: {', '.join(main_entities) if main_entities else 'None'}\n")
+                f.write(
+                    f"   Main Entities: {', '.join(main_entities) if main_entities else 'None'}\n",
+                )
         f.write("\n")
 
     elapsed = time.time() - start_time
-    print(f"  > Report successfully written to {REPORT_FILENAME} in {elapsed:.1f}s")
+    print(
+        f"  > Report successfully written to {REPORT_FILENAME} in {elapsed:.1f}s",
+    )
 
 
 def main():
     """Main function to run the fact extraction and reporting process."""
     start_time = time.time()
-    
+
     all_hashes = get_all_fact_hashes()
     if all_hashes:
         all_facts = get_facts_details_optimized(all_hashes)
         generate_report_optimized(all_facts)
-    
+
     total_time = time.time() - start_time
     print(f"\nTotal execution time: {total_time:.1f}s")
 

@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import logging
+import os
 import select
 import socket as socket_lib
 import ssl
 import sys
 import time
-import os
-import hashlib
 from dataclasses import dataclass
 from enum import Enum
 
@@ -270,18 +269,24 @@ def _serialize_public_key(key: rsa.RSAPublicKey) -> bytes:
 # the following is taken from https://elc.github.io/python-security/chapters/07_Asymmetric_Encryption.html#rsa-encryption
 
 
-def _generate_key_pair(seed: str = "axiom_shared_key") -> tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
+def _generate_key_pair(
+    seed: str = "axiom_shared_key",
+) -> tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
     """Generate or load a shared key pair for all nodes to use the same identity."""
     # Use a shared key file to ensure all nodes have the same key pair
-    shared_key_file = os.path.join(os.path.dirname(__file__), "..", "..", "shared_node_key.pem")
-    
+    shared_key_file = os.path.join(
+        os.path.dirname(__file__), "..", "..", "shared_node_key.pem",
+    )
+
     # Check if we should use shared keys (for testing/multi-node setup)
-    use_shared_keys = os.environ.get('AXIOM_SHARED_KEYS', 'true').lower() == 'true'
-    
+    use_shared_keys = (
+        os.environ.get("AXIOM_SHARED_KEYS", "true").lower() == "true"
+    )
+
     if use_shared_keys and os.path.exists(shared_key_file):
         # Load existing shared key
         try:
-            with open(shared_key_file, 'rb') as f:
+            with open(shared_key_file, "rb") as f:
                 private_key = serialization.load_pem_private_key(
                     f.read(),
                     password=None,
@@ -290,28 +295,32 @@ def _generate_key_pair(seed: str = "axiom_shared_key") -> tuple[rsa.RSAPrivateKe
             logger.info("Loaded shared key pair from file")
             return private_key, public_key
         except Exception as e:
-            logger.warning(f"Failed to load shared key: {e}, generating new one")
-    
+            logger.warning(
+                f"Failed to load shared key: {e}, generating new one",
+            )
+
     # Generate new key pair
     private_key = rsa.generate_private_key(
         public_exponent=65537,
         key_size=KEY_SIZE,
     )
     public_key = private_key.public_key()
-    
+
     # Save the key if using shared keys
     if use_shared_keys:
         try:
-            with open(shared_key_file, 'wb') as f:
-                f.write(private_key.private_bytes(
-                    encoding=serialization.Encoding.PEM,
-                    format=serialization.PrivateFormat.PKCS8,
-                    encryption_algorithm=serialization.NoEncryption()
-                ))
+            with open(shared_key_file, "wb") as f:
+                f.write(
+                    private_key.private_bytes(
+                        encoding=serialization.Encoding.PEM,
+                        format=serialization.PrivateFormat.PKCS8,
+                        encryption_algorithm=serialization.NoEncryption(),
+                    ),
+                )
             logger.info(f"Saved shared key pair to {shared_key_file}")
         except Exception as e:
             logger.warning(f"Failed to save shared key: {e}")
-    
+
     return private_key, public_key
 
 

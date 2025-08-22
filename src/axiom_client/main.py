@@ -5,22 +5,22 @@ from __future__ import annotations
 import hashlib
 import random
 import sys
-from typing import TypedDict, cast, Optional, Any
+from typing import Any, Optional, TypedDict, cast
 
 import requests
 from PyQt6.QtCore import QThread, QTimer, pyqtSignal
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QApplication,
-    QLabel,
-    QLineEdit,
     QComboBox,
     QHBoxLayout,
+    QLabel,
+    QLineEdit,
     QPushButton,
     QStatusBar,
-    QTabWidget,
     QTableWidget,
     QTableWidgetItem,
+    QTabWidget,
     QTextEdit,
     QVBoxLayout,
     QWidget,
@@ -31,13 +31,13 @@ BOOTSTRAP_PEERS = [
     "http://127.0.0.1:8001",
     "http://127.0.0.1:8002",
     "http://127.0.0.1:8004",
-
 ]
 
 
 # --- Data models to match the server's API responses ---
 class ChatResult(TypedDict, total=False):
     """Represents a single result from the /chat endpoint."""
+
     content: str
     similarity: float
     fact_id: int
@@ -49,17 +49,21 @@ class ChatResult(TypedDict, total=False):
 
 class ChatResponse(TypedDict):
     """The expected JSON response from the /chat endpoint."""
+
     results: list[ChatResult]
     node_url: str
 
 
 class ErrorResponse(TypedDict):
     """A response containing an error message."""
+
     error: str
 
 
 # --- Local Merkle Proof Verification Logic ---
-def verify_merkle_proof(leaf_hash_hex: str, proof: list[str], root_hex: str) -> bool:
+def verify_merkle_proof(
+    leaf_hash_hex: str, proof: list[str], root_hex: str,
+) -> bool:
     """Verifies a Merkle proof locally using SHA256."""
     try:
         current_hash = bytes.fromhex(leaf_hash_hex)
@@ -71,7 +75,7 @@ def verify_merkle_proof(leaf_hash_hex: str, proof: list[str], root_hex: str) -> 
             else:
                 combined = proof_hash + current_hash
             current_hash = hashlib.sha256(combined).digest()
-        
+
         return current_hash.hex() == root_hex
     except (ValueError, TypeError):
         # Handles cases where hex strings are malformed
@@ -81,6 +85,7 @@ def verify_merkle_proof(leaf_hash_hex: str, proof: list[str], root_hex: str) -> 
 # --- Asynchronous Worker Threads ---
 class NetworkWorker(QThread):
     """Worker for the main chat query."""
+
     finished = pyqtSignal(object)
     progress = pyqtSignal(str)
 
@@ -92,7 +97,9 @@ class NetworkWorker(QThread):
         nodes_to_try = random.sample(BOOTSTRAP_PEERS, len(BOOTSTRAP_PEERS))
         for i, node_url in enumerate(nodes_to_try):
             try:
-                self.progress.emit(f"Querying Axiom Node {i + 1}/{len(nodes_to_try)} ({node_url})...")
+                self.progress.emit(
+                    f"Querying Axiom Node {i + 1}/{len(nodes_to_try)} ({node_url})...",
+                )
                 response = requests.post(
                     f"{node_url}/chat",
                     json={"query": self.query_term},
@@ -104,13 +111,16 @@ class NetworkWorker(QThread):
                 self.finished.emit(data)
                 return
             except requests.RequestException as e:
-                self.progress.emit(f"Node {node_url} failed: {e}. Trying next...")
+                self.progress.emit(
+                    f"Node {node_url} failed: {e}. Trying next...",
+                )
                 continue
         self.finished.emit({"error": "All known Axiom nodes are unreachable."})
 
 
 class VerificationWorker(QThread):
     """Worker thread to fetch a Merkle proof for a given fact."""
+
     finished = pyqtSignal(object)
 
     def __init__(self, node_url: str, fact_hash: str, block_height: int):
@@ -123,7 +133,10 @@ class VerificationWorker(QThread):
         try:
             response = requests.get(
                 f"{self.node_url}/get_merkle_proof",
-                params={"fact_hash": self.fact_hash, "block_height": self.block_height},
+                params={
+                    "fact_hash": self.fact_hash,
+                    "block_height": self.block_height,
+                },
                 timeout=10,
             )
             response.raise_for_status()
@@ -134,6 +147,7 @@ class VerificationWorker(QThread):
 
 class FactContextWorker(QThread):
     """Fetch context/relationships for a given fact hash."""
+
     finished = pyqtSignal(object)
 
     def __init__(self, node_url: str, fact_hash: str) -> None:
@@ -155,6 +169,7 @@ class FactContextWorker(QThread):
 
 class TimelineWorker(QThread):
     """Fetch a verified timeline for a topic."""
+
     finished = pyqtSignal(object)
 
     def __init__(self, node_url: str, topic: str) -> None:
@@ -176,6 +191,7 @@ class TimelineWorker(QThread):
 
 class StatsWorker(QThread):
     """Fetch status, node stats, and network stats for a selected node."""
+
     finished = pyqtSignal(object)
 
     def __init__(self, node_url: str) -> None:
@@ -191,13 +207,17 @@ class StatsWorker(QThread):
         except requests.RequestException as e:
             result["status_error"] = str(e)
         try:
-            ns = requests.get(f"{self.node_url}/explorer/node_stats", timeout=10)
+            ns = requests.get(
+                f"{self.node_url}/explorer/node_stats", timeout=10,
+            )
             ns.raise_for_status()
             result["node_stats"] = ns.json()
         except requests.RequestException as e:
             result["node_stats_error"] = str(e)
         try:
-            net = requests.get(f"{self.node_url}/explorer/network_stats", timeout=10)
+            net = requests.get(
+                f"{self.node_url}/explorer/network_stats", timeout=10,
+            )
             net.raise_for_status()
             result["network_stats"] = net.json()
         except requests.RequestException as e:
@@ -283,9 +303,16 @@ class AxiomClientApp(QWidget):
 
         # Results table
         self.results_table = QTableWidget(0, 6)
-        self.results_table.setHorizontalHeaderLabels([
-            "Content", "Similarity", "Sources", "Disputed", "Fact Hash", "Block"
-        ])
+        self.results_table.setHorizontalHeaderLabels(
+            [
+                "Content",
+                "Similarity",
+                "Sources",
+                "Disputed",
+                "Fact Hash",
+                "Block",
+            ],
+        )
         self.results_table.setColumnWidth(0, 380)
         self.results_table.setColumnWidth(1, 90)
         self.results_table.setColumnWidth(2, 140)
@@ -360,37 +387,56 @@ class AxiomClientApp(QWidget):
         response = cast("ChatResponse | ErrorResponse", response_obj)
         # record connected node if present
         if isinstance(response, dict) and "node_url" in response:
-            self.connected_node_url = cast(dict, response)["node_url"]
-            self.connection_status_label.setText(f"🟢 Connected to {self.connected_node_url}")
+            self.connected_node_url = cast("dict", response)["node_url"]
+            self.connection_status_label.setText(
+                f"🟢 Connected to {self.connected_node_url}",
+            )
         self.display_results(response)
 
-        if "results" in response and response["results"]:
+        if response.get("results"):
             # Populate table with all results
             self.results_table.setRowCount(len(response["results"]))
             for r, item in enumerate(response["results"]):
                 content = item.get("content", "")
                 sources = ", ".join(item.get("sources", []))
-                similarity = f"{item.get('similarity', 0)*100:.1f}%"
+                similarity = f"{item.get('similarity', 0) * 100:.1f}%"
                 disputed = "Yes" if item.get("disputed") else "No"
                 fact_hash = item.get("fact_hash", "")
                 block_height = str(item.get("block_height", ""))
-                self.results_table.setItem(r, 0, QTableWidgetItem(content[:200]))
+                self.results_table.setItem(
+                    r, 0, QTableWidgetItem(content[:200]),
+                )
                 self.results_table.setItem(r, 1, QTableWidgetItem(similarity))
                 self.results_table.setItem(r, 2, QTableWidgetItem(sources))
                 self.results_table.setItem(r, 3, QTableWidgetItem(disputed))
                 self.results_table.setItem(r, 4, QTableWidgetItem(fact_hash))
-                self.results_table.setItem(r, 5, QTableWidgetItem(block_height))
+                self.results_table.setItem(
+                    r, 5, QTableWidgetItem(block_height),
+                )
 
             top_result = response["results"][0]
             similarity = top_result.get("similarity", 0)
             fact_hash = top_result.get("fact_hash")
             block_height = top_result.get("block_height")
 
-            if similarity > 0.85 and not top_result.get("disputed") and fact_hash and block_height is not None:
-                node_url = self.connected_node_url or random.choice(BOOTSTRAP_PEERS)
-                self.update_status(f"Fact found. Requesting cryptographic proof from {node_url}...")
-                self.verification_worker = VerificationWorker(node_url, fact_hash, block_height)
-                self.verification_worker.finished.connect(self.handle_verification_result)
+            if (
+                similarity > 0.85
+                and not top_result.get("disputed")
+                and fact_hash
+                and block_height is not None
+            ):
+                node_url = self.connected_node_url or random.choice(
+                    BOOTSTRAP_PEERS,
+                )
+                self.update_status(
+                    f"Fact found. Requesting cryptographic proof from {node_url}...",
+                )
+                self.verification_worker = VerificationWorker(
+                    node_url, fact_hash, block_height,
+                )
+                self.verification_worker.finished.connect(
+                    self.handle_verification_result,
+                )
                 self.verification_worker.start()
             else:
                 self.search_button.setEnabled(True)
@@ -409,12 +455,18 @@ class AxiomClientApp(QWidget):
                 root_hex=proof_data["merkle_root"],
             )
             if is_valid:
-                self.update_status(f"Fact cryptographically verified in Block #{proof_data['block_height']}.")
-                self.status_bar.showMessage("✅ Fact Verified on Blockchain", 5000)
+                self.update_status(
+                    f"Fact cryptographically verified in Block #{proof_data['block_height']}.",
+                )
+                self.status_bar.showMessage(
+                    "✅ Fact Verified on Blockchain", 5000,
+                )
             else:
-                self.update_status("Proof received, but it is cryptographically invalid!")
+                self.update_status(
+                    "Proof received, but it is cryptographically invalid!",
+                )
                 self.status_bar.showMessage("❌ INVALID PROOF!", 5000)
-        
+
         self.search_button.setEnabled(True)
 
     def display_results(self, response_obj: object) -> None:
@@ -465,8 +517,12 @@ class AxiomClientApp(QWidget):
             return
         node_url = self.connected_node_url or random.choice(BOOTSTRAP_PEERS)
         self.update_status(f"Requesting proof from {node_url}…")
-        self.verification_worker = VerificationWorker(node_url, fact_hash, block_height)
-        self.verification_worker.finished.connect(self.handle_verification_result)
+        self.verification_worker = VerificationWorker(
+            node_url, fact_hash, block_height,
+        )
+        self.verification_worker.finished.connect(
+            self.handle_verification_result,
+        )
         self.verification_worker.start()
 
     def show_selected_context(self) -> None:
@@ -484,19 +540,21 @@ class AxiomClientApp(QWidget):
         self.context_worker.start()
 
     def handle_context_result(self, obj: object) -> None:
-        data = cast(dict, obj)
+        data = cast("dict", obj)
         if "error" in data:
-            self.results_output.setHtml(f"<h3>Context Error</h3><p>{data['error']}</p>")
+            self.results_output.setHtml(
+                f"<h3>Context Error</h3><p>{data['error']}</p>",
+            )
             return
         target = data.get("target_fact", {})
         related = data.get("related_facts", [])
         lines = [
-            f"<h3>Fact Context</h3>",
-            f"<b>Target:</b> {target.get('content','N/A')}<br/>",
-            f"<b>Hash:</b> {target.get('hash','N/A')}<br/>",
+            "<h3>Fact Context</h3>",
+            f"<b>Target:</b> {target.get('content', 'N/A')}<br/>",
+            f"<b>Hash:</b> {target.get('hash', 'N/A')}<br/>",
             f"<b>Sources:</b> {', '.join(target.get('sources', []))}<br/>",
             "<hr/>",
-            "<b>Related Facts</b>:"
+            "<b>Related Facts</b>:",
         ]
         if not related:
             lines.append("<p>None</p>")
@@ -505,7 +563,7 @@ class AxiomClientApp(QWidget):
                 rel_type = r.get("relationship", "unknown")
                 fact = r.get("fact", {})
                 lines.append(
-                    f"<p><i>{rel_type}</i>: {fact.get('content','')} (hash: {fact.get('hash','N/A')})</p>"
+                    f"<p><i>{rel_type}</i>: {fact.get('content', '')} (hash: {fact.get('hash', 'N/A')})</p>",
                 )
         self.results_output.setHtml("\n".join(lines))
 
@@ -521,19 +579,25 @@ class AxiomClientApp(QWidget):
         self.timeline_worker.start()
 
     def handle_timeline_result(self, obj: object) -> None:
-        data = cast(dict, obj)
+        data = cast("dict", obj)
         if "error" in data:
-            self.timeline_output.setHtml(f"<h3>Timeline Error</h3><p>{data['error']}</p>")
+            self.timeline_output.setHtml(
+                f"<h3>Timeline Error</h3><p>{data['error']}</p>",
+            )
             return
         timeline = data.get("timeline", [])
         if not timeline:
-            self.timeline_output.setHtml("<p>No facts found for this topic.</p>")
+            self.timeline_output.setHtml(
+                "<p>No facts found for this topic.</p>",
+            )
             return
         lines = ["<h3>Verified Timeline</h3>"]
         for item in timeline:
             content = item.get("content", "")
             sources = ", ".join(item.get("sources", []))
-            lines.append(f"<p>• {content}<br/><span style='font-size:10px;color:#666;'>Sources: {sources}</span></p>")
+            lines.append(
+                f"<p>• {content}<br/><span style='font-size:10px;color:#666;'>Sources: {sources}</span></p>",
+            )
         self.timeline_output.setHtml("\n".join(lines))
 
     def refresh_stats(self) -> None:
@@ -544,43 +608,59 @@ class AxiomClientApp(QWidget):
         self.stats_worker.start()
 
     def handle_stats_result(self, obj: object) -> None:
-        data = cast(dict, obj)
-        if "status_error" in data and "node_stats_error" in data and "network_stats_error" in data:
-            self.explorer_output.setHtml(f"<p>Failed to fetch stats from {data.get('node_url')}</p>")
+        data = cast("dict", obj)
+        if (
+            "status_error" in data
+            and "node_stats_error" in data
+            and "network_stats_error" in data
+        ):
+            self.explorer_output.setHtml(
+                f"<p>Failed to fetch stats from {data.get('node_url')}</p>",
+            )
             return
         lines = [f"<h3>Explorer Stats for {data.get('node_url')}</h3>"]
         st = data.get("status", {})
         if st:
-            lines.append(f"Status: {st.get('status','N/A')} • Height: {st.get('latest_block_height','N/A')} • Version: {st.get('version','N/A')}")
+            lines.append(
+                f"Status: {st.get('status', 'N/A')} • Height: {st.get('latest_block_height', 'N/A')} • Version: {st.get('version', 'N/A')}",
+            )
         ns = data.get("node_stats", {})
         if ns:
             lines.append(
                 f"<p><b>Node</b> — Validator: {ns.get('is_validator')} • Region: {ns.get('region')} • "
-                f"Stake: {ns.get('stake_amount')} • Time Stake: {ns.get('rewards_earned')} • Reputation: {ns.get('reputation_score')}</p>"
+                f"Stake: {ns.get('stake_amount')} • Time Stake: {ns.get('rewards_earned')} • Reputation: {ns.get('reputation_score')}</p>",
             )
         net = data.get("network_stats", {})
         if net:
             lines.append(
                 f"<p><b>Network</b> — Height: {net.get('current_block_height')} • Facts: {net.get('total_facts_grounded')} • "
-                f"Corroborated: {net.get('corroborated_facts')} • Disputed: {net.get('disputed_facts')} • Validators: {net.get('active_validators')}</p>"
+                f"Corroborated: {net.get('corroborated_facts')} • Disputed: {net.get('disputed_facts')} • Validators: {net.get('active_validators')}</p>",
             )
         self.explorer_output.setHtml("\n".join(lines))
 
     def update_network_status(self) -> None:
-        node_to_check = self.connected_node_url or random.choice(BOOTSTRAP_PEERS)
+        node_to_check = self.connected_node_url or random.choice(
+            BOOTSTRAP_PEERS,
+        )
         try:
             response = requests.get(f"{node_to_check}/status", timeout=2)
             response.raise_for_status()
             data = response.json()
-            self.connection_status_label.setText(f"🟢 Connected to {node_to_check}")
-            self.block_height_label.setText(f"Block: {data.get('latest_block_height', 'N/A')}")
+            self.connection_status_label.setText(
+                f"🟢 Connected to {node_to_check}",
+            )
+            self.block_height_label.setText(
+                f"Block: {data.get('latest_block_height', 'N/A')}",
+            )
             self.version_label.setText(f"Node: v{data.get('version', 'N/A')}")
             self.connected_node_url = node_to_check
         except requests.exceptions.RequestException:
             self.set_disconnected_status(node_to_check)
 
     def set_disconnected_status(self, checked_url: str) -> None:
-        self.connection_status_label.setText(f"🔴 Disconnected from {checked_url}")
+        self.connection_status_label.setText(
+            f"🔴 Disconnected from {checked_url}",
+        )
         self.block_height_label.setText("Block: N/A")
         self.version_label.setText("Node: N/A")
 
