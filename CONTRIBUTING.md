@@ -106,7 +106,11 @@ Your environment is now complete. To simplify local development, you can launch 
 
 2. Run the node launch script:
     ```bash
-    ./restart_nodes.sh
+    ./reset_and_start.sh
+    ```
+2. Resume Node script:
+    ```bash
+    ././resume_nodes.sh
     ```
 
 This script will automatically start 2 Axiom nodes with the correct ports and bootstrap configuration. You will see logs for each node in your terminal, confirming that the local mesh network is running.
