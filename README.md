@@ -16,82 +16,128 @@ Axiom was born from a simple need: a tool that could filter the signal from this
 
 This project is a statement: **objective reality matters, and access to it should belong to everyone.** We are building a public utility—a digital commonwealth—that serves as a permanent, incorruptible, and safe harbor for human knowledge.
 
+---
+
+## Table of Contents
+- [How It Works: An Autonomous Knowledge Organism](#how-it-works-an-autonomous-knowledge-organism)
+  - [Phase 1: Learning](#phase-1-learning)
+  - [Phase 2: Verification (The Crucible)](#phase-2-verification-the-crucible)
+  - [Phase 3: Understanding (The Synthesizer)](#phase-3-understanding-the-synthesizer)
+  - [Phase 4: Memory & Sharing](#phase-4-memory--sharing)
+- [Core Architecture & Technical Principles](#core-architecture--technical-principles)
+- [The Axiom Ethos: Our Core Philosophies](#the-axiom-ethos-our-core-philosophies)
+- [Comparison to Existing Alternatives](#comparison-to-existing-alternatives)
+- [The Roadmap: From Prototype to Protocol](#the-roadmap-from-prototype-to-protocol)
+- [Current Status: Genesis Stage](#current-status-genesis-stage)
+- [How to Contribute](#how-to-contribute)
+- [License](#license)
+
+---
+
+
 ## 🚀 Getting Started: Developer Setup
 
 This guide provides the essential steps to get a local development environment running. For a more detailed guide on network configurations and testing, please see our [**CONTRIBUTING.md**](./CONTRIBUTING.md) file.
 
-### Prerequisites
+## Your First Code Contribution: Step-by-Step
 
-*   **Git:** [https://git-scm.com/](https://git-scm.com/)
-*   **Conda:** We recommend [Miniforge](https://github.com/conda-forge/miniforge) for a lightweight, cross-platform Conda installation.
+This guide provides the official, verified steps to get your development environment running perfectly. The process uses a hybrid Conda and Pip installation which is critical for success.
 
-### 1. Clone the Repository
+### Step 1: Environment Setup
 
-First, clone the project to your local machine:
-```bash
-git clone https://github.com/ArtisticIntentionz/AxiomEngine.git
-cd AxiomEngine
+**Prerequisites**
+*   A working `git` installation.
+*   A working `conda` installation. [Miniforge](https://github.com/conda-forge/miniforge) is highly recommended, especially for macOS users.
+
+**Phase 1: The "Clean Slate" Protocol (Run This Once)**
+
+Before you begin, ensure your system has no memory of previous installation attempts. This guarantees a pristine foundation.
+
+1.  **Disable Conda's Base Environment:** Open a new terminal and run this command. This prevents the `(base)` environment from automatically activating, which can cause issues.
+    ```bash
+    conda config --set auto_activate_base false
+    ```
+2.  **Close and Re-open Your Terminal:** Your new terminal prompt should now be clean, without a `(base)` prefix.
+3.  **(Optional but Recommended) Purge Old Environments:** If you have any old Axiom environments, destroy them to avoid conflicts.
+    ```bash
+    conda env remove -n Axiom -y
+    # Add any other old environment names you might have used
+    ```
+
+**Phase 2: Fork, Clone, and Create the Environment**
+
+1.  **Fork & Clone:** Start by "forking" the main `ArtisticIntentionz/AxiomEngine` repository on GitHub. Then, clone your personal fork to your local machine.
+    ```bash
+    # Navigate to where you want the project to live, e.g., ~/Documents/
+    git clone https://github.com/ArtisticIntentionz/AxiomEngine.git
+    cd AxiomEngine
+    ```
+
+2.  **Create and Activate the Conda Environment:**
+    ```bash
+    conda create -n Axiom python=3.11 -y
+    conda activate Axiom
+    ```
+    Your terminal prompt will now correctly show `(AxiomFork)`.
+
+**Phase 3: The "Gold Standard" Installation**
+
+This hybrid approach is proven to work reliably. We use Conda for complex, pre-compiled libraries (like those for AI and cryptography) and Pip for pure-Python application dependencies.
+
+1. **Install Heavy Binaries with Conda:**
+
+    ``` conda install -c conda-forge numpy scipy "spacy>=3.7.2,<3.8.0" cryptography beautifulsoup4 sec_edgar_api-y ```
+2. **Install Pure-Python Libraries with Pip:**
+
+    ``` pip install Flask gunicorn requests sqlalchemy pydantic feedparser Flask-Cors ruff mypy pytest pre-commit attrs types-requests ```
+3. **Install the AI Model: We use a large, high-quality model for fact extraction.**
+
+    ``` python -m spacy download en_core_web_lg ```
+
+4. **Install the Axiom Project Itself:** This final step makes the axiom_server module available and installs it in an "editable" mode (-e), so your code changes are immediately reflected.
+
+    ``` pip install -e ."[test]" ```
+
+**Step 2: One-Time Project Initialization (SSL)**
+The P2P engine requires SSL certificates for secure, encrypted communication between nodes.
+
+**Create the SSL Directory: From the project root (AxiomEngine/):**
+```
+mkdir -p ssl
 ```
 
-### Step 2: Launch the P2P Development Network
+**Generate the Certificates:**
+```
+openssl req -new -x509 -days 3650 -nodes -out ssl/node.crt -keyout ssl/node.key
+```
+(You will be prompted for information. You can press Enter for every question to accept the defaults.)
 
-Your environment is now complete. The Axiom network is a true peer-to-peer mesh. For advanced development and testing, we recommend a three-terminal setup to simulate a more realistic network topology: a **Bootstrap Relay Server** and two full **Axiom Nodes**.
+**Step 3: Launch a Local P2P Network**
 
-**P2P NOT READY: Bootstrap Relay Server CURRENT work in progress**
+Your environment is now complete. To simplify local development, you can launch a multi-node Axiom test network using the provided script.
 
-This is a lightweight P2P node that only introduces new nodes to each other. It doesn't process facts or have an API. This is the recommended setup for a stable "meeting point."
-**P2P NETWORK WORK IN PROGRESS**
-1.  **Launch the server:**
+**Instructions:**
+
+1. From your project root directory, ensure your Conda environment is activated:
     ```bash
-    THIS IS NOT READY FOR TESTING yet..
-    python -m axiom_server.run_node --default_bootstrap
+    conda activate Axiom
     ```
-2.  **Note the port it starts on.** The default is typically `42180`. You will use this address for the other nodes.
 
-**Instructions:** Open three separate terminals. In each, navigate to your `AxiomEngine` directory and activate the Conda environment (`conda activate AxiomEngine`).
-
-**START FROM HERE**
-
-**Terminal 1: The First Axiom Node**
-
-This is a full Axiom node that will discover facts, seal blocks, and serve the API.
-
-1.  **Launch the node:** Replace `<bootstrap_port>` with the port from Terminal 1 (e.g., `42180`).
+2. Run the node launch script:
     ```bash
-    # P2P will run on port 5001, API on 8001
-    cd /Your/Path/To/Folder/AxiomEngine && conda activate NameYourEnv && python -m axiom_server.node --p2p-port 5000 --api-port 8000
-    or
-    python -m axiom_server.node --p2p-port 5000 --api-port 8000 (Working on P2P system not yet ready for set up nstructions here)
+    ./restart_nodes.sh
     ```
-2.  **Observe the logs.** You should see connection logs appear in both Terminal 1 and Terminal 2. Keep this running.
 
-**Terminal 2: The Second Axiom Node (Optional but Recommended)**
+This script will automatically start 2 Axiom nodes with the correct ports and bootstrap configuration. You will see logs for each node in your terminal, confirming that the local mesh network is running.
 
-Running a second full node allows you to observe the P2P gossip protocol and block synchronization in action.
+**Verifying the Connection**
 
-1.  **Launch the node:** Use different ports for this node and connect it to the same bootstrap relay.
-    ```bash
-    # P2P will run on port 5002, API on 8002
-    cd /Your/Path/To/Folder/AxiomEngine && conda activate NameYourEnv && python -m axiom_server.node --p2p-port 5001 --api-port 8001 --bootstrap-peer http://127.0.0.1:5000
-    or
-    python -m axiom_server.node --p2p-port 5001 --api-port 8001 --bootstrap-peer http://127.0.0.1:5000
-    ```
-2.  **Observe the logs.** This node will also connect to the bootstrap server, which will then introduce it to the first Axiom node.
+- Check the logs to confirm nodes are communicating and proposing blocks.
+- The script handles staking and peer connections automatically.
+- Cd into factReports and use ``` python fact_reporter.py ``` to get a deep look at the recorded facts to verify quality etc.
+- from the root AxiomEngine use the command ``` python maintain_feeds.py ``` to autofix broken or malformed rss feeds. 
 
-**..third axiom node is not necessary you can skip this..**
-**Terminal 4: The Third Axiom Node (Optional but Recommended)**
-
-Running a third full node allows you to observe the P2P gossip protocol and block synchronization in action.
-
-1.  **Launch the node:** Use different ports for this node and connect it to the same bootstrap relay.
-    ```bash
-    # P2P will run on port 5002, API on 8002
-    cd /Your/Path/To/Folder/AxiomEngine && conda activate NameYourEnv && python -m axiom_server.node --p2p-port 5001 --api-port 8001 --bootstrap-peer http://127.0.0.1:5000
-    or
-    python -m axiom_server.node --p2p-port 5002 --api-port 8002 --bootstrap-peer http://127.0.0.1:5000
-    ```
-2.  **Observe the logs.** This node will also connect to the bootstrap server, which will then introduce it to the first Axiom node.
-
+You are now ready to develop and test on a live, local Axiom network! **(Any changes made to your local setup will remain in your local environment and will not affect the main repo unles you contribute)**
 
 ### Interact with the Network via the Axiom Client
 With your P2P network running, you can now launch the user client to test the front-end and the HashNLP chat feature.
@@ -148,22 +194,6 @@ Before committing code, run these checks to ensure it meets project standards.
     ```
 
 You are now fully equipped to run, test, and develop on the Axiom Engine!
-
----
-
-## Table of Contents
-- [How It Works: An Autonomous Knowledge Organism](#how-it-works-an-autonomous-knowledge-organism)
-  - [Phase 1: Learning](#phase-1-learning)
-  - [Phase 2: Verification (The Crucible)](#phase-2-verification-the-crucible)
-  - [Phase 3: Understanding (The Synthesizer)](#phase-3-understanding-the-synthesizer)
-  - [Phase 4: Memory & Sharing](#phase-4-memory--sharing)
-- [Core Architecture & Technical Principles](#core-architecture--technical-principles)
-- [The Axiom Ethos: Our Core Philosophies](#the-axiom-ethos-our-core-philosophies)
-- [Comparison to Existing Alternatives](#comparison-to-existing-alternatives)
-- [The Roadmap: From Prototype to Protocol](#the-roadmap-from-prototype-to-protocol)
-- [Current Status: Genesis Stage](#current-status-genesis-stage)
-- [How to Contribute](#how-to-contribute)
-- [License](#license)
 
 ---
 
