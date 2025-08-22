@@ -268,7 +268,8 @@ class AxiomNode(P2PBaseNode):
             # Step 1: Validate the block's legitimacy (ALL nodes do this).
             current_slot = int(block_data["timestamp"] / SECONDS_PER_SLOT)
             expected_proposer = self._get_proposer_for_slot(
-                session, current_slot,
+                session,
+                current_slot,
             )
             if proposer_pubkey != expected_proposer:
                 background_thread_logger.warning(
@@ -915,7 +916,10 @@ def handle_dispute_fact():
         session.commit()
 
     return jsonify(
-        {"status": "success", "message": "Facts have been marked as disputed."},
+        {
+            "status": "success",
+            "message": "Facts have been marked as disputed.",
+        },
     )
 
 

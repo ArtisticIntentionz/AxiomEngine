@@ -308,7 +308,7 @@
                     resultsOutput.innerHTML = '<h4>No Relevant Facts Found</h4><p>The network searched the ledger but could not find a fact that semantically matched your question.</p>';
                     return;
                 }
-                
+
                 results.sort((a, b) => b.similarity - a.similarity);
 
                 const topResults = results.slice(0, 3);
@@ -334,22 +334,22 @@
                     const sourceDomain = (result.sources && result.sources.length > 0) ? result.sources[0] : 'Unknown Source';
 
                     const sanitizedContent = content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                    
+
                     const separator = index > 0 ? '<hr style="border-color: var(--secondary-color); margin: 2em 0;">' : '';
 
                     // *** THE CAREFUL CHANGE IS HERE ***
                     // We now check for the full article URL. If it exists, we use it.
                     // If not, we safely fall back to linking the domain homepage.
                     const linkUrl = result.source_url ? result.source_url : `https://${sourceDomain}`;
-                    
+
                     let sourceHtml;
                     if (sourceDomain !== 'Unknown Source') {
                         // The link now uses the specific article URL if available.
                         // The VISIBLE TEXT remains the clean domain name.
-                        sourceHtml = `<a 
-                            href="${linkUrl}" 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
+                        sourceHtml = `<a
+                            href="${linkUrl}"
+                            target="_blank"
+                            rel="noopener noreferrer"
                             style="color: var(--primary-color); text-decoration: underline;"
                         >${sourceDomain}</a>`;
                     } else {
@@ -363,7 +363,7 @@
                         <blockquote style="margin-left: 0; padding-left: 1em; border-left: 3px solid var(--secondary-color); font-style: italic;">
                            "${sanitizedContent}"
                         </blockquote>
-                        <p style="font-size: 0.9em; color: #aaa;"><strong>Source:</strong> ${sourceHtml}</p> 
+                        <p style="font-size: 0.9em; color: #aaa;"><strong>Source:</strong> ${sourceHtml}</p>
                     `;
                 }).join('');
 

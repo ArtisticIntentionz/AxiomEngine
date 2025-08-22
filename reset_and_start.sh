@@ -24,13 +24,13 @@ echo "--- Launching the single Axiom node ---"
 (
   # Run the node from within its own directory
   cd node-data && \
-  
+
   # Copy the unique key to the name the application expects
   cp ../single_node_key.pem ./shared_node_key.pem && \
-  
+
   # Tell the node code to use the key file
   export AXIOM_SHARED_KEYS=true && \
-  
+
   # Start the node. No bootstrap peer is needed since it's the only one.
   python3 -m axiom_server.node --p2p-port 5001 --api-port 8001 &
 )

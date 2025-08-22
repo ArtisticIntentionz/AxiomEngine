@@ -62,7 +62,9 @@ class ErrorResponse(TypedDict):
 
 # --- Local Merkle Proof Verification Logic ---
 def verify_merkle_proof(
-    leaf_hash_hex: str, proof: list[str], root_hex: str,
+    leaf_hash_hex: str,
+    proof: list[str],
+    root_hex: str,
 ) -> bool:
     """Verifies a Merkle proof locally using SHA256."""
     try:
@@ -208,7 +210,8 @@ class StatsWorker(QThread):
             result["status_error"] = str(e)
         try:
             ns = requests.get(
-                f"{self.node_url}/explorer/node_stats", timeout=10,
+                f"{self.node_url}/explorer/node_stats",
+                timeout=10,
             )
             ns.raise_for_status()
             result["node_stats"] = ns.json()
@@ -216,7 +219,8 @@ class StatsWorker(QThread):
             result["node_stats_error"] = str(e)
         try:
             net = requests.get(
-                f"{self.node_url}/explorer/network_stats", timeout=10,
+                f"{self.node_url}/explorer/network_stats",
+                timeout=10,
             )
             net.raise_for_status()
             result["network_stats"] = net.json()
@@ -404,14 +408,18 @@ class AxiomClientApp(QWidget):
                 fact_hash = item.get("fact_hash", "")
                 block_height = str(item.get("block_height", ""))
                 self.results_table.setItem(
-                    r, 0, QTableWidgetItem(content[:200]),
+                    r,
+                    0,
+                    QTableWidgetItem(content[:200]),
                 )
                 self.results_table.setItem(r, 1, QTableWidgetItem(similarity))
                 self.results_table.setItem(r, 2, QTableWidgetItem(sources))
                 self.results_table.setItem(r, 3, QTableWidgetItem(disputed))
                 self.results_table.setItem(r, 4, QTableWidgetItem(fact_hash))
                 self.results_table.setItem(
-                    r, 5, QTableWidgetItem(block_height),
+                    r,
+                    5,
+                    QTableWidgetItem(block_height),
                 )
 
             top_result = response["results"][0]
@@ -432,7 +440,9 @@ class AxiomClientApp(QWidget):
                     f"Fact found. Requesting cryptographic proof from {node_url}...",
                 )
                 self.verification_worker = VerificationWorker(
-                    node_url, fact_hash, block_height,
+                    node_url,
+                    fact_hash,
+                    block_height,
                 )
                 self.verification_worker.finished.connect(
                     self.handle_verification_result,
@@ -459,7 +469,8 @@ class AxiomClientApp(QWidget):
                     f"Fact cryptographically verified in Block #{proof_data['block_height']}.",
                 )
                 self.status_bar.showMessage(
-                    "✅ Fact Verified on Blockchain", 5000,
+                    "✅ Fact Verified on Blockchain",
+                    5000,
                 )
             else:
                 self.update_status(
@@ -518,7 +529,9 @@ class AxiomClientApp(QWidget):
         node_url = self.connected_node_url or random.choice(BOOTSTRAP_PEERS)
         self.update_status(f"Requesting proof from {node_url}…")
         self.verification_worker = VerificationWorker(
-            node_url, fact_hash, block_height,
+            node_url,
+            fact_hash,
+            block_height,
         )
         self.verification_worker.finished.connect(
             self.handle_verification_result,
