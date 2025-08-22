@@ -187,6 +187,7 @@ class Fact(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     content: Mapped[str] = mapped_column(String, default="", nullable=False)
+    source_url: Mapped[str | None] = mapped_column(String, nullable=True)
     status: Mapped[FactStatus] = mapped_column(
         Enum(FactStatus), default=FactStatus.INGESTED, nullable=False,
     )

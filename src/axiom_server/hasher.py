@@ -203,8 +203,8 @@ class FactIndexer:
                         "fact_id": fact_id,
                         "disputed": fact.disputed,
                         "sources": [source.domain for source in fact.sources],
-                        "source_url": fact.source_url
                         "fact_hash": fact.hash,
+                        "source_url": fact.source_url,
                         "block_height": block_containing_fact.height
                         if block_containing_fact
                         else None,

@@ -29,9 +29,9 @@ __pycache__/
 ssl/
 validators.json
 node-data/
-node-5004/
-node-5002/
-node-5001/
+node-data-2/
+start_node2.sh
+resume_node2.sh
 
 # C extensions
 *.so

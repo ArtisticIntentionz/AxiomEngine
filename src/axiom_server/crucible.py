@@ -259,7 +259,7 @@ SEMANTICS_CHECKS = Pipeline(
 FACT_PREANALYSIS: Pipeline[Fact] = Pipeline("Fact Preanalysis", [])
 
 
-def extract_facts_from_text(text_content: str) -> list[Fact]:
+def extract_facts_from_text(text_content: str, source_url: str) -> list[Fact]:
     """Return list of Facts from text content using semantic analysis."""
     sanitized_text = TEXT_SANITIZATION.run(text_content)
     if not sanitized_text:
@@ -281,7 +281,8 @@ def extract_facts_from_text(text_content: str) -> list[Fact]:
         if (
             checked_sentence := SENTENCE_CHECKS.run(clean_sentence_span)
         ) is not None:
-            fact = Fact(content=checked_sentence.text.strip())
+            fact = Fact(content=checked_sentence.text.strip(), source_url=source_url)
+            
             semantics = Semantics(
                 {
                     "doc": checked_sentence.as_doc(),

@@ -57,7 +57,7 @@ from axiom_server.p2p.node import (
     PeerLink,
 )
 
-__version__ = "3.1.5"
+__version__ = "3.1.6"
 
 logger = logging.getLogger("axiom-node")
 logger.setLevel(logging.INFO)
@@ -455,13 +455,14 @@ class AxiomNode(P2PBaseNode):
                                         credibility_score=1.0,
                                     )
                                 session.add(source)
-                                # --- END OF ADDITION ---
 
                             new_fact_objects = (
                                 crucible.extract_facts_from_text(
                                     item["content"],
+                                    item["source_url"], 
                                 )
                             )
+                            
                             ingested_this_item = []
                             for fact_obj in new_fact_objects:
                                 if (
@@ -536,9 +537,9 @@ class AxiomNode(P2PBaseNode):
                 )
 
             background_thread_logger.info(
-                "Discovery cycle finished. Sleeping for 25 min.",
+                "Discovery cycle finished. Sleeping for 20 min.",
             )
-            time.sleep(1500)
+            time.sleep(1200) # 
 
     def _background_work_loop(self) -> None:
         """A time-slot based loop for proposing and finalizing blocks."""
