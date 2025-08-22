@@ -239,8 +239,7 @@
         document.addEventListener('DOMContentLoaded', () => {
 
             // --- CONFIGURATION ---
-            // Updated to use DuckDNS domain for AWS node
-            const AXIOM_NODE_URL = 'https://axiom-engine.duckdns.org:8002'; // DuckDNS domain for AWS node
+            const AXIOM_NODE_URL = 'https://d089f71ab6a5.ngrok-free.app'; // Remember to update this with your ngrok URL!
 
             // --- UI ELEMENTS ---
             const queryInput = document.getElementById('query-input');
@@ -253,7 +252,10 @@
 
             const checkNodeStatus = async () => {
                 try {
-                    const response = await fetch(`${AXIOM_NODE_URL}/status`);
+                    const response = await fetch(`${AXIOM_NODE_URL}/status`, {
+                        headers: { 'ngrok-skip-browser-warning': 'true' }
+                    });
+
                     if (!response.ok) throw new Error('Network response was not ok.');
 
                     const data = await response.json();
@@ -277,7 +279,10 @@
                 try {
                     const response = await fetch(`${AXIOM_NODE_URL}/chat`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'ngrok-skip-browser-warning': 'true'
+                        },
                         body: JSON.stringify({ query: query })
                     });
 
@@ -297,39 +302,72 @@
                 }
             };
 
+            // --- CAREFULLY ENHANCED displayResults FUNCTION ---
             const displayResults = (results) => {
                 if (!results || results.length === 0) {
                     resultsOutput.innerHTML = '<h4>No Relevant Facts Found</h4><p>The network searched the ledger but could not find a fact that semantically matched your question.</p>';
                     return;
                 }
+                
+                results.sort((a, b) => b.similarity - a.similarity);
 
-                // For this demo, we will focus on the top result
-                const topResult = results[0];
-                const content = topResult.content;
-                const similarity = topResult.similarity * 100; // Convert to percentage
+                const topResults = results.slice(0, 3);
 
-                let title = '';
-                let explanation = '';
+                let resultsHtml = topResults.map((result, index) => {
+                    const content = result.content || '[Content not available]';
+                    const similarity = result.similarity * 100;
 
-                if (similarity > 85) {
-                    title = `Direct Answer Found (${similarity.toFixed(1)}% Match)`;
-                    explanation = `The following fact is a high-confidence semantic match to your question:`;
-                } else if (similarity > 65) {
-                    title = `Related Fact Found (${similarity.toFixed(1)}% Match)`;
-                    explanation = `While not a direct answer, the following fact from the ledger is highly related to your query:`;
-                } else {
-                    title = `Possible Hint Found (${similarity.toFixed(1)}% Match)`;
-                    explanation = `I'm not very sure, but this is the most related information I could find in the ledger:`;
-                }
+                    let title = '';
+                    let explanation = '';
 
-                // Sanitize content before displaying
-                const sanitizedContent = content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                    if (similarity > 85) {
+                        title = `Direct Answer Found (${similarity.toFixed(1)}% Match)`;
+                        explanation = `The following fact is a high-confidence semantic match to your question:`;
+                    } else if (similarity > 65) {
+                        title = `Related Fact Found (${similarity.toFixed(1)}% Match)`;
+                        explanation = `While not a direct answer, the following fact from the ledger is highly related to your query:`;
+                    } else {
+                        title = `Possible Hint Found (${similarity.toFixed(1)}% Match)`;
+                        explanation = `I'm not very sure, but this is the most related information I could find in the ledger:`;
+                    }
 
-                resultsOutput.innerHTML = `
-                    <h4>${title}</h4>
-                    <p><em>${explanation}</em></p>
-                    <blockquote>"${sanitizedContent}"</blockquote>
-                `;
+                    const sourceDomain = (result.sources && result.sources.length > 0) ? result.sources[0] : 'Unknown Source';
+
+                    const sanitizedContent = content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                    
+                    const separator = index > 0 ? '<hr style="border-color: var(--secondary-color); margin: 2em 0;">' : '';
+
+                    // *** THE CAREFUL CHANGE IS HERE ***
+                    // We now check for the full article URL. If it exists, we use it.
+                    // If not, we safely fall back to linking the domain homepage.
+                    const linkUrl = result.source_url ? result.source_url : `https://${sourceDomain}`;
+                    
+                    let sourceHtml;
+                    if (sourceDomain !== 'Unknown Source') {
+                        // The link now uses the specific article URL if available.
+                        // The VISIBLE TEXT remains the clean domain name.
+                        sourceHtml = `<a 
+                            href="${linkUrl}" 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            style="color: var(--primary-color); text-decoration: underline;"
+                        >${sourceDomain}</a>`;
+                    } else {
+                        sourceHtml = sourceDomain;
+                    }
+
+                    return `
+                        ${separator}
+                        <h4>${title}</h4>
+                        <p><em>${explanation}</em></p>
+                        <blockquote style="margin-left: 0; padding-left: 1em; border-left: 3px solid var(--secondary-color); font-style: italic;">
+                           "${sanitizedContent}"
+                        </blockquote>
+                        <p style="font-size: 0.9em; color: #aaa;"><strong>Source:</strong> ${sourceHtml}</p> 
+                    `;
+                }).join('');
+
+                resultsOutput.innerHTML = resultsHtml;
             };
 
             // --- EVENT LISTENERS ---

@@ -203,7 +203,7 @@ class FactIndexer:
                         "fact_id": fact_id,
                         "disputed": fact.disputed,
                         "sources": [source.domain for source in fact.sources],
-                        # --- NEW FIELDS FOR VERIFICATION ---
+                        "source_url": fact.source_url
                         "fact_hash": fact.hash,
                         "block_height": block_containing_fact.height
                         if block_containing_fact

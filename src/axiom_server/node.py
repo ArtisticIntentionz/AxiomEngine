@@ -536,9 +536,9 @@ class AxiomNode(P2PBaseNode):
                 )
 
             background_thread_logger.info(
-                "Discovery cycle finished. Sleeping for 1 hour.",
+                "Discovery cycle finished. Sleeping for 25 min.",
             )
-            time.sleep(3600)
+            time.sleep(1500)
 
     def _background_work_loop(self) -> None:
         """A time-slot based loop for proposing and finalizing blocks."""

@@ -3,7 +3,8 @@
 # Each node operator will generate their own.
 axiom_ledger.db
 *.db
-
+*.pem
+validators.json
 # Temp file during Mypy processing
 mypy_annotate.dat
 test-results.xml
@@ -26,6 +27,11 @@ __pycache__/
 
 # SSL certificates - these should be generated locally by each user
 ssl/
+validators.json
+node-data/
+node-5004/
+node-5002/
+node-5001/
 
 # C extensions
 *.so
