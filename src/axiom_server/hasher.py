@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING
 import numpy as np
 from sqlalchemy import or_
 
-from axiom_server.common import NLP_MODEL  # We are using the LARGE model here!
-from axiom_server.ledger import Fact
+from axiom_server.common import NLP_MODEL
+from axiom_server.ledger import Fact, Block, SessionMaker # --- ADDED Block and SessionMaker ---
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -20,37 +20,27 @@ logger = logging.getLogger("axiom-node.hasher")
 
 def _extract_keywords(query_text: str, max_keywords: int = 5) -> list[str]:
     """Return the most important keywords (nouns and proper nouns) from a query."""
-    # Process the query with our powerful NLP model
     doc = NLP_MODEL(query_text.lower())
-
     keywords = []
-    # We prioritize proper nouns (like "Trump", "SpaceX") and regular nouns.
-    # We ignore stopwords (like "the", "a", "for") and punctuation.
     for token in doc:
         if (
             not token.is_stop
             and not token.is_punct
             and token.pos_ in ["PROPN", "NOUN"]
         ):
-            keywords.append(token.lemma_)  # Use the base form of the word
-
-    # Return the most important (first occurring) keywords up to the max limit
+            keywords.append(token.lemma_)
     return keywords[:max_keywords]
 
 
 class FactIndexer:
-    """A simple class to hold our indexed data."""
+    """A class to hold our indexed data and perform hybrid searches."""
 
     def __init__(self, session: Session) -> None:
         """Initialize the indexer with a database session."""
-        self.session = session  # This session will be used for pre-filtering
-        # A dictionary to map a unique fact ID to its text content.
+        self.session = session
         self.fact_id_to_content: dict[int, str] = {}
-        # A dictionary to map that same fact ID to its numerical vector.
-        self.fact_id_to_vector = {}
-        # A list to hold all the vectors for fast searching.
-        self.vector_matrix = None
-        # A list to keep track of the order of fact IDs corresponding to the matrix rows.
+        self.fact_id_to_vector: dict[int, np.ndarray] = {}
+        self.vector_matrix: np.ndarray | None = None
         self.fact_ids: list[int] = []
 
     def add_fact(self, fact: Fact) -> None:
@@ -59,92 +49,72 @@ class FactIndexer:
             logger.info(f"Fact {fact.id} is already indexed. Skipping.")
             return
 
-        # 1. Get the fact's vector
         doc = NLP_MODEL(fact.content)
         fact_vector = doc.vector
 
-        # 2. Update our dictionaries and lists
         self.fact_id_to_content[fact.id] = fact.content
         self.fact_id_to_vector[fact.id] = fact_vector
         self.fact_ids.append(fact.id)
 
-        # 3. Add the new vector to our NumPy matrix
-        # Reshape the vector to be a row (1, 300) instead of a flat array (300,)
         new_vector_row = fact_vector.reshape(1, -1)
-
         if self.vector_matrix is None:
-            # If this is the first fact, the matrix is just this one row.
             self.vector_matrix = new_vector_row
         else:
-            # Otherwise, stack the new row onto the existing matrix.
-            self.vector_matrix = np.vstack(
-                [self.vector_matrix, new_vector_row],
-            )
+            self.vector_matrix = np.vstack([self.vector_matrix, new_vector_row])
 
-        logger.info(
-            f"Successfully added Fact ID {fact.id} to the live chat index.",
-        )
+        logger.info(f"Successfully added Fact ID {fact.id} to the live chat index.")
+
+    def add_facts(self, facts: list[Fact]) -> None:
+        """Add multiple facts efficiently and log a concise summary."""
+        added = 0
+        for fact in facts:
+            if fact.id in self.fact_ids:
+                continue
+            doc = NLP_MODEL(fact.content)
+            fact_vector = doc.vector
+            self.fact_id_to_content[fact.id] = fact.content
+            self.fact_id_to_vector[fact.id] = fact_vector
+            self.fact_ids.append(fact.id)
+            row = fact_vector.reshape(1, -1)
+            if self.vector_matrix is None:
+                self.vector_matrix = row
+            else:
+                self.vector_matrix = np.vstack([self.vector_matrix, row])
+            added += 1
+        if added:
+            logger.info(f"Indexed {added} new facts into the live chat index.")
 
     def index_facts_from_db(self) -> None:
         """Read all non-disputed facts from the database and builds the index."""
         logger.info("Starting to index facts from the ledger...")
 
-        # Query the database for all proven, non-disputed facts.
-        facts_to_index = (
-            self.session.query(Fact).filter(Fact.disputed == False).all()  # noqa: E712
-        )
+        facts_to_index = self.session.query(Fact).filter(Fact.disputed == False).all()  # noqa: E712
 
         if not facts_to_index:
             logger.warning("No facts found in the database to index.")
             return
 
         for fact in facts_to_index:
-            # Store the fact's text content.
             self.fact_id_to_content[fact.id] = fact.content
-
-            # Create a vector for the fact's content using the large spaCy model.
-            # The .vector attribute provides the semantic representation of the text.
             doc = NLP_MODEL(fact.content)
             self.fact_id_to_vector[fact.id] = doc.vector
-
-            # Keep track of the fact ID.
             self.fact_ids.append(fact.id)
 
-        # For efficient searching, we stack all the individual vectors into one big
-        # NumPy matrix (like a spreadsheet of numbers).
         if self.fact_ids:
-            self.vector_matrix = np.vstack(
-                [self.fact_id_to_vector[fid] for fid in self.fact_ids],
-            )
+            self.vector_matrix = np.vstack([self.fact_id_to_vector[fid] for fid in self.fact_ids])
 
-        logger.info(
-            f"Indexing complete. {len(self.fact_ids)} facts are now searchable.",
-        )
+        logger.info(f"Indexing complete. {len(self.fact_ids)} facts are now searchable.")
 
-    def find_closest_facts(
-        self,
-        query_text: str,
-        top_n: int = 3,
-    ) -> list[dict]:
-        """Perform a HYBRID search.
-
-        1. Extracts keywords from the query.
-        2. Pre-filters the database for facts containing those keywords.
-        3. Performs a vector similarity search ONLY on the pre-filtered results.
-        """
-        # --- Step 1: Extract Keywords ---
+    def find_closest_facts(self, query_text: str, top_n: int = 3) -> list[dict]:
+        """Perform a HYBRID search and enriches results with blockchain data."""
         keywords = _extract_keywords(query_text)
         if not keywords:
             logger.warning("Could not extract any keywords from the query.")
-            return []  # If no keywords, we can't search.
+            return []
 
         logger.info(f"Extracted keywords for pre-filtering: {keywords}")
 
-        # Build a query that looks for facts containing ANY of the keywords.
-        # This is a fast, indexed text search in the database.
         keyword_filters = [Fact.content.ilike(f"%{key}%") for key in keywords]
-
-        # We only want to search through facts that are not disputed.
         pre_filtered_facts = (
             self.session.query(Fact)
             .filter(or_(*keyword_filters))
@@ -156,39 +126,21 @@ class FactIndexer:
             logger.info("Pre-filtering found no facts matching the keywords.")
             return []
 
-        # Create a temporary, smaller index from only the relevant facts.
         candidate_ids = [fact.id for fact in pre_filtered_facts]
-
-        # We need to find the positions (indices) of these candidate facts
-        # in our main, full vector_matrix.
+        
         try:
-            candidate_indices = [
-                self.fact_ids.index(fid) for fid in candidate_ids
-            ]
-        except ValueError:
-            # This can happen if a fact is in the DB but not yet in the in-memory index.
-            # For robustness, we'll just log it and proceed with what we have.
-            logger.warning(
-                "Some pre-filtered facts were not found in the live index. The index may be syncing.",
-            )
-            # Filter out the missing IDs
-            valid_candidate_ids = [
-                fid for fid in candidate_ids if fid in self.fact_ids
-            ]
-            if not valid_candidate_ids:
+            candidate_indices = [self.fact_ids.index(fid) for fid in candidate_ids if fid in self.fact_ids]
+            if not candidate_indices:
+                logger.warning("Pre-filtered facts are not yet in the live index.")
                 return []
-            candidate_indices = [
-                self.fact_ids.index(fid) for fid in valid_candidate_ids
-            ]
+        except ValueError:
+            logger.warning("Mismatch between database and live index. Index may be syncing.")
+            return []
 
-        # Create a smaller matrix with only the vectors of our candidate facts.
         candidate_matrix = self.vector_matrix[candidate_indices, :]
-
-        # --- Step 3 & 4: Vectorize Query and Compare ---
         query_doc = NLP_MODEL(query_text)
         query_vector = query_doc.vector
 
-        # Perform the fast vector math, but ONLY on the small candidate_matrix.
         dot_products = np.dot(candidate_matrix, query_vector)
         norm_query = np.linalg.norm(query_vector)
         norm_matrix = np.linalg.norm(candidate_matrix, axis=1)
@@ -197,30 +149,36 @@ class FactIndexer:
             return []
 
         similarities = dot_products / (norm_matrix * norm_query)
-
-        # The indices of the top N scores are relative to our small candidate list.
         top_candidate_indices = np.argsort(similarities)[::-1][:top_n]
 
-        # --- Final Step: Prepare and Return Results ---
         results = []
-        for i in top_candidate_indices:
-            # Get the original index from our candidate list
-            original_index = candidate_indices[i]
-            # Use that to find the original fact ID
-            fact_id = self.fact_ids[original_index]
+        with SessionMaker() as session:  # Use a new session for fresh queries
+            for i in top_candidate_indices:
+                original_index = candidate_indices[i]
+                fact_id = self.fact_ids[original_index]
+                fact = next((f for f in pre_filtered_facts if f.id == fact_id), None)
+                if not fact: continue
 
-            # We need to find the full Fact object from our pre-filtered list
-            # to get its `disputed` status and `sources`.
-            fact = next(f for f in pre_filtered_facts if f.id == fact_id)
+                # --- START OF MODIFICATION ---
+                
+                # Find the block this fact was proposed in.
+                # This query looks for the fact's hash within the JSON list of fact_hashes in each block.
+                block_containing_fact = session.query(Block).filter(
+                    Block.fact_hashes.like(f'%"{fact.hash}"%')
+                ).first()
 
-            results.append(
-                {
-                    "content": self.fact_id_to_content[fact_id],
-                    "similarity": float(similarities[i]),
-                    "fact_id": fact_id,
-                    "disputed": fact.disputed,
-                    "sources": [source.domain for source in fact.sources],
-                },
-            )
+                results.append(
+                    {
+                        "content": self.fact_id_to_content[fact_id],
+                        "similarity": float(similarities[i]),
+                        "fact_id": fact_id,
+                        "disputed": fact.disputed,
+                        "sources": [source.domain for source in fact.sources],
+                        # --- NEW FIELDS FOR VERIFICATION ---
+                        "fact_hash": fact.hash,
+                        "block_height": block_containing_fact.height if block_containing_fact else None,
+                    }
+                )
+                # --- END OF MODIFICATION ---
 
         return results
