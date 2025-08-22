@@ -120,7 +120,9 @@ class FactIndexer:
         )
 
     def find_closest_facts(
-        self, query_text: str, top_n: int = 3,
+        self,
+        query_text: str,
+        top_n: int = 3,
     ) -> list[dict]:
         """Perform a HYBRID search and enriches results with blockchain data."""
         keywords = _extract_keywords(query_text)
@@ -181,7 +183,8 @@ class FactIndexer:
                 original_index = candidate_indices[i]
                 fact_id = self.fact_ids[original_index]
                 fact = next(
-                    (f for f in pre_filtered_facts if f.id == fact_id), None,
+                    (f for f in pre_filtered_facts if f.id == fact_id),
+                    None,
                 )
                 if not fact:
                     continue

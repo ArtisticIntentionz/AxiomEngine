@@ -43,7 +43,8 @@ def main():
         # *** THE FIX: Load the key back from the file to ensure format is identical to runtime ***
         with open(private_key_path, "rb") as f:
             loaded_private_key = serialization.load_pem_private_key(
-                f.read(), password=None,
+                f.read(),
+                password=None,
             )
 
         loaded_public_key = loaded_private_key.public_key()

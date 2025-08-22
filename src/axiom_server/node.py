@@ -460,10 +460,10 @@ class AxiomNode(P2PBaseNode):
                             new_fact_objects = (
                                 crucible.extract_facts_from_text(
                                     item["content"],
-                                    item["source_url"], 
+                                    item["source_url"],
                                 )
                             )
-                            
+
                             ingested_this_item = []
                             for fact_obj in new_fact_objects:
                                 if (
@@ -540,7 +540,7 @@ class AxiomNode(P2PBaseNode):
             background_thread_logger.info(
                 "Discovery cycle finished. Sleeping for 20 min.",
             )
-            time.sleep(1200) # 
+            time.sleep(1200)  #
 
     def _background_work_loop(self) -> None:
         """A time-slot based loop for proposing and finalizing blocks."""
