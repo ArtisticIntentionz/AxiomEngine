@@ -116,9 +116,9 @@ This script will automatically start 2 Axiom nodes with the correct ports and bo
 - Check the logs to confirm nodes are communicating and proposing blocks.
 - The script handles staking and peer connections automatically.
 - Cd into factReports and use ``` python fact_reporter.py ``` to get a deep look at the recorded facts to verify quality etc.
-- from the root AxiomEngine use the command ``` python maintain_feeds.py ``` to autofix broken or malformed rss feeds. 
+- from the root AxiomEngine use the command ``` python maintain_feeds.py ``` to autofix broken or malformed rss feeds.
 
-You are now ready to develop and test on a live, local Axiom network! **(Any changes made to your local setup will remain in your local environment and will not affect the main repo unles you contribute)**
+You are now ready to develop and test on a live, local Axiom network! **(Any changes made to your local setup will remain in your local environment and will not affect the main repo unless you contribute)**
 
 **Step 4: Branch, Code, and Validate**
 Create a New Branch: Never work directly on the main branch.
