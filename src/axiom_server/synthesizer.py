@@ -203,12 +203,15 @@ def link_related_facts(
                     continue
                 # Priority 1: Check for a high-confidence contradiction.
                 is_contradiction, is_potential, reason = checkForContradiction(
-                    new_doc, existing_doc,
+                    new_doc,
+                    existing_doc,
                 )
                 if is_contradiction:
                     logger.info(f"CONFIRMED CONTRADICTION: {reason}")
                     mark_fact_objects_as_disputed(
-                        session, new_fact, existing_fact,
+                        session,
+                        new_fact,
+                        existing_fact,
                     )
                     disputes_found += 1
                     continue

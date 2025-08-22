@@ -30,7 +30,8 @@ logger.propagate = False
 
 
 def normalize_and_count_topics(
-    entities: list[str], similarity_threshold=0.90,
+    entities: list[str],
+    similarity_threshold=0.90,
 ) -> Counter:
     """Normalizes a list of entities by grouping semantically similar ones,
     then returns a Counter with the aggregated counts.

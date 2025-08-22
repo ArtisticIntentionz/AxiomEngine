@@ -213,7 +213,10 @@ def generate_report_optimized(facts: list[dict]):
         f.write("----------------------------------------\n")
         f.write("Summary of Relationships\n")
         f.write("----------------------------------------\n")
-        f.writelines(f"{rel_type.title()}: {count}\n" for rel_type, count in relationship_counts.items())
+        f.writelines(
+            f"{rel_type.title()}: {count}\n"
+            for rel_type, count in relationship_counts.items()
+        )
         f.write("\n")
 
         # --- Disputed Facts Section ---

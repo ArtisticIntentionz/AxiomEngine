@@ -162,7 +162,7 @@ Ingested & Awaiting Corroboration (32)
    Main Entities: myanmar
 
 21. Fact Hash: a88e545eca2eaff630d0b865444abea916094f24d3c187b3d2fa8d5c6c295f72
-   Content: princeton's mena scatchard finished second in the women's mile on saturday at the ncaa d1 indoor championships in a time of 4:32.87.
+   Content: princeton's mean scatchard finished second in the women's mile on saturday at the ncaa d1 indoor championships in a time of 4:32.87.
    Sources: NCAAIndoorChampionships.runnerspace.com
    Fact Type: general
    Main Entities: princeton's
@@ -232,4 +232,3 @@ Ingested & Awaiting Corroboration (32)
    Sources: NCAAIndoorChampionships.runnerspace.com
    Fact Type: location
    Main Entities: axelina johansson, nebraska
-
