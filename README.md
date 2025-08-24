@@ -86,17 +86,25 @@ This hybrid approach is proven to work reliably. We use Conda for complex, pre-c
 
 1. **Install Heavy Binaries with Conda:**
 
-    ``` conda install -c conda-forge numpy scipy "spacy>=3.7.2,<3.8.0" cryptography beautifulsoup4 sec_edgar_api-y ```
-2. **Install Pure-Python Libraries with Pip:**
+```
+conda install -c conda-forge numpy scipy "spacy>=3.7.2,<3.8.0" cryptography beautifulsoup4 -y
+```
+3. **Install Pure-Python Libraries with Pip:**
 
-    ``` pip install Flask gunicorn requests sqlalchemy pydantic feedparser Flask-Cors ruff mypy pytest pre-commit attrs types-requests ```
-3. **Install the AI Model: We use a large, high-quality model for fact extraction.**
+```
+pip install Flask gunicorn requests sqlalchemy pydantic feedparser Flask-Cors ruff mypy pytest pre-commit attrs types-requests sec_edgar_api
+```
+5. **Install the AI Model: We use a large, high-quality model for fact extraction.**
 
-    ``` python -m spacy download en_core_web_lg ```
+```
+python -m spacy download en_core_web_lg
+```
 
-4. **Install the Axiom Project Itself:** This final step makes the axiom_server module available and installs it in an "editable" mode (-e), so your code changes are immediately reflected.
+6. **Install the Axiom Project Itself:** This final step makes the axiom_server module available and installs it in an "editable" mode (-e), so your code changes are immediately reflected.
 
-    ``` pip install -e ."[test]" ```
+```
+   pip install -e ."[test]"
+```
 
 **Step 2: One-Time Project Initialization (SSL)**
 The P2P engine requires SSL certificates for secure, encrypted communication between nodes.
