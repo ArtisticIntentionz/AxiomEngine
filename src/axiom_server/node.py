@@ -268,7 +268,8 @@ class AxiomNode(P2PBaseNode):
             # Step 1: Validate the block's legitimacy (ALL nodes do this).
             current_slot = int(block_data["timestamp"] / SECONDS_PER_SLOT)
             expected_proposer = self._get_proposer_for_slot(
-                session, current_slot,
+                session,
+                current_slot,
             )
             if proposer_pubkey != expected_proposer:
                 background_thread_logger.warning(
@@ -459,10 +460,10 @@ class AxiomNode(P2PBaseNode):
                             new_fact_objects = (
                                 crucible.extract_facts_from_text(
                                     item["content"],
-                                    item["source_url"], 
+                                    item["source_url"],
                                 )
                             )
-                            
+
                             ingested_this_item = []
                             for fact_obj in new_fact_objects:
                                 if (
@@ -539,7 +540,7 @@ class AxiomNode(P2PBaseNode):
             background_thread_logger.info(
                 "Discovery cycle finished. Sleeping for 20 min.",
             )
-            time.sleep(1200) # 
+            time.sleep(1200)  #
 
     def _background_work_loop(self) -> None:
         """A time-slot based loop for proposing and finalizing blocks."""
@@ -872,21 +873,75 @@ def handle_submit_fact() -> Response | tuple[Response, int]:
 
 @app.route("/chat", methods=["POST"])
 def handle_chat_query() -> Response | tuple[Response, int]:
-    """Handle natural language queries from the client.
+    """Handle natural language queries from the client using secure RAG synthesis.
 
-    Finding the most semantically similar facts in the ledger.
+    This endpoint implements a multi-layered security system:
+    1. Validates user input for malicious content
+    2. Searches the ledger for verified facts
+    3. Uses LLM to synthesize natural, direct answers (optional)
+    4. Cross-checks responses to prevent hallucination
     """
     data = request.get_json()
     if not data or "query" not in data:
         return jsonify({"error": "Missing 'query' in request body"}), 400
 
-    query = data["query"]
+    user_query = data["query"]
+    use_llm = data.get("use_llm", True)  # Default to True for backward compatibility
 
+    # Step 1: Find relevant facts from the ledger
     with fact_indexer_lock:
-        closest_facts = fact_indexer.find_closest_facts(query)
+        closest_facts = fact_indexer.find_closest_facts(user_query)
 
-    # Return the results to the client.
-    return jsonify({"results": closest_facts})
+    # Step 2: Use LLM synthesis only if requested
+    if use_llm:
+        try:
+            from axiom_server.rag_synthesis import process_user_query
+
+            success, message, synthesized_answer = process_user_query(
+                user_query,
+                closest_facts,
+            )
+
+            if success:
+                # Return both the synthesized answer and the raw facts for verification
+                return jsonify(
+                    {
+                        "answer": synthesized_answer,
+                        "results": closest_facts,
+                        "synthesis_status": "success",
+                        "message": message,
+                    },
+                )
+            # Fall back to raw facts if synthesis fails
+            return jsonify(
+                {
+                    "answer": "I found some relevant information, but encountered an issue generating a direct answer.",
+                    "results": closest_facts,
+                    "synthesis_status": "failed",
+                    "message": message,
+                },
+            )
+
+        except Exception as e:
+            logger.error(f"RAG synthesis failed: {e}")
+            # Fall back to raw facts with better error handling
+            return jsonify(
+                {
+                    "answer": "I found some relevant information in the ledger.",
+                    "results": closest_facts,
+                    "synthesis_status": "error",
+                    "message": f"LLM processing error: {str(e)}",
+                },
+            )
+    else:
+        # Fast mode: return only the facts without LLM synthesis
+        return jsonify(
+            {
+                "results": closest_facts,
+                "synthesis_status": "disabled",
+                "message": "LLM synthesis disabled - showing raw facts only",
+            },
+        )
 
 
 @app.route("/dao/dispute_fact", methods=["POST"])
@@ -916,7 +971,10 @@ def handle_dispute_fact():
         session.commit()
 
     return jsonify(
-        {"status": "success", "message": "Facts have been marked as disputed."},
+        {
+            "status": "success",
+            "message": "Facts have been marked as disputed.",
+        },
     )
 
 

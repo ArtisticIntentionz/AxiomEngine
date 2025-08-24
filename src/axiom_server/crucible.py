@@ -281,8 +281,11 @@ def extract_facts_from_text(text_content: str, source_url: str) -> list[Fact]:
         if (
             checked_sentence := SENTENCE_CHECKS.run(clean_sentence_span)
         ) is not None:
-            fact = Fact(content=checked_sentence.text.strip(), source_url=source_url)
-            
+            fact = Fact(
+                content=checked_sentence.text.strip(),
+                source_url=source_url,
+            )
+
             semantics = Semantics(
                 {
                     "doc": checked_sentence.as_doc(),
@@ -360,7 +363,8 @@ def _entities_match(fact1: Fact, fact2: Fact) -> bool:
 
 # --- Relationship inference with entity match and stricter thresholds ---
 def _infer_relationship(
-    fact1: Fact, fact2: Fact,
+    fact1: Fact,
+    fact2: Fact,
 ) -> tuple[RelationshipType, float, str] | None:
     """Analyzes two facts and infers their relationship, confidence, and reason.
     Uses a powerful NLI model for logical inference.
@@ -463,7 +467,8 @@ class CrucibleFactAdder:
             "Crucible Fact Processing",
             [
                 Transformation(
-                    self._process_relationships, "Find and store relationships",
+                    self._process_relationships,
+                    "Find and store relationships",
                 ),
             ],
         )
@@ -513,7 +518,9 @@ class CrucibleFactAdder:
                         f"Contradiction found (strong, entity match) between new fact {new_fact.id} and existing fact {existing_fact.id}: {reason}",
                     )
                     mark_fact_objects_as_disputed(
-                        self.session, existing_fact, new_fact,
+                        self.session,
+                        existing_fact,
+                        new_fact,
                     )
                     return None  # Signal that this fact should not be indexed
                 logger.info(

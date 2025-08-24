@@ -1,0 +1,160 @@
+#!/usr/bin/env python3
+"""Demonstration script for the Reinforcement Learning system.
+
+This script creates a sample Python file with various Ruff errors,
+then shows how the RL system would process and learn from them.
+"""
+
+import os
+import subprocess
+import tempfile
+
+
+def create_sample_file():
+    """Create a sample Python file with various Ruff errors."""
+    sample_code = '''#!/usr/bin/env python3
+"""Sample file with various Ruff errors for demonstration."""
+
+import json
+import requests
+from typing import Dict, List
+
+def CalculateSum(a, b):
+    """Calculates the sum of two numbers."""
+    return a + b
+
+def process_data(data):
+    result = []
+    for item in data:
+        result.append(item * 2)
+    return result
+
+def validate_input(value):
+    """Validates the input value."""
+    return isinstance(value, str)
+
+def fetch_data(url):
+    response = requests.get(url)
+    return response.json()
+
+class DataProcessor:
+    def __init__(self, config):
+        self.config = config
+    
+    def ProcessData(self, data):
+        """Process the data according to configuration."""
+        processed = []
+        for item in data:
+            processed.append(self.config['multiplier'] * item)
+        return processed
+
+if __name__ == "__main__":
+    data = [1, 2, 3, 4, 5]
+    processor = DataProcessor({'multiplier': 2})
+    result = processor.ProcessData(data)
+    print(f"Result: {result}")
+'''
+
+    # Create temporary file
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+        f.write(sample_code)
+        temp_file = f.name
+
+    return temp_file
+
+def run_ruff_check(file_path):
+    """Run ruff check on the file and return the output."""
+    try:
+        result = subprocess.run(
+            ["ruff", "check", file_path, "--output-format=concise"],
+            capture_output=True,
+            text=True,
+        )
+        return result.stdout
+    except FileNotFoundError:
+        return "ruff command not found. Please install ruff: pip install ruff"
+
+def demonstrate_rl_system():
+    """Demonstrate the RL system with a sample file."""
+    print("🧠 LLM Ruff Fixer - Reinforcement Learning Demonstration")
+    print("=" * 60)
+
+    # Create sample file
+    print("1. Creating sample Python file with Ruff errors...")
+    sample_file = create_sample_file()
+    print(f"   Created: {sample_file}")
+
+    # Show the file content
+    print("\n2. Sample file content:")
+    with open(sample_file) as f:
+        content = f.read()
+    print("   " + "\n   ".join(content.split("\n")))
+
+    # Run ruff check
+    print("\n3. Running Ruff check...")
+    ruff_output = run_ruff_check(sample_file)
+    if ruff_output.strip():
+        print("   Ruff found the following errors:")
+        for line in ruff_output.strip().split("\n"):
+            print(f"   - {line}")
+    else:
+        print("   No Ruff errors found (unexpected)")
+
+    # Show what the RL system would do
+    print("\n4. How the Reinforcement Learning system would process this:")
+    print("   a) Extract each error and create context")
+    print("   b) Generate enhanced prompts with learning feedback")
+    print("   c) Get LLM fixes and verify quality")
+    print("   d) Record experiences and update learning model")
+    print("   e) Provide rewards/penalties based on fix quality")
+
+    # Show example learning feedback
+    print("\n5. Example learning feedback the system would generate:")
+    feedback_examples = [
+        "D401: 'Good job! You've successfully fixed D401 errors 85% of the time. Keep providing clean, syntax-correct fixes without explanations.'",
+        "N802: 'Remember: Don't make unwanted_explanation mistakes like in previous attempts. Focus on clean, valid Python code only.'",
+        "D103: 'For missing docstring errors, focus on the specific formatting requirements.'",
+        "F821: 'For import/undefined errors, add the correct import statements.'",
+    ]
+
+    for feedback in feedback_examples:
+        print(f"   {feedback}")
+
+    # Show reward system
+    print("\n6. Reward/Penalty system:")
+    rewards = [
+        ("✅ Valid fix", "+10 points"),
+        ("❌ Syntax error", "-5 points"),
+        ("❌ Unwanted explanation", "-2 points"),
+        ("❌ Excessive code deletion", "-8 points"),
+        ("✅ Efficient fix", "+1 bonus point"),
+    ]
+
+    for action, points in rewards:
+        print(f"   {action}: {points}")
+
+    # Show expected outcomes
+    print("\n7. Expected learning outcomes:")
+    outcomes = [
+        "• LLM learns to avoid adding explanatory comments",
+        "• LLM becomes more consistent with docstring formatting",
+        "• LLM improves at function naming conventions",
+        "• LLM gets better at adding missing imports",
+        "• Overall success rate increases over time",
+    ]
+
+    for outcome in outcomes:
+        print(f"   {outcome}")
+
+    # Cleanup
+    os.unlink(sample_file)
+
+    print("\n" + "=" * 60)
+    print("🎯 To use the full RL system:")
+    print("1. Install dependencies: pip install -r requirements_rl.txt")
+    print("2. Run the fixer: python llm_ruff_fixer.py")
+    print("3. View performance: python llm_ruff_fixer.py --report")
+    print("4. Train manually: python llm_ruff_fixer.py --train")
+
+if __name__ == "__main__":
+    demonstrate_rl_system()

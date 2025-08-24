@@ -11,7 +11,7 @@ from sqlalchemy import or_
 from axiom_server.common import NLP_MODEL
 from axiom_server.crucible import TEXT_SANITIZATION
 from axiom_server.ledger import Fact, FactStatus
-from axiom_server.nlp_utils import extract_keywords  # --- NEW IMPORT ---
+from axiom_server.nlp_utils import parse_query_advanced
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -39,9 +39,9 @@ def semantic_search_ledger(
         return []
 
     # --- Step 1: Hybrid Search Pre-filtering ---
-    keywords = extract_keywords(sanitized_term)
+    keywords = parse_query_advanced(sanitized_term)
     if not keywords:
-        return []  # Can't search without keywords
+        return []
 
     keyword_filters = [Fact.content.ilike(f"%{key}%") for key in keywords]
 

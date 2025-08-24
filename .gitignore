@@ -21,6 +21,7 @@ __pycache__/
 \#*
 .#*
 *.swp
+*.gguf
 
 # Backup files created by our script
 *.bak

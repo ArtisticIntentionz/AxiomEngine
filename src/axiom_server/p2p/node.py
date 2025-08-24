@@ -275,7 +275,10 @@ def _generate_key_pair(
     """Generate or load a shared key pair for all nodes to use the same identity."""
     # Use a shared key file to ensure all nodes have the same key pair
     shared_key_file = os.path.join(
-        os.path.dirname(__file__), "..", "..", "shared_node_key.pem",
+        os.path.dirname(__file__),
+        "..",
+        "..",
+        "shared_node_key.pem",
     )
 
     # Check if we should use shared keys (for testing/multi-node setup)

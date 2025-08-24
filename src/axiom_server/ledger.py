@@ -102,10 +102,14 @@ class Block(Base):
     timestamp: Mapped[float] = mapped_column(Float, nullable=False)
     fact_hashes: Mapped[str] = mapped_column(Text, nullable=False)
     merkle_root: Mapped[str] = mapped_column(
-        String, nullable=False, default="",
+        String,
+        nullable=False,
+        default="",
     )
     proposer_pubkey: Mapped[str] = mapped_column(
-        String, ForeignKey("validators.public_key"), nullable=True,
+        String,
+        ForeignKey("validators.public_key"),
+        nullable=True,
     )
     proposer: Mapped[Validator] = relationship("Validator")
 
@@ -189,14 +193,21 @@ class Fact(Base):
     content: Mapped[str] = mapped_column(String, default="", nullable=False)
     source_url: Mapped[str | None] = mapped_column(String, nullable=True)
     status: Mapped[FactStatus] = mapped_column(
-        Enum(FactStatus), default=FactStatus.INGESTED, nullable=False,
+        Enum(FactStatus),
+        default=FactStatus.INGESTED,
+        nullable=False,
     )
     score: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     disputed: Mapped[bool] = mapped_column(
-        Boolean, default=False, nullable=False,
+        Boolean,
+        default=False,
+        nullable=False,
     )
     hash: Mapped[str] = mapped_column(
-        String, default="", nullable=False, index=True,
+        String,
+        default="",
+        nullable=False,
+        index=True,
     )
     last_checked: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -204,14 +215,19 @@ class Fact(Base):
         onupdate=lambda: datetime.now(timezone.utc),
     )
     semantics: Mapped[str] = mapped_column(
-        String, default="{}", nullable=False,
+        String,
+        default="{}",
+        nullable=False,
     )
 
     vector_data: Mapped[FactVector] = relationship(
-        back_populates="fact", cascade="all, delete-orphan",
+        back_populates="fact",
+        cascade="all, delete-orphan",
     )
     sources: Mapped[list[Source]] = relationship(
-        "Source", secondary="fact_source_link", back_populates="facts",
+        "Source",
+        secondary="fact_source_link",
+        back_populates="facts",
     )
     links: Mapped[list[FactLink]] = relationship(
         "FactLink",
@@ -296,10 +312,14 @@ class Source(Base):
     domain: Mapped[str] = mapped_column(String, nullable=False, unique=True)
 
     source_type: Mapped[str] = mapped_column(
-        String, default="secondary", nullable=False,
+        String,
+        default="secondary",
+        nullable=False,
     )
     credibility_score: Mapped[float] = mapped_column(
-        Float, default=1.0, nullable=False,
+        Float,
+        default=1.0,
+        nullable=False,
     )
 
     facts: Mapped[list[Fact]] = relationship(
@@ -314,10 +334,14 @@ class FactSourceLink(Base):
 
     __tablename__ = "fact_source_link"
     fact_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("facts.id"), primary_key=True,
+        Integer,
+        ForeignKey("facts.id"),
+        primary_key=True,
     )
     source_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("source.id"), primary_key=True,
+        Integer,
+        ForeignKey("source.id"),
+        primary_key=True,
     )
 
 
@@ -333,11 +357,15 @@ class FactLink(Base):
     )
     score: Mapped[int] = mapped_column(Integer, nullable=False)
     fact1_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("facts.id"), nullable=False,
+        Integer,
+        ForeignKey("facts.id"),
+        nullable=False,
     )
     fact1: Mapped[Fact] = relationship("Fact", foreign_keys=[fact1_id])
     fact2_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("facts.id"), nullable=False,
+        Integer,
+        ForeignKey("facts.id"),
+        nullable=False,
     )
     fact2: Mapped[Fact] = relationship("Fact", foreign_keys=[fact2_id])
 
@@ -349,10 +377,14 @@ class Validator(Base):
     public_key: Mapped[str] = mapped_column(String, primary_key=True)
     region: Mapped[str] = mapped_column(String, nullable=False)
     stake_amount: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=0,
+        Integer,
+        nullable=False,
+        default=0,
     )
     reputation_score: Mapped[float] = mapped_column(
-        Float, nullable=False, default=1.0,
+        Float,
+        nullable=False,
+        default=1.0,
     )
     rewards: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -392,7 +424,8 @@ def create_genesis_block(session: Session) -> None:
 
 
 def add_block_from_peer_data(
-    session: Session, block_data: dict[str, Any],
+    session: Session,
+    block_data: dict[str, Any],
 ) -> Block:
     """Validate and add a new block received from a peer."""
     latest_local_block = get_latest_block(session)
@@ -438,7 +471,9 @@ def get_all_facts_for_analysis(session: Session) -> list[Fact]:
 
 
 def add_fact_corroboration(
-    session: Session, fact_id: int, source_id: int,
+    session: Session,
+    fact_id: int,
+    source_id: int,
 ) -> None:
     """Increment a fact's trust score and add the source to it."""
     fact = session.get(Fact, fact_id)
@@ -461,7 +496,9 @@ def add_fact_object_corroboration(fact: Fact, source: Source) -> None:
 
 
 def insert_uncorroborated_fact(
-    session: Session, content: str, source_id: int,
+    session: Session,
+    content: str,
+    source_id: int,
 ) -> None:
     """Insert a fact for the first time. The source must exist."""
     source = session.get(Source, source_id)
@@ -511,7 +548,9 @@ def insert_relationship_object(
 
 
 def mark_facts_as_disputed(
-    session: Session, original_facts_id: int, new_facts_id: int,
+    session: Session,
+    original_facts_id: int,
+    new_facts_id: int,
 ) -> None:
     """Mark two facts as disputed and links them together."""
     original_facts = session.get(Fact, original_facts_id)
@@ -524,7 +563,9 @@ def mark_facts_as_disputed(
 
 
 def mark_fact_objects_as_disputed(
-    session: Session, original_fact: Fact, new_fact: Fact,
+    session: Session,
+    original_fact: Fact,
+    new_fact: Fact,
 ) -> None:
     """Mark two Fact objects as disputed and link them."""
     original_fact.disputed = True

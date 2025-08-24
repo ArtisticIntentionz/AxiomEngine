@@ -29,8 +29,6 @@ from PyQt6.QtWidgets import (
 # A list of known nodes for resilience.
 BOOTSTRAP_PEERS = [
     "http://127.0.0.1:8001",
-    "http://127.0.0.1:8002",
-    "http://127.0.0.1:8004",
 ]
 
 
@@ -52,6 +50,9 @@ class ChatResponse(TypedDict):
 
     results: list[ChatResult]
     node_url: str
+    answer: str  # New: synthesized answer from secure RAG system
+    synthesis_status: str  # New: success/failed/error
+    message: str  # New: status message
 
 
 class ErrorResponse(TypedDict):
@@ -62,7 +63,9 @@ class ErrorResponse(TypedDict):
 
 # --- Local Merkle Proof Verification Logic ---
 def verify_merkle_proof(
-    leaf_hash_hex: str, proof: list[str], root_hex: str,
+    leaf_hash_hex: str,
+    proof: list[str],
+    root_hex: str,
 ) -> bool:
     """Verifies a Merkle proof locally using SHA256."""
     try:
@@ -89,21 +92,23 @@ class NetworkWorker(QThread):
     finished = pyqtSignal(object)
     progress = pyqtSignal(str)
 
-    def __init__(self, query_term: str) -> None:
+    def __init__(self, query_term: str, use_llm: bool = True) -> None:
         super().__init__()
         self.query_term = query_term
+        self.use_llm = use_llm
 
     def run(self) -> None:
         nodes_to_try = random.sample(BOOTSTRAP_PEERS, len(BOOTSTRAP_PEERS))
         for i, node_url in enumerate(nodes_to_try):
             try:
+                mode_text = "with LLM synthesis" if self.use_llm else "fast mode (NLI only)"
                 self.progress.emit(
-                    f"Querying Axiom Node {i + 1}/{len(nodes_to_try)} ({node_url})...",
+                    f"Querying Axiom Node {i + 1}/{len(nodes_to_try)} ({node_url}) - {mode_text}...",
                 )
                 response = requests.post(
                     f"{node_url}/chat",
-                    json={"query": self.query_term},
-                    timeout=15,
+                    json={"query": self.query_term, "use_llm": self.use_llm},
+                    timeout=45,  # Increased timeout for LLM processing on slower hardware
                 )
                 response.raise_for_status()
                 data = response.json()
@@ -111,9 +116,14 @@ class NetworkWorker(QThread):
                 self.finished.emit(data)
                 return
             except requests.RequestException as e:
-                self.progress.emit(
-                    f"Node {node_url} failed: {e}. Trying next...",
-                )
+                if "timeout" in str(e).lower():
+                    self.progress.emit(
+                        f"Node {node_url} timed out (LLM processing may be slow on this hardware). Trying next...",
+                    )
+                else:
+                    self.progress.emit(
+                        f"Node {node_url} failed: {e}. Trying next...",
+                    )
                 continue
         self.finished.emit({"error": "All known Axiom nodes are unreachable."})
 
@@ -208,7 +218,8 @@ class StatsWorker(QThread):
             result["status_error"] = str(e)
         try:
             ns = requests.get(
-                f"{self.node_url}/explorer/node_stats", timeout=10,
+                f"{self.node_url}/explorer/node_stats",
+                timeout=10,
             )
             ns.raise_for_status()
             result["node_stats"] = ns.json()
@@ -216,7 +227,8 @@ class StatsWorker(QThread):
             result["node_stats_error"] = str(e)
         try:
             net = requests.get(
-                f"{self.node_url}/explorer/network_stats", timeout=10,
+                f"{self.node_url}/explorer/network_stats",
+                timeout=10,
             )
             net.raise_for_status()
             result["network_stats"] = net.json()
@@ -285,6 +297,7 @@ class AxiomClientApp(QWidget):
         layout = QVBoxLayout()
         self.search_tab.setLayout(layout)
 
+        # Query input row
         row = QHBoxLayout()
         self.query_input = QLineEdit()
         self.query_input.setPlaceholderText("Ask Axiom a question…")
@@ -296,6 +309,24 @@ class AxiomClientApp(QWidget):
         self.search_button.clicked.connect(self.start_search)
         row.addWidget(self.search_button)
         layout.addLayout(row)
+
+        # Think toggle row
+        think_row = QHBoxLayout()
+        think_row.addWidget(QLabel("Mode:"))
+        self.think_button = QPushButton("🤔 Think (LLM)")
+        self.think_button.setCheckable(True)
+        self.think_button.setChecked(True)  # Default to LLM mode
+        self.think_button.setFont(QFont("Arial", 12))
+        self.think_button.clicked.connect(self.toggle_think_mode)
+        think_row.addWidget(self.think_button)
+        think_row.addStretch()  # Push to the left
+        layout.addLayout(think_row)
+
+        # Tip label
+        tip_label = QLabel("💡 Tip: Use Fast (NLI) mode for instant results, Think (LLM) for AI synthesis (may be slower on older hardware)")
+        tip_label.setFont(QFont("Arial", 9))
+        tip_label.setStyleSheet("color: #666; margin-bottom: 10px;")
+        layout.addWidget(tip_label)
 
         self.status_label = QLabel("Status: Idle")
         self.status_label.setFont(QFont("Arial", 10))
@@ -367,6 +398,15 @@ class AxiomClientApp(QWidget):
         self.explorer_output.setReadOnly(True)
         layout.addWidget(self.explorer_output, 1)
 
+    def toggle_think_mode(self) -> None:
+        """Toggle between LLM synthesis and fast NLI-only mode."""
+        if self.think_button.isChecked():
+            self.think_button.setText("🤔 Think (LLM)")
+            self.think_button.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; }")
+        else:
+            self.think_button.setText("⚡ Fast (NLI)")
+            self.think_button.setStyleSheet("QPushButton { background-color: #FF9800; color: white; }")
+
     def start_search(self) -> None:
         query = self.query_input.text()
         if not query:
@@ -375,7 +415,9 @@ class AxiomClientApp(QWidget):
         self.results_output.clear()
         self.results_table.setRowCount(0)
         self.status_bar.clearMessage()
-        self.network_worker = NetworkWorker(query)
+        
+        use_llm = self.think_button.isChecked()
+        self.network_worker = NetworkWorker(query, use_llm)
         self.network_worker.progress.connect(self.update_status)
         self.network_worker.finished.connect(self.handle_search_result)
         self.network_worker.start()
@@ -404,14 +446,18 @@ class AxiomClientApp(QWidget):
                 fact_hash = item.get("fact_hash", "")
                 block_height = str(item.get("block_height", ""))
                 self.results_table.setItem(
-                    r, 0, QTableWidgetItem(content[:200]),
+                    r,
+                    0,
+                    QTableWidgetItem(content[:200]),
                 )
                 self.results_table.setItem(r, 1, QTableWidgetItem(similarity))
                 self.results_table.setItem(r, 2, QTableWidgetItem(sources))
                 self.results_table.setItem(r, 3, QTableWidgetItem(disputed))
                 self.results_table.setItem(r, 4, QTableWidgetItem(fact_hash))
                 self.results_table.setItem(
-                    r, 5, QTableWidgetItem(block_height),
+                    r,
+                    5,
+                    QTableWidgetItem(block_height),
                 )
 
             top_result = response["results"][0]
@@ -432,7 +478,9 @@ class AxiomClientApp(QWidget):
                     f"Fact found. Requesting cryptographic proof from {node_url}...",
                 )
                 self.verification_worker = VerificationWorker(
-                    node_url, fact_hash, block_height,
+                    node_url,
+                    fact_hash,
+                    block_height,
                 )
                 self.verification_worker.finished.connect(
                     self.handle_verification_result,
@@ -459,7 +507,8 @@ class AxiomClientApp(QWidget):
                     f"Fact cryptographically verified in Block #{proof_data['block_height']}.",
                 )
                 self.status_bar.showMessage(
-                    "✅ Fact Verified on Blockchain", 5000,
+                    "✅ Fact Verified on Blockchain",
+                    5000,
                 )
             else:
                 self.update_status(
@@ -476,9 +525,73 @@ class AxiomClientApp(QWidget):
 
         if "error" in response:
             html = f"<h2>Connection Error</h2><p>{response.get('error', 'Unknown error')}</p>"
+        elif "answer" in response:
+            # New secure RAG system response
+            answer = response.get("answer", "")
+            synthesis_status = response.get("synthesis_status", "")
+            message = response.get("message", "")
+
+            html = "<h2>Direct Answer from Axiom</h2>"
+            html += "<div style='background-color: #f0f0f0; padding: 15px; border-radius: 8px; border-left: 4px solid #007acc; margin-bottom: 15px;'>"
+            html += f"<p style='font-size: 14px; line-height: 1.5; margin: 0;'>{answer}</p>"
+            html += "</div>"
+
+            if synthesis_status:
+                status_color = (
+                    "green" if synthesis_status == "success" else "red"
+                )
+                html += f"<p style='font-size: 11px; color: {status_color}; margin-bottom: 10px;'>"
+                html += f"<strong>Synthesis Status:</strong> {synthesis_status} - {message}</p>"
+
+            # Show supporting facts if available
+            if response.get("results"):
+                html += "<h3>Supporting Facts from Axiom Ledger</h3>"
+                html += "<p style='font-size: 12px; color: #666; margin-bottom: 10px;'>"
+                html += "The answer above is based on these verified facts from the Axiom network:</p>"
+
+                for i, fact in enumerate(response["results"][:3], 1):
+                    content = fact.get("content", "No content found.")
+                    similarity = fact.get("similarity", 0) * 100
+                    sources = ", ".join(fact.get("sources", ["Unknown"]))
+
+                    html += "<div style='background-color: #f8f8f8; padding: 10px; border-radius: 5px; margin-bottom: 10px;'>"
+                    html += f"<p style='font-size: 11px; color: #888; margin: 0 0 5px 0;'><strong>Relevance:</strong> {similarity:.1f}%</p>"
+                    html += f"<p style='font-size: 12px; border-left: 3px solid #ccc; padding-left: 10px; margin: 5px 0;'><i>&ldquo;{content}&rdquo;</i></p>"
+                    html += f"<p style='font-size: 10px; color: #555; margin: 5px 0 0 0;'><strong>Source(s):</strong> {sources}</p>"
+                    html += "</div>"
+        elif synthesis_status := response.get("synthesis_status"):
+            if synthesis_status == "disabled":
+                # Fast mode: show only facts without LLM synthesis
+                html = "<h2>Fast Mode Results</h2>"
+                html += "<p style='font-size: 12px; color: #666; margin-bottom: 15px;'>"
+                html += "🤔 <strong>Think mode is OFF</strong> - Showing raw facts from the ledger without LLM synthesis for faster response times.</p>"
+                
+                if response.get("results"):
+                    html += "<h3>Relevant Facts from Axiom Ledger</h3>"
+                    for i, fact in enumerate(response["results"][:5], 1):
+                        content = fact.get("content", "No content found.")
+                        similarity = fact.get("similarity", 0) * 100
+                        sources = ", ".join(fact.get("sources", ["Unknown"]))
+                        is_disputed = fact.get("disputed", False)
+
+                        dispute_style = "border-left-color: #ff4444;" if is_disputed else "border-left-color: #4CAF50;"
+                        dispute_text = " (DISPUTED)" if is_disputed else ""
+
+                        html += "<div style='background-color: #f8f8f8; padding: 10px; border-radius: 5px; margin-bottom: 10px;'>"
+                        html += f"<p style='font-size: 11px; color: #888; margin: 0 0 5px 0;'><strong>Relevance:</strong> {similarity:.1f}%{dispute_text}</p>"
+                        html += f"<p style='font-size: 12px; border-left: 3px solid; padding-left: 10px; margin: 5px 0; {dispute_style}'><i>&ldquo;{content}&rdquo;</i></p>"
+                        html += f"<p style='font-size: 10px; color: #555; margin: 5px 0 0 0;'><strong>Source(s):</strong> {sources}</p>"
+                        html += "</div>"
+                else:
+                    html += "<p>No relevant facts found in the ledger.</p>"
+            else:
+                # Other synthesis statuses
+                html = f"<h2>Synthesis Status: {synthesis_status}</h2>"
+                html += f"<p>{response.get('message', 'No message available')}</p>"
         elif not response.get("results"):
             html = "<h2>No Relevant Facts Found</h2><p>I searched the ledger of proven facts, but I couldn't find a direct answer to your question.</p>"
         else:
+            # Fallback to old format
             top_result = response["results"][0]
             content = top_result.get("content", "No content found.")
             similarity = top_result.get("similarity", 0) * 100
@@ -518,7 +631,9 @@ class AxiomClientApp(QWidget):
         node_url = self.connected_node_url or random.choice(BOOTSTRAP_PEERS)
         self.update_status(f"Requesting proof from {node_url}…")
         self.verification_worker = VerificationWorker(
-            node_url, fact_hash, block_height,
+            node_url,
+            fact_hash,
+            block_height,
         )
         self.verification_worker.finished.connect(
             self.handle_verification_result,
