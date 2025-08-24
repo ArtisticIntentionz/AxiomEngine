@@ -67,17 +67,25 @@ This hybrid approach is proven to work reliably. We use Conda for complex, pre-c
 
 1. **Install Heavy Binaries with Conda:**
 
-    ``` conda install -c conda-forge numpy scipy "spacy>=3.7.2,<3.8.0" cryptography beautifulsoup4 sec_edgar_api-y ```
-2. **Install Pure-Python Libraries with Pip:**
+```
+conda install -c conda-forge numpy scipy "spacy>=3.7.2,<3.8.0" cryptography beautifulsoup4 -y
+```
+3. **Install Pure-Python Libraries with Pip:**
 
-    ``` pip install Flask gunicorn requests sqlalchemy pydantic feedparser Flask-Cors ruff mypy pytest pre-commit attrs types-requests ```
-3. **Install the AI Model: We use a large, high-quality model for fact extraction.**
+```
+pip install Flask gunicorn requests sqlalchemy pydantic feedparser Flask-Cors ruff mypy pytest pre-commit attrs types-requests sec_edgar_api
+```
+5. **Install the AI Model: We use a large, high-quality model for fact extraction.**
 
-    ``` python -m spacy download en_core_web_lg ```
+```
+python -m spacy download en_core_web_lg
+```
 
-4. **Install the Axiom Project Itself:** This final step makes the axiom_server module available and installs it in an "editable" mode (-e), so your code changes are immediately reflected.
+6. **Install the Axiom Project Itself:** This final step makes the axiom_server module available and installs it in an "editable" mode (-e), so your code changes are immediately reflected.
 
-    ``` pip install -e ."[test]" ```
+```
+   pip install -e ."[test]"
+```
 
 **Step 2: One-Time Project Initialization (SSL)**
 The P2P engine requires SSL certificates for secure, encrypted communication between nodes.
@@ -110,7 +118,7 @@ Your environment is now complete. To simplify local development, you can launch 
     ```
 2. Resume Node script:
     ```bash
-    ././resume_nodes.sh
+    ./resume_nodes.sh
     ```
 
 This script will automatically start 2 Axiom nodes with the correct ports and bootstrap configuration. You will see logs for each node in your terminal, confirming that the local mesh network is running.
@@ -120,38 +128,66 @@ This script will automatically start 2 Axiom nodes with the correct ports and bo
 - Check the logs to confirm nodes are communicating and proposing blocks.
 - The script handles staking and peer connections automatically.
 - Cd into factReports and use ``` python fact_reporter.py ``` to get a deep look at the recorded facts to verify quality etc.
-- from the root AxiomEngine use the command ``` python maintain_feeds.py ``` to autofix broken or malformed rss feeds. 
+- from the root AxiomEngine use the command ``` python maintain_feeds.py ``` to autofix broken or malformed rss feeds.
 
-You are now ready to develop and test on a live, local Axiom network! **(Any changes made to your local setup will remain in your local environment and will not affect the main repo unles you contribute)**
+You are now ready to develop and test on a live, local Axiom network! **(Any changes made to your local setup will remain in your local environment and will not affect the main repo unless you contribute)**
 
-**Step 4: Branch, Code, and Validate**
-Create a New Branch: Never work directly on the main branch.
-```
-# Example for a new feature
-git checkout -b feature/improve-crucible-filter
-```
-**Write Your Code:** Make your changes. Please follow the existing style and add comments where your logic is complex.
-Run Quality Checks: Before committing, please run our automated quality checks to ensure your code meets project standards.
-```
-# Run the linter from the project root directory
+### Interact with the Network via the Axiom Client
+With your P2P network running, you can now launch the user client to test the front-end and the HashNLP chat feature.
 
-ruff check .
+#### Terminal 3: The Axiom User Client
 
-# Run the static type checker
-mypy .
-```
-**Step 5: Submit Your Contribution**
-Commit Your Changes: Once all checks pass, commit your changes with a clear message following the Conventional Commits standard.
-```
-git add .
-git commit -m "feat(Crucible): Add filter for subjective adverbs"
-```
-**Push to Your Fork:** Push your new branch to your personal fork on GitHub.
-```
-git push origin feature/improve-crucible-filter
-```
-**Open a Pull Request:** Go to your fork on the GitHub website. You will see a prompt to "Compare & pull request." Click it, give it a clear title and a detailed description of your changes, and submit it for review.
-**Step 6: Code Review**
-Your pull request will be reviewed by the core maintainers. This is a collaborative process where we may ask questions or request changes. Once approved, your code will be merged into the main AxiomEngine codebase.
+1.  **Launch the client:** In a new terminal, run the following command. The client is configured to connect to the API of the node running on port `8001` by default.
+    ```bash
+    python src/axiom_client/main.py
+    ```
+2.  **Start asking questions.** Once the client connects, you will see a `You:` text prompt field. Just ask a question, and if related facts are in the network, you will see a response.
+    > **Hint:** You can use the `curl` commands in the next section to see what facts are in the ledger to help you form a good test question.
+
+### Step 3: Verifying the API and Code Quality
+
+With your network running, you can use these tools to test functionality and check code quality.
+
+#### Verifying the API with `curl`
+
+You can send requests directly to the API of any running Axiom Node. Remember to use the correct API port for the node you want to query (e.g., `8001` or `8002`).
+
+*   **Test the Chat Interface:**
+    ```bash
+    curl -X POST -H "Content-Type: application/json" -d '{"query": "what is happening with China?"}' http://127.0.0.1:8001/chat | jq
+    ```
+
+*   **Check Node Status:**
+    ```bash
+    curl http://127.0.0.1:8001/status
+    ```
+
+*   **List All Fact IDs:**
+    ```bash
+    curl http://127.0.0.1:8001/get_fact_ids
+    ```
+
+*   **Get Full Details for Specific Facts:**
+    ```bash
+    curl -X POST -H "Content-Type: application/json" -d '{"fact_ids":}' http://127.0.0.1:8001/get_facts_by_id
+    ```
+
+#### Code Quality Checks
+
+Before committing code, run these checks to ensure it meets project standards.
+
+*   **Run All Pre-Commit Hooks:**
+    ```bash
+    ./check.sh
+    ```
+
+*   **Run Ruff Linter Separately:**
+    ```bash
+    ruff check .
+    ```
+
+You are now fully equipped to run, test, and develop on the Axiom Engine!
+
+---
 
 **Congratulations,** you are now an official Axiom contributor! Thank you for your work.
