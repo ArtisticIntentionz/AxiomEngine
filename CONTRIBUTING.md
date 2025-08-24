@@ -189,5 +189,33 @@ Before committing code, run these checks to ensure it meets project standards.
 You are now fully equipped to run, test, and develop on the Axiom Engine!
 
 ---
+Create a New Branch: Never work directly on the main branch.
+```
+# Example for a new feature
+git checkout -b feature/improve-crucible-filter
+```
+**Write Your Code:** Make your changes. Please follow the existing style and add comments where your logic is complex.
+Run Quality Checks: Before committing, please run our automated quality checks to ensure your code meets project standards.
+```
+# Run the linter from the project root directory
+
+ruff check .
+
+# Run the static type checker
+mypy .
+```
+**Step 5: Submit Your Contribution**
+Commit Your Changes: Once all checks pass, commit your changes with a clear message following the Conventional Commits standard.
+```
+git add .
+git commit -m "feat(Crucible): Add filter for subjective adverbs"
+```
+**Push to Your Fork:** Push your new branch to your personal fork on GitHub.
+```
+git push origin feature/improve-crucible-filter
+```
+**Open a Pull Request:** Go to your fork on the GitHub website. You will see a prompt to "Compare & pull request." Click it, give it a clear title and a detailed description of your changes, and submit it for review.
+**Step 6: Code Review**
+Your pull request will be reviewed by the core maintainers. This is a collaborative process where we may ask questions or request changes. Once approved, your code will be merged into the main AxiomEngine codebase.
 
 **Congratulations,** you are now an official Axiom contributor! Thank you for your work.
