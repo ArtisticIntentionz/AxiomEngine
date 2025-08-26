@@ -9,6 +9,7 @@ import logging
 import re  # Add this import for regular expressions
 import sys
 from collections import defaultdict
+from typing import TYPE_CHECKING
 
 from axiom_server.ledger import (
     Fact,
@@ -17,10 +18,14 @@ from axiom_server.ledger import (
     mark_fact_objects_as_disputed,
 )
 
+if TYPE_CHECKING:
+    from spacy.tokens import Doc
+    from sqlalchemy.orm import Session
+
 
 # Helper function to find all numbers (digits, decimals, percentages) in a text
 def find_numbers(text: str) -> list[float]:
-    """Extracts all integer and floating-point numbers from a string."""
+    """Extract all integer and floating-point numbers from a string."""
     # This regex finds integers, decimals, and numbers with commas.
     # It will not handle currency symbols, so it's a good starting point.
     return [
@@ -38,7 +43,7 @@ def numbers_are_close(a: float, b: float, rel_tol=0.05, abs_tol=2.0) -> bool:
 
 
 # --- Fact type classifier (very simple heuristic) ---
-def classify_fact_type(doc):
+def classify_fact_type(doc: Doc):
     """Classify fact type for more precise comparison (e.g., company size, location, founding date)."""
     # This is a simple heuristic; can be expanded
     text = doc.text.lower()
@@ -54,7 +59,7 @@ def classify_fact_type(doc):
 
 
 # --- Entity extraction helper ---
-def get_main_entities(doc):
+def get_main_entities(doc: Doc):
     """Return set of main entities (ORG, PERSON, GPE, EVENT) in lowercase."""
     return {
         ent.lemma_.lower()
@@ -78,8 +83,9 @@ SIMILARITY_THRESHOLD = 0.85
 
 
 def get_numeric_entities(doc: Doc) -> dict[str, float]:
-    """Finds numbers in a document and attempts to identify the noun they describe.
-    Returns a dictionary mapping the noun's lemma to the number.
+    """Find numbers in a document and attempt to identify the noun they describe.
+
+    Return a dictionary mapping the noun's lemma to the number.
     Example: "110mph wind" -> {"wind": 110.0}
     """
     numeric_entities = {}
@@ -99,9 +105,10 @@ def get_numeric_entities(doc: Doc) -> dict[str, float]:
 
 
 # --- Improved contradiction check with tolerance, fact type, and explainability ---
-def checkForContradiction(doc1, doc2):
-    """Analyzes two highly similar documents to find specific, high-confidence contradictions.
-    Returns (is_contradiction: bool, is_potential: bool, reason: str)
+def check_for_contradiction(doc1: Doc, doc2: Doc):
+    """Analyze two highly similar documents to find specific, high-confidence contradictions.
+
+    Return (is_contradiction: bool, is_potential: bool, reason: str).
     """
     contradiction_score = 0
     reasons = []
@@ -168,6 +175,32 @@ def link_related_facts(
     session: Session,
     new_facts_batch: list[Fact],
 ) -> None:
+    """Analyze new facts to find correlations or disputes with existing ones.
+
+    Iterate through a batch of new facts and compare them against all existing
+    facts in the database. To optimize, first build an in-memory index that maps
+    entities to the facts they appear in, ensuring comparisons only happen between
+    facts that share at least one entity.
+
+    For each potential pair, perform two main checks in order of priority:
+    1.  **Contradiction:** Identify high-confidence contradictions. If found,
+        mark both facts as disputed.
+    2.  **Correlation:** If not a contradiction, calculate a correlation score
+        based on semantic similarity, shared entities, and shared nouns. If the
+        score exceeds a threshold, create a "CORRELATION" relationship and
+        increase the scores of both facts.
+
+    Args:
+        session: The database session for querying and persisting changes.
+        new_facts_batch: A list of new Fact objects to process and link.
+
+    Side Effects:
+        - Creates new `Relationship` objects in the database for correlated facts.
+        - Updates the `score` attribute on correlated `Fact` objects.
+        - Modifies the status of `Fact` objects to 'disputed' if a
+          contradiction is found.
+
+    """
     logger.info("beginning Knowledge Graph linking...")
     if not new_facts_batch:
         logger.info("no new facts to link. Cycle complete.")
@@ -202,13 +235,18 @@ def link_related_facts(
                 if not new_doc.has_vector or not existing_doc.has_vector:
                     continue
                 # Priority 1: Check for a high-confidence contradiction.
-                is_contradiction, is_potential, reason = checkForContradiction(
-                    new_doc, existing_doc,
+                is_contradiction, is_potential, reason = (
+                    check_for_contradiction(
+                        new_doc,
+                        existing_doc,
+                    )
                 )
                 if is_contradiction:
                     logger.info(f"CONFIRMED CONTRADICTION: {reason}")
                     mark_fact_objects_as_disputed(
-                        session, new_fact, existing_fact,
+                        session,
+                        new_fact,
+                        existing_fact,
                     )
                     disputes_found += 1
                     continue
@@ -244,8 +282,8 @@ def link_related_facts(
                 )
                 if shared_nouns_count > 2:
                     correlation_score += 1
-                CORRELATION_THRESHOLD = 3
-                if correlation_score >= CORRELATION_THRESHOLD:
+                correlation_threshold = 3
+                if correlation_score >= correlation_threshold:
                     if existing_fact.sources:
                         source_credibility_weight = max(
                             s.credibility_score for s in existing_fact.sources

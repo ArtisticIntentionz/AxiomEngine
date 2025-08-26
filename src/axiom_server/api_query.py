@@ -6,12 +6,12 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 from scipy.spatial.distance import cosine
-from sqlalchemy import or_
+from sqlalchemy import not_, or_
 
 from axiom_server.common import NLP_MODEL
 from axiom_server.crucible import TEXT_SANITIZATION
 from axiom_server.ledger import Fact, FactStatus
-from axiom_server.nlp_utils import extract_keywords  # --- NEW IMPORT ---
+from axiom_server.nlp_utils import parse_query_advanced
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -26,7 +26,8 @@ def semantic_search_ledger(
     top_n: int = 10,
     similarity_threshold: float = 0.65,
 ) -> list[Fact]:
-    """Performs a scalable, hybrid semantic search on the database.
+    """Perform a scalable, hybrid semantic search on the database.
+
     1. Pre-filters facts using keywords for performance.
     2. Ranks the filtered candidates by vector similarity.
     3. Filters the final results by status and threshold.
@@ -39,9 +40,9 @@ def semantic_search_ledger(
         return []
 
     # --- Step 1: Hybrid Search Pre-filtering ---
-    keywords = extract_keywords(sanitized_term)
+    keywords = parse_query_advanced(sanitized_term)
     if not keywords:
-        return []  # Can't search without keywords
+        return []
 
     keyword_filters = [Fact.content.ilike(f"%{key}%") for key in keywords]
 
@@ -50,7 +51,7 @@ def semantic_search_ledger(
         session.query(Fact)
         .join(Fact.vector_data)  # Ensure we only get facts that have a vector
         .filter(or_(*keyword_filters))
-        .filter(Fact.disputed == False)  # noqa: E712
+        .filter(not_(Fact.disputed))
     )
 
     # Pre-fetch candidate facts and their vectors from the database in one efficient query
@@ -101,10 +102,9 @@ def semantic_search_ledger(
         }
 
         # Filter the top N ranked facts by our desired quality level
-        final_results = [
+        return [
             fact for fact in top_ranked_facts if fact.status in valid_statuses
         ]
-        return final_results
 
     except (ValueError, IndexError):
         return []  # Return empty if an invalid status is requested

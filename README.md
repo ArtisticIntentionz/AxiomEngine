@@ -39,6 +39,27 @@ This project is a statement: **objective reality matters, and access to it shoul
 
 This guide provides the essential steps to get a local development environment running. For a more detailed guide on network configurations and testing, please see our [**CONTRIBUTING.md**](./CONTRIBUTING.md) file.
 
+## 🧠 Think Mode: LLM vs Fast Mode
+
+Axiom now features a **Think toggle** that allows users to choose between two response modes:
+
+### 🤔 Think Mode (LLM Synthesis)
+- **Default mode** - Uses the secure RAG system with LLM synthesis
+- Provides natural, conversational answers based on verified facts
+- Slower response times due to LLM processing
+- Best for complex questions requiring synthesis
+
+### ⚡ Fast Mode (NLI Only)
+- **Toggle off Think mode** for instant responses
+- Returns raw facts from the ledger without LLM synthesis
+- Much faster response times
+- Perfect for quick fact-checking and simple queries
+
+**Usage:**
+- **Desktop Client**: Click the "🤔 Think (LLM)" button to toggle between modes
+- **Web Client**: Click the "🤔 Think (LLM)" button to toggle between modes
+- The button shows the current mode and changes color to indicate status
+
 ## Your First Code Contribution: Step-by-Step
 
 This guide provides the official, verified steps to get your development environment running perfectly. The process uses a hybrid Conda and Pip installation which is critical for success.

@@ -13,6 +13,7 @@ import sys
 import threading
 import time
 from datetime import datetime
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
 import requests
@@ -57,6 +58,10 @@ from axiom_server.p2p.node import (
     PeerLink,
 )
 
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
+
+
 __version__ = "3.1.6"
 
 logger = logging.getLogger("axiom-node")
@@ -94,7 +99,7 @@ class AxiomNode(P2PBaseNode):
     """A class representing a single Axiom node, inheriting P2P capabilities."""
 
     def _get_geo_region(self) -> str:
-        """Determines the node's geographic region based on its public IP."""
+        """Determine the node's geographic region based on its public IP."""
         try:
             response = requests.get("http://ip-api.com/json/", timeout=5)
             response.raise_for_status()
@@ -165,7 +170,7 @@ class AxiomNode(P2PBaseNode):
             ).start()
 
     def broadcast_application_message(self, message: str) -> None:
-        """Sends an application message to all connected peers in a thread-safe manner."""
+        """Send an application message to all connected peers in a thread-safe manner."""
         # A better pattern: acquire lock, copy the list, release lock.
         # This prevents holding the lock during slow network I/O.
         with self.peers_lock:
@@ -210,7 +215,7 @@ class AxiomNode(P2PBaseNode):
         slot: int,
     ) -> str | None:
         all_validators = (
-            session.query(Validator).filter(Validator.is_active == True).all()
+            session.query(Validator).filter(Validator.is_active).all()
         )
         if not all_validators:
             return None
@@ -222,7 +227,7 @@ class AxiomNode(P2PBaseNode):
                 regions[v.region] = []
             regions[v.region].append(v)
 
-        for region_name, validators_in_region in regions.items():
+        for _region_name, validators_in_region in regions.items():
 
             def get_combined_score(validator):
                 # Convert rewards from scaled integer units to float stake
@@ -256,8 +261,10 @@ class AxiomNode(P2PBaseNode):
         return weighted_sealers[idx]
 
     def _handle_block_proposal(self, proposal_data: dict) -> None:
-        """Handles a block proposal from a peer. All nodes validate and add the block
-        to their ledger, but only validators send an attestation.
+        """Handle a block proposal from a peer.
+
+        All nodes validate and add the block to their ledger, but only validators
+        send an attestation.
         """
         block_data = proposal_data["block"]
         proposer_pubkey = block_data["proposer_pubkey"]
@@ -268,7 +275,8 @@ class AxiomNode(P2PBaseNode):
             # Step 1: Validate the block's legitimacy (ALL nodes do this).
             current_slot = int(block_data["timestamp"] / SECONDS_PER_SLOT)
             expected_proposer = self._get_proposer_for_slot(
-                session, current_slot,
+                session,
+                current_slot,
             )
             if proposer_pubkey != expected_proposer:
                 background_thread_logger.warning(
@@ -347,7 +355,7 @@ class AxiomNode(P2PBaseNode):
             total_stake = sum(
                 v.stake_amount
                 for v in session.query(Validator)
-                .filter(Validator.is_active == True)
+                .filter(Validator.is_active)
                 .all()
             )
             stake_for_block = sum(
@@ -367,7 +375,8 @@ class AxiomNode(P2PBaseNode):
         link: PeerLink,
         payload: dict,
     ):
-        """Formats and sends an application-specific message to a single peer.
+        """Format and send an application-specific message to a single peer.
+
         This is the definitive, low-level implementation.
         """
         # Ensure the link still has an active socket before using it.
@@ -399,11 +408,13 @@ class AxiomNode(P2PBaseNode):
                 link.alive = False
                 if hasattr(link, "socket") and link.socket:
                     link.socket.close()
-            except Exception:
-                pass
+            except Exception as close_exc:
+                background_thread_logger.debug(
+                    f"Exception during socket cleanup for {link.fmt_addr()}: {close_exc}",
+                )
 
     def _discovery_loop(self) -> None:
-        """A slow, periodic loop for discovering, ingesting, and synthesizing new facts."""
+        """Run a slow, periodic loop for discovering, ingesting, and synthesizing new facts."""
         background_thread_logger.info("Starting autonomous discovery loop.")
         time.sleep(20)
 
@@ -459,10 +470,10 @@ class AxiomNode(P2PBaseNode):
                             new_fact_objects = (
                                 crucible.extract_facts_from_text(
                                     item["content"],
-                                    item["source_url"], 
+                                    item["source_url"],
                                 )
                             )
-                            
+
                             ingested_this_item = []
                             for fact_obj in new_fact_objects:
                                 if (
@@ -539,10 +550,10 @@ class AxiomNode(P2PBaseNode):
             background_thread_logger.info(
                 "Discovery cycle finished. Sleeping for 20 min.",
             )
-            time.sleep(1200) # 
+            time.sleep(1200)  #
 
     def _background_work_loop(self) -> None:
-        """A time-slot based loop for proposing and finalizing blocks."""
+        """Run a time-slot based loop for proposing and finalizing blocks."""
         background_thread_logger.info(
             "Starting Proof-of-Stake consensus cycle.",
         )
@@ -574,7 +585,7 @@ class AxiomNode(P2PBaseNode):
             time.sleep(sleep_duration)
 
     def _request_sync_with_peers(self):
-        """Broadcasts a request to get the latest block from all known peers."""
+        """Broadcast a request to get the latest block from all known peers."""
         message = {"type": "get_latest_block_request"}
         self.broadcast_application_message(json.dumps(message))
         background_thread_logger.info(
@@ -582,7 +593,7 @@ class AxiomNode(P2PBaseNode):
         )
 
     def _handle_latest_block_request(self, link: PeerLink):
-        """Handles a peer's request for our latest block information."""
+        """Handle a peer's request for our latest block information."""
         with db_lock, SessionMaker() as session:
             latest_block = get_latest_block(session)
             if latest_block:
@@ -599,7 +610,7 @@ class AxiomNode(P2PBaseNode):
                 self._send_specific_application_message(link, response_payload)
 
     def _handle_latest_block_response(self, response_data: dict):
-        """Handles a peer's response containing their latest block info."""
+        """Handle a peer's response containing their latest block info."""
         peer_height = response_data.get("height", -1)
 
         # --- ADD THIS BLOCK ---
@@ -657,7 +668,8 @@ class AxiomNode(P2PBaseNode):
                     )
 
     def _conclude_syncing(self):
-        """Periodically checks if the node has caught up to the known network height.
+        """Periodically check if the node has caught up to the known network height.
+
         If so, it transitions to a live state. Otherwise, it stays in sync mode.
         """
         if not self.is_syncing:
@@ -683,7 +695,7 @@ class AxiomNode(P2PBaseNode):
                 threading.Timer(30.0, self._conclude_syncing).start()
 
     def _propose_block(self) -> None:
-        """Gathers facts, creates a block, marks facts as processed, and broadcasts."""
+        """Gather facts, create a block, mark facts as processed, and broadcast."""
         with db_lock, SessionMaker() as session:
             facts_to_include = (
                 session.query(Fact)
@@ -817,7 +829,7 @@ fact_indexer: FactIndexer
 
 @app.route("/submit", methods=["POST"])
 def handle_submit_fact() -> Response | tuple[Response, int]:
-    """Accepts a new fact from an external source and ingests it."""
+    """Accept a new fact from an external source and ingest it."""
     data = request.get_json()
     if not data or "content" not in data or "source" not in data:
         return jsonify(
@@ -872,25 +884,83 @@ def handle_submit_fact() -> Response | tuple[Response, int]:
 
 @app.route("/chat", methods=["POST"])
 def handle_chat_query() -> Response | tuple[Response, int]:
-    """Handle natural language queries from the client.
+    """Handle natural language queries from the client using secure RAG synthesis.
 
-    Finding the most semantically similar facts in the ledger.
+    This endpoint implements a multi-layered security system:
+    1. Validates user input for malicious content
+    2. Searches the ledger for verified facts
+    3. Uses LLM to synthesize natural, direct answers (optional)
+    4. Cross-checks responses to prevent hallucination
     """
     data = request.get_json()
     if not data or "query" not in data:
         return jsonify({"error": "Missing 'query' in request body"}), 400
 
-    query = data["query"]
+    user_query = data["query"]
+    use_llm = data.get(
+        "use_llm",
+        True,
+    )  # Default to True for backward compatibility
 
+    # Step 1: Find relevant facts from the ledger
     with fact_indexer_lock:
-        closest_facts = fact_indexer.find_closest_facts(query)
+        closest_facts = fact_indexer.find_closest_facts(user_query)
 
-    # Return the results to the client.
-    return jsonify({"results": closest_facts})
+    # Step 2: Use LLM synthesis only if requested
+    if use_llm:
+        try:
+            from axiom_server.rag_synthesis import process_user_query
+
+            success, message, synthesized_answer = process_user_query(
+                user_query,
+                closest_facts,
+            )
+
+            if success:
+                # Return both the synthesized answer and the raw facts for verification
+                return jsonify(
+                    {
+                        "answer": synthesized_answer,
+                        "results": closest_facts,
+                        "synthesis_status": "success",
+                        "message": message,
+                    },
+                )
+            # Fall back to raw facts if synthesis fails
+            return jsonify(
+                {
+                    "answer": "I found some relevant information, but encountered an issue generating a direct answer.",
+                    "results": closest_facts,
+                    "synthesis_status": "failed",
+                    "message": message,
+                },
+            )
+
+        except Exception as e:
+            logger.error(f"RAG synthesis failed: {e}")
+            # Fall back to raw facts with better error handling
+            return jsonify(
+                {
+                    "answer": "I found some relevant information in the ledger.",
+                    "results": closest_facts,
+                    "synthesis_status": "error",
+                    "message": f"LLM processing error: {e!s}",
+                },
+            )
+    else:
+        # Fast mode: return only the facts without LLM synthesis
+        return jsonify(
+            {
+                "results": closest_facts,
+                "synthesis_status": "disabled",
+                "message": "LLM synthesis disabled - showing raw facts only",
+            },
+        )
 
 
 @app.route("/dao/dispute_fact", methods=["POST"])
 def handle_dispute_fact():
+    """Handle a DAO request to mark two facts as disputed."""
     data = request.get_json()
     if not data or "fact1_hash" not in data or "fact2_hash" not in data:
         return jsonify(
@@ -916,7 +986,10 @@ def handle_dispute_fact():
         session.commit()
 
     return jsonify(
-        {"status": "success", "message": "Facts have been marked as disputed."},
+        {
+            "status": "success",
+            "message": "Facts have been marked as disputed.",
+        },
     )
 
 
@@ -1004,7 +1077,7 @@ def handle_get_status() -> Response:
 
 @app.route("/validator/stake", methods=["POST"])
 def handle_stake() -> Response | tuple[Response, int]:
-    """Allows a node to stake and become an active validator."""
+    """Allow a node to stake and become an active validator."""
     data = request.get_json()
     if (
         not data
@@ -1266,7 +1339,7 @@ def handle_get_fact_context(fact_hash: str) -> Response | tuple[Response, int]:
 
 @app.route("/explorer/node_stats", methods=["GET"])
 def handle_get_node_stats() -> Response:
-    """Provides detailed statistics for this specific node."""
+    """Provide detailed statistics for this specific node."""
     with db_lock, SessionMaker() as session:
         pubkey = node_instance.serialized_public_key.hex()
         validator = session.get(Validator, pubkey)
@@ -1307,17 +1380,13 @@ def handle_get_node_stats() -> Response:
 
 @app.route("/explorer/network_stats", methods=["GET"])
 def handle_get_network_stats() -> Response:
-    """Provides aggregate statistics for the entire network as seen by this node."""
+    """Provide aggregate statistics for the entire network as seen by this node."""
     with db_lock, SessionMaker() as session:
         total_facts = session.query(Fact).count()
         corroborated_facts = session.query(Fact).filter(Fact.score > 0).count()
-        disputed_facts = (
-            session.query(Fact).filter(Fact.disputed == True).count()
-        )
+        disputed_facts = session.query(Fact).filter(Fact.disputed).count()
         total_validators = (
-            session.query(Validator)
-            .filter(Validator.is_active == True)
-            .count()
+            session.query(Validator).filter(Validator.is_active).count()
         )
         latest_block = get_latest_block(session)
 
@@ -1336,7 +1405,7 @@ def handle_get_network_stats() -> Response:
 
 @app.route("/explorer/ledger_growth", methods=["GET"])
 def handle_get_ledger_growth() -> Response:
-    """Provides data for charting the growth of facts and blocks over time."""
+    """Provide data for charting the growth of facts and blocks over time."""
     with db_lock, SessionMaker() as session:
         # Query blocks and their timestamps
         blocks = (

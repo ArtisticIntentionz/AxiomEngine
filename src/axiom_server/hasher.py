@@ -6,14 +6,17 @@ import logging
 from typing import TYPE_CHECKING
 
 import numpy as np
-from sqlalchemy import or_
+from sqlalchemy import not_, or_
 
 from axiom_server.common import NLP_MODEL
 from axiom_server.ledger import (
     Block,
     Fact,
     SessionMaker,
-)  # --- ADDED Block and SessionMaker ---
+)
+
+# <<< CHANGE 1 HERE: Import the new advanced parser >>>
+from axiom_server.nlp_utils import parse_query_advanced
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -22,18 +25,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger("axiom-node.hasher")
 
 
-def _extract_keywords(query_text: str, max_keywords: int = 5) -> list[str]:
-    """Return the most important keywords (nouns and proper nouns) from a query."""
-    doc = NLP_MODEL(query_text.lower())
-    keywords = []
-    for token in doc:
-        if (
-            not token.is_stop
-            and not token.is_punct
-            and token.pos_ in ["PROPN", "NOUN"]
-        ):
-            keywords.append(token.lemma_)
-    return keywords[:max_keywords]
+# <<< CHANGE 2 HERE: The old _extract_keywords function has been removed. >>>
 
 
 class FactIndexer:
@@ -97,7 +89,7 @@ class FactIndexer:
         logger.info("Starting to index facts from the ledger...")
 
         facts_to_index = (
-            self.session.query(Fact).filter(Fact.disputed == False).all()
+            self.session.query(Fact).filter(not_(Fact.disputed)).all()
         )
 
         if not facts_to_index:
@@ -120,10 +112,14 @@ class FactIndexer:
         )
 
     def find_closest_facts(
-        self, query_text: str, top_n: int = 3,
+        self,
+        query_text: str,
+        top_n: int = 3,
+        min_similarity: float = 0.75,  # Increased threshold for better relevance
     ) -> list[dict]:
         """Perform a HYBRID search and enriches results with blockchain data."""
-        keywords = _extract_keywords(query_text)
+        # <<< CHANGE 3 HERE: Use the new advanced parser >>>
+        keywords = parse_query_advanced(query_text)
         if not keywords:
             logger.warning("Could not extract any keywords from the query.")
             return []
@@ -134,7 +130,7 @@ class FactIndexer:
         pre_filtered_facts = (
             self.session.query(Fact)
             .filter(or_(*keyword_filters))
-            .filter(Fact.disputed == False)  # noqa: E712
+            .filter(not_(Fact.disputed))
             .all()
         )
 
@@ -173,7 +169,25 @@ class FactIndexer:
             return []
 
         similarities = dot_products / (norm_matrix * norm_query)
-        top_candidate_indices = np.argsort(similarities)[::-1][:top_n]
+
+        # Filter by minimum similarity threshold and get top results
+        high_similarity_indices = [
+            i for i, sim in enumerate(similarities) if sim >= min_similarity
+        ]
+
+        if not high_similarity_indices:
+            logger.info(
+                f"No facts meet the minimum similarity threshold of {min_similarity}",
+            )
+            # Fall back to top results even if below threshold
+            top_candidate_indices = np.argsort(similarities)[::-1][:top_n]
+        else:
+            # Sort by similarity and take top results
+            top_candidate_indices = sorted(
+                high_similarity_indices,
+                key=lambda i: similarities[i],
+                reverse=True,
+            )[:top_n]
 
         results = []
         with SessionMaker() as session:  # Use a new session for fresh queries
@@ -181,7 +195,8 @@ class FactIndexer:
                 original_index = candidate_indices[i]
                 fact_id = self.fact_ids[original_index]
                 fact = next(
-                    (f for f in pre_filtered_facts if f.id == fact_id), None,
+                    (f for f in pre_filtered_facts if f.id == fact_id),
+                    None,
                 )
                 if not fact:
                     continue

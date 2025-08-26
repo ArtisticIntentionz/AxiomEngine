@@ -14,8 +14,10 @@ logger = logging.getLogger(__name__)
 
 
 def get_financial_facts_from_edgar(max_filings: int = 10) -> list[dict]:
-    """Fetches the latest 10-Q filings from the SEC EDGAR database and extracts
-    key financial data (Revenue, Net Income) as objective facts.
+    """Fetch the latest 10-Q filings from the SEC EDGAR database.
+
+    This function extracts key financial data (Revenue, Net Income) as
+    objective facts.
     """
     if not USER_AGENT or "YourName" in USER_AGENT:
         logger.warning(
