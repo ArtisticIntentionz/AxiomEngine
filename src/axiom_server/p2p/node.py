@@ -862,8 +862,10 @@ class Node:
             link.alive = False
             try:
                 link.socket.close()
-            except Exception:
-                pass
+            except Exception as close_exc:
+                logger.debug(
+                    f"Exception during socket cleanup for {link.fmt_addr()}: {close_exc}",
+                )
 
     def _recv(self, link: PeerLink) -> None:
         chunk = link.socket.recv(NODE_CHUNK_SIZE)
@@ -894,4 +896,4 @@ if __name__ == "__main__":
                 node.update()
 
     except KeyboardInterrupt:
-        logger.info("user interrupted the node. goodbye! ^-^")
+        logger.info("user interrupted the node. goodbye! ^--^")
