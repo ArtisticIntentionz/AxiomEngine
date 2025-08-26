@@ -33,14 +33,12 @@ def normalize_and_count_topics(
     entities: list[str],
     similarity_threshold=0.90,
 ) -> Counter:
-    """Normalizes a list of entities by grouping semantically similar ones,
-    then returns a Counter with the aggregated counts.
-    (This function is a dependency for the main logic and remains unchanged from Upgrade 2)
-    """
+    """Normalize a list of entities by grouping semantically similar ones, then return a Counter with the aggregated counts."""
     if not entities:
         return Counter()
 
-    unique_entities = sorted(list(set(entities)))
+    # The corrected line:
+    unique_entities = sorted(set(entities))
     entity_docs = {name: NLP_MODEL(name) for name in unique_entities}
 
     merged_topics = {}
@@ -74,9 +72,7 @@ def normalize_and_count_topics(
 
 
 def get_trending_topics(top_n: int = 5) -> dict:
-    """Fetch recent news headlines, analyze them for context, and return a dictionary
-    of the top trending topics with their associated terms.
-    """
+    """Fetch recent news headlines, analyze them for context, and return a dictionary of the top trending topics with their associated terms."""
     logger.info("Discovering trending topics with context...")
     all_headlines = discovery_rss.get_all_headlines_from_feeds()
 

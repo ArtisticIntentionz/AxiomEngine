@@ -236,29 +236,36 @@ class Fact(Base):
     )
 
     def __init__(self, **kwargs):
+        """Initialize a new Fact instance and set its hash."""
         super().__init__(**kwargs)
         if self.content:
             self.set_hash()
 
     @property
     def corroborated(self) -> bool:
+        """Return True if the fact has a positive corroboration score."""
         return self.score > 0
 
     def has_source(self, domain: str) -> bool:
+        """Check if the fact is attributed to a source from a specific domain."""
         return any(source.domain == domain for source in self.sources)
 
     def set_hash(self) -> str:
+        """Calculate and set the SHA256 hash of the fact's content."""
         self.hash = hashlib.sha256(self.content.encode("utf-8")).hexdigest()
         return self.hash
 
     def get_serialized_semantics(self) -> SerializedSemantics:
+        """Return the stored semantics as a serialized Pydantic model."""
         return SerializedSemantics.model_validate_json(self.semantics)
 
     def get_semantics(self) -> Semantics:
+        """Return the rich, deserialized Semantics object, including the spaCy Doc."""
         serializable = self.get_serialized_semantics()
         return semantics_from_serialized(serializable)
 
     def set_semantics(self, semantics: Semantics) -> None:
+        """Serialize and store the rich Semantics object as a JSON string."""
         self.semantics = json.dumps(
             {
                 "doc": json.dumps(semantics["doc"].to_json()),
