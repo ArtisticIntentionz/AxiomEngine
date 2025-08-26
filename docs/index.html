@@ -89,7 +89,7 @@
             color: var(--primary-color);
             border: 2px solid var(--primary-color);
         }
-        
+
         .button.secondary:hover {
             background-color: var(--primary-color);
             color: var(--background-color);
@@ -309,7 +309,7 @@
                             'Content-Type': 'application/json',
                             'ngrok-skip-browser-warning': 'true'
                         },
-                        body: JSON.stringify({ 
+                        body: JSON.stringify({
                             query: query,
                             use_llm: useLLM
                         })
@@ -339,7 +339,7 @@
                     resultsHtml += `<div style="background-color: #1a1a1a; padding: 1.5rem; border-radius: 8px; border-left: 4px solid var(--primary-color); margin-bottom: 1.5rem;">`;
                     resultsHtml += `<p style="font-size: 1.1rem; line-height: 1.6; margin: 0;">${data.answer}</p>`;
                     resultsHtml += `</div>`;
-                    
+
                     // Add synthesis status if available
                     if (data.synthesis_status) {
                         const statusColor = data.synthesis_status === 'success' ? 'var(--success-color)' : 'var(--error-color)';
@@ -347,31 +347,31 @@
                         resultsHtml += `<strong>Synthesis Status:</strong> ${data.synthesis_status} - ${data.message || ''}`;
                         resultsHtml += `</p>`;
                     }
-                    
+
                     // Show supporting facts if available
                     if (data.results && data.results.length > 0) {
                         resultsHtml += `<h4>Supporting Facts from Axiom Ledger</h4>`;
                         resultsHtml += `<p style="font-size: 0.9rem; color: #aaa; margin-bottom: 1rem;">`;
                         resultsHtml += `The answer above is based on these verified facts from the Axiom network:`;
                         resultsHtml += `</p>`;
-                        
+
                         const topResults = data.results.slice(0, 3);
                         resultsHtml += topResults.map((result, index) => {
                             const content = result.content || '[Content not available]';
                             const similarity = result.similarity * 100;
                             const sourceDomain = (result.sources && result.sources.length > 0) ? result.sources[0] : 'Unknown Source';
                             const sanitizedContent = content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                            
+
                             const separator = index > 0 ? '<hr style="border-color: var(--secondary-color); margin: 1em 0;">' : '';
                             const linkUrl = result.source_url ? result.source_url : `https://${sourceDomain}`;
-                            
+
                             let sourceHtml;
                             if (sourceDomain !== 'Unknown Source') {
                                 sourceHtml = `<a href="${linkUrl}" target="_blank" rel="noopener noreferrer" style="color: var(--primary-color); text-decoration: underline;">${sourceDomain}</a>`;
                             } else {
                                 sourceHtml = sourceDomain;
                             }
-                            
+
                             return `
                                 ${separator}
                                 <div style="background-color: #2a2a2a; padding: 1rem; border-radius: 5px; margin-bottom: 1rem;">
@@ -384,20 +384,20 @@
                             `;
                         }).join('');
                     }
-                    
+
                     resultsOutput.innerHTML = resultsHtml;
                     return;
                 }
-                
+
                 // Handle fast mode (LLM disabled)
                 if (data.synthesis_status === 'disabled') {
                     let resultsHtml = `<h4>Fast Mode Results</h4>`;
                     resultsHtml += `<p style="font-size: 0.9rem; color: #aaa; margin-bottom: 1rem;">`;
                     resultsHtml += `🤔 <strong>Think mode is OFF</strong> - Showing raw facts from the ledger without LLM synthesis for faster response times.</p>`;
-                    
+
                     if (data.results && data.results.length > 0) {
                         resultsHtml += `<h4>Relevant Facts from Axiom Ledger</h4>`;
-                        
+
                         const topResults = data.results.slice(0, 5);
                         resultsHtml += topResults.map((result, index) => {
                             const content = result.content || '[Content not available]';
@@ -405,19 +405,19 @@
                             const sourceDomain = (result.sources && result.sources.length > 0) ? result.sources[0] : 'Unknown Source';
                             const sanitizedContent = content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
                             const isDisputed = result.disputed || false;
-                            
+
                             const separator = index > 0 ? '<hr style="border-color: var(--secondary-color); margin: 1em 0;">' : '';
                             const linkUrl = result.source_url ? result.source_url : `https://${sourceDomain}`;
                             const disputeStyle = isDisputed ? 'border-left-color: #ff4444;' : 'border-left-color: #4CAF50;';
                             const disputeText = isDisputed ? ' (DISPUTED)' : '';
-                            
+
                             let sourceHtml;
                             if (sourceDomain !== 'Unknown Source') {
                                 sourceHtml = `<a href="${linkUrl}" target="_blank" rel="noopener noreferrer" style="color: var(--primary-color); text-decoration: underline;">${sourceDomain}</a>`;
                             } else {
                                 sourceHtml = sourceDomain;
                             }
-                            
+
                             return `
                                 ${separator}
                                 <div style="background-color: #2a2a2a; padding: 1rem; border-radius: 5px; margin-bottom: 1rem;">
@@ -432,11 +432,11 @@
                     } else {
                         resultsHtml += `<p>No relevant facts found in the ledger.</p>`;
                     }
-                    
+
                     resultsOutput.innerHTML = resultsHtml;
                     return;
                 }
-                
+
                 // Fallback to old format if no synthesized answer
                 const results = data.results || data;
                 if (!results || results.length === 0) {
@@ -512,7 +512,7 @@
             // Initialize toggle button styling
             thinkToggle.style.backgroundColor = 'var(--primary-color)';
             thinkToggle.style.color = 'var(--background-color)';
-            
+
             checkNodeStatus(); // Check status on page load
             setInterval(checkNodeStatus, 60000); // And check every 60 seconds
         });

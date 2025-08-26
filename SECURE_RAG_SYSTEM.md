@@ -9,8 +9,8 @@ The Axiom network now implements a **multi-layered secure RAG (Retrieval-Augment
 ### 1. Multi-Layer Security System
 
 ```
-User Query → Input Validation → LLM Translation → Prompt Validation → 
-Axiom Search → Fact Retrieval → LLM Synthesis → Response Validation → 
+User Query → Input Validation → LLM Translation → Prompt Validation →
+Axiom Search → Fact Retrieval → LLM Synthesis → Response Validation →
 Natural Answer
 ```
 
