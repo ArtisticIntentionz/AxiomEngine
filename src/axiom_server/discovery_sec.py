@@ -1,7 +1,7 @@
 """Discovery SEC - Fetch financial facts from the SEC EDGAR database."""
 
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 import requests
 
@@ -14,7 +14,9 @@ USER_AGENT = (
 logger = logging.getLogger(__name__)
 
 
-def get_financial_facts_from_edgar(max_filings: int = 10) -> list[dict]:
+def get_financial_facts_from_edgar(
+    max_filings: int = 10,
+) -> list[dict[str, Any]]:
     """Fetch the latest 10-Q filings from the SEC EDGAR database.
 
     This function extracts key financial data (Revenue, Net Income) as
@@ -43,7 +45,7 @@ def get_financial_facts_from_edgar(max_filings: int = 10) -> list[dict]:
         return []
 
 
-def get_facts_modern_approach(max_filings: int) -> List[Dict[str, Any]]:
+def get_facts_modern_approach(max_filings: int) -> list[dict[str, Any]]:
     """Try to use the modern sec_edgar_api approach."""
     try:
         from sec_edgar_api import EdgarClient
@@ -83,9 +85,9 @@ def get_facts_modern_approach(max_filings: int) -> List[Dict[str, Any]]:
 
 
 def get_facts_with_get_filings(
-    edgar_client,
+    edgar_client: Any,
     max_filings: int,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Use get_filings() method if available."""
     try:
         recent_filings = edgar_client.get_filings(form_type="10-Q")
@@ -96,9 +98,9 @@ def get_facts_with_get_filings(
 
 
 def get_facts_with_company_facts(
-    edgar_client,
+    edgar_client: Any,
     max_filings: int,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Use get_company_facts() method if available."""
     try:
         # Get facts for major companies
@@ -131,9 +133,9 @@ def get_facts_with_company_facts(
 
 
 def get_facts_with_company_concept(
-    edgar_client,
+    edgar_client: Any,
     max_filings: int,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Use get_company_concept() method to get specific financial metrics."""
     try:
         # Get facts for major companies with specific financial concepts
@@ -175,9 +177,9 @@ def get_facts_with_company_concept(
 
 
 def get_facts_with_get_facts(
-    edgar_client,
+    edgar_client: Any,
     max_filings: int,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Use get_facts() method if available."""
     try:
         # Get facts for major companies
@@ -203,7 +205,7 @@ def get_facts_with_get_facts(
         return []
 
 
-def get_facts_basic_approach(max_filings: int) -> List[Dict[str, Any]]:
+def get_facts_basic_approach(max_filings: int) -> list[dict[str, Any]]:
     """Fallback approach using direct SEC EDGAR API calls."""
     try:
         # Use direct SEC EDGAR API
@@ -223,10 +225,10 @@ def get_facts_basic_approach(max_filings: int) -> List[Dict[str, Any]]:
         for cik, company_name in major_companies[: max_filings // 2]:
             try:
                 url = f"https://data.sec.gov/submissions/CIK{cik}.json"
-                response = requests.get(url, headers=headers)
+                response = requests.get(url, headers=headers, timeout=30)
 
                 if response.status_code == 200:
-                    data = response.json()
+                    response.json()
 
                     # Create basic fact about the company
                     fact = {
@@ -252,11 +254,11 @@ def get_facts_basic_approach(max_filings: int) -> List[Dict[str, Any]]:
 
 
 def process_filings(
-    filings: List[Dict],
+    filings: list[dict[str, Any]],
     max_filings: int,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Process filings to extract financial facts."""
-    extracted_facts = []
+    extracted_facts: list[dict[str, Any]] = []
     processed_tickers = set()
 
     for filing in filings[: max_filings * 5]:
@@ -292,10 +294,10 @@ def process_filings(
 
 def extract_financial_facts_from_company(
     ticker: str,
-    facts: Dict,
-) -> List[Dict[str, Any]]:
+    facts: dict[str, Any],
+) -> list[dict[str, Any]]:
     """Extract financial facts from company data."""
-    extracted_facts = []
+    extracted_facts: list[dict[str, Any]] = []
 
     try:
         company_name = facts.get("entityName", ticker)
@@ -353,10 +355,10 @@ def extract_financial_facts_from_company(
 def extract_concept_facts(
     ticker: str,
     concept: str,
-    concept_data: Dict,
-) -> List[Dict[str, Any]]:
+    concept_data: dict[str, Any],
+) -> list[dict[str, Any]]:
     """Extract facts from company concept data."""
-    extracted_facts = []
+    extracted_facts: list[dict[str, Any]] = []
 
     try:
         # Get the most recent value from the concept data
@@ -368,7 +370,7 @@ def extract_concept_facts(
         usd_values = units.get("USD", [])
         if not usd_values:
             # Try to find any unit with values
-            for unit, values in units.items():
+            for _unit, values in units.items():
                 if values and len(values) > 0:
                     usd_values = values
                     break
@@ -406,7 +408,7 @@ def extract_concept_facts(
     return extracted_facts
 
 
-def get_sec_edgar_status() -> Dict[str, Any]:
+def get_sec_edgar_status() -> dict[str, Any]:
     """Check the status of SEC EDGAR integration."""
     try:
         from sec_edgar_api import EdgarClient

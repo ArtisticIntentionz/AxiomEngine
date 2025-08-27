@@ -115,7 +115,12 @@ class Block(Base):
 
     def calculate_hash(self) -> str:
         """Return hash from this block."""
-        fact_hashes_as_strings = sorted(json.loads(self.fact_hashes))
+        # Parse fact hashes and ensure they're sorted consistently
+        fact_hashes_list = json.loads(self.fact_hashes)
+        if isinstance(fact_hashes_list, list):
+            fact_hashes_as_strings = sorted(fact_hashes_list)
+        else:
+            fact_hashes_as_strings = []
 
         block_string = json.dumps(
             {
@@ -124,7 +129,7 @@ class Block(Base):
                 "timestamp": self.timestamp,
                 "merkle_root": self.merkle_root,
                 "proposer_pubkey": self.proposer_pubkey,
-                "fact_hashes": fact_hashes_as_strings,  # --- FIX: Correctly include the sorted list ---
+                "fact_hashes": fact_hashes_as_strings,
             },
             sort_keys=True,
         ).encode()
@@ -235,7 +240,7 @@ class Fact(Base):
         viewonly=True,
     )
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         """Initialize a new Fact instance and set its hash."""
         super().__init__(**kwargs)
         if self.content:
@@ -299,7 +304,7 @@ class SerializedFact(BaseModel):
     @classmethod
     def from_fact(cls, fact: Fact) -> Self:
         """Return SerializedFact from Fact."""
-        data_for_model = {
+        data_for_model: dict[str, Any] = {
             "content": fact.content,
             "score": fact.score,
             "disputed": fact.disputed,

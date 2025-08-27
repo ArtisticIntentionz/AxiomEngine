@@ -198,8 +198,10 @@ SENTENCE_CHECKS: Pipeline[Span] = Pipeline(
             "sentence must contain a verb",
         ),
         Check(
-            lambda sent: len(sent.ents) > 0
-            or any(t.pos_ in {"PROPN", "NOUN"} for t in sent),
+            lambda sent: (
+                len(sent.ents) > 0
+                or any(t.pos_ in {"PROPN", "NOUN"} for t in sent)
+            ),
             "sentence must contain named entities or salient nouns",
         ),
         Check(

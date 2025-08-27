@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 # No longer need unittest
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -12,6 +13,23 @@ from axiom_server.verification_engine import (
     find_corroborating_claims,
     verify_citations,
 )
+
+
+class MockFact(Fact):
+    """Mock Fact class for testing that allows method assignment."""
+
+    def __init__(self, content: str, sources: list[Source]) -> None:
+        super().__init__(content=content, sources=sources)
+        self._get_semantics_mock: dict[str, Any] | None = None
+
+    def get_semantics(self) -> Semantics:
+        if self._get_semantics_mock:
+            return self._get_semantics_mock  # type: ignore[return-value]
+        return super().get_semantics()
+
+    def set_get_semantics_mock(self, mock_value: dict[str, Any]) -> None:
+        self._get_semantics_mock = mock_value
+
 
 # We will use pytest fixtures instead of the unittest.TestCase class structure.
 
@@ -47,7 +65,7 @@ def mock_session() -> MagicMock:
 # --- Tests are now regular functions, not methods of a class ---
 
 
-def test_find_corroborating_claims_success(mock_session: MagicMock):
+def test_find_corroborating_claims_success(mock_session: MagicMock) -> None:
     """Test that a similar fact from a DIFFERENT source is correctly identified."""
     # --- Arrange ---
     fact_to_verify_text = "The sky is blue"
@@ -64,23 +82,17 @@ def test_find_corroborating_claims_success(mock_session: MagicMock):
     source1 = Source(domain="sourceA.com")
     source2 = Source(domain="sourceB.com")
 
-    fact_to_verify = Fact(content=fact_to_verify_text, sources=[source1])
-    fact_to_verify.get_semantics = MagicMock(
-        return_value={"doc": mock_doc_to_verify},
-    )
+    fact_to_verify = MockFact(content=fact_to_verify_text, sources=[source1])
+    fact_to_verify.set_get_semantics_mock({"doc": mock_doc_to_verify})
 
-    corroborating_fact = Fact(
+    corroborating_fact = MockFact(
         content=corroborating_fact_text,
         sources=[source2],
     )
-    corroborating_fact.get_semantics = MagicMock(
-        return_value={"doc": mock_doc_corroborating},
-    )
+    corroborating_fact.set_get_semantics_mock({"doc": mock_doc_corroborating})
 
-    unrelated_fact = Fact(content=unrelated_fact_text, sources=[source2])
-    unrelated_fact.get_semantics = MagicMock(
-        return_value={"doc": mock_doc_unrelated},
-    )
+    unrelated_fact = MockFact(content=unrelated_fact_text, sources=[source2])
+    unrelated_fact.set_get_semantics_mock({"doc": mock_doc_unrelated})
 
     # Configure the mock session to return our test facts
     mock_session.query(Fact).filter().all.return_value = [
@@ -98,7 +110,9 @@ def test_find_corroborating_claims_success(mock_session: MagicMock):
     assert results[0]["similarity"] > 0.9
 
 
-def test_find_corroborating_claims_from_same_source(mock_session: MagicMock):
+def test_find_corroborating_claims_from_same_source(
+    mock_session: MagicMock,
+) -> None:
     """Test that a similar fact from the SAME source is ignored."""
     # --- Arrange ---
     fact_to_verify_text = "The Earth is round"
@@ -111,15 +125,13 @@ def test_find_corroborating_claims_from_same_source(mock_session: MagicMock):
 
     source1 = Source(domain="sourceA.com")
 
-    fact_to_verify = Fact(content=fact_to_verify_text, sources=[source1])
-    fact_to_verify.get_semantics = MagicMock(
-        return_value={"doc": mock_doc_to_verify},
-    )
+    fact_to_verify = MockFact(content=fact_to_verify_text, sources=[source1])
+    fact_to_verify.set_get_semantics_mock({"doc": mock_doc_to_verify})
 
     # Note: this fact has the SAME source as the fact_to_verify
-    similar_fact = Fact(content=similar_fact_text, sources=[source1])
-    similar_fact.get_semantics = MagicMock(
-        return_value={"doc": MockSpacyDoc(similar_fact_text)},
+    similar_fact = MockFact(content=similar_fact_text, sources=[source1])
+    similar_fact.set_get_semantics_mock(
+        {"doc": MockSpacyDoc(similar_fact_text)},
     )
 
     mock_session.query(Fact).filter().all.return_value = [similar_fact]
@@ -132,13 +144,13 @@ def test_find_corroborating_claims_from_same_source(mock_session: MagicMock):
 
 
 @patch("axiom_server.verification_engine.requests.head")
-def test_verify_citations(mock_requests_head: MagicMock):
+def test_verify_citations(mock_requests_head: MagicMock) -> None:
     """Test that verify_citations correctly identifies and checks URLs."""
     # --- Arrange ---
     fact_content = "Check this live link http://good-url.com and a broken one http://bad-url.com."
     fact_to_verify = Fact(content=fact_content)
 
-    def side_effect(url, **kwargs):
+    def side_effect(url: str, **kwargs: Any) -> MagicMock:
         response = MagicMock()
         if url == "http://good-url.com":
             response.status_code = 200

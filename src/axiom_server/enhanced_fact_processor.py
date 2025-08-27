@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, Dict, List
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import or_
-from sqlalchemy.orm import Session
 
 from axiom_server.ledger import Fact, SessionMaker
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
 
 logger = logging.getLogger("enhanced-fact-processor")
 
@@ -17,7 +19,8 @@ logger = logging.getLogger("enhanced-fact-processor")
 class EnhancedFactProcessor:
     """Advanced fact extraction and verification system."""
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """Initialize the fact processor with credible sources and patterns."""
         self.credible_sources = {
             "reuters.com": 0.9,
             "ap.org": 0.9,
@@ -43,7 +46,7 @@ class EnhancedFactProcessor:
         self,
         content: str,
         source_url: str,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Extract verifiable facts from content using NLP and pattern matching."""
         facts = []
 
@@ -72,7 +75,7 @@ class EnhancedFactProcessor:
 
         return facts
 
-    def _extract_structured_facts(self, sentence: str) -> List[Dict[str, Any]]:
+    def _extract_structured_facts(self, sentence: str) -> list[dict[str, Any]]:
         """Extract structured facts using regex patterns."""
         facts = []
 
@@ -104,7 +107,7 @@ class EnhancedFactProcessor:
     def _calculate_extraction_confidence(
         self,
         sentence: str,
-        fact_data: Dict[str, Any],
+        fact_data: dict[str, Any],
     ) -> float:
         """Calculate confidence score for extracted fact."""
         confidence = 0.5  # Base confidence
@@ -136,8 +139,8 @@ class EnhancedFactProcessor:
 
     def verify_fact_against_sources(
         self,
-        fact: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        fact: dict[str, Any],
+    ) -> dict[str, Any]:
         """Verify a fact by checking multiple sources."""
         verification_results = {
             "verified": False,
@@ -162,8 +165,8 @@ class EnhancedFactProcessor:
     def _find_similar_facts(
         self,
         session: Session,
-        fact: Dict[str, Any],
-    ) -> List[Fact]:
+        fact: dict[str, Any],
+    ) -> list[Fact]:
         """Find facts in database that might verify or contradict the given fact."""
         # Create search terms from the fact
         search_terms = [fact["subject"], fact["predicate"]]
@@ -185,11 +188,11 @@ class EnhancedFactProcessor:
 
     def _analyze_fact_consistency(
         self,
-        existing_facts: List[Fact],
-        new_fact: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        existing_facts: list[Fact],
+        new_fact: dict[str, Any],
+    ) -> dict[str, Any]:
         """Analyze consistency between new fact and existing facts."""
-        results = {
+        results: dict[str, Any] = {
             "verified": False,
             "confidence": 0.0,
             "supporting_sources": [],
@@ -234,15 +237,14 @@ class EnhancedFactProcessor:
         total_relevant = supporting_count + contradicting_count
         if total_relevant > 0:
             results["confidence"] = supporting_count / total_relevant
-            results["verified"] = (
-                results["confidence"] > 0.6 and supporting_count >= 2
-            )
+            confidence = float(results["confidence"])
+            results["verified"] = confidence > 0.6 and supporting_count >= 2
 
         return results
 
     def _calculate_fact_similarity(
         self,
-        fact1: Dict[str, Any],
+        fact1: dict[str, Any],
         fact2: Fact,
     ) -> float:
         """Calculate similarity between two facts."""
@@ -261,7 +263,7 @@ class EnhancedFactProcessor:
 
         return len(intersection) / len(union)
 
-    def _facts_agree(self, fact1: Dict[str, Any], fact2: Fact) -> bool:
+    def _facts_agree(self, fact1: dict[str, Any], fact2: Fact) -> bool:
         """Determine if two facts agree or contradict each other."""
         # This is a simplified implementation
         # In a real system, you'd use more sophisticated NLP
@@ -285,7 +287,8 @@ class EnhancedFactProcessor:
 class IntelligentSearchEngine:
     """Advanced search engine that understands questions and provides intelligent answers."""
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """Initialize the intelligent search engine with question patterns."""
         self.question_patterns = {
             "what": "definition_or_description",
             "when": "temporal",
@@ -297,11 +300,11 @@ class IntelligentSearchEngine:
             "how_much": "quantity",
         }
 
-    def understand_question(self, question: str) -> Dict[str, Any]:
+    def understand_question(self, question: str) -> dict[str, Any]:
         """Analyze the question to understand what type of answer is needed."""
         question_lower = question.lower()
 
-        analysis = {
+        analysis: dict[str, Any] = {
             "question_type": "general",
             "entities": [],
             "temporal_context": None,
@@ -327,7 +330,7 @@ class IntelligentSearchEngine:
 
         return analysis
 
-    def search_intelligently(self, question: str) -> Dict[str, Any]:
+    def search_intelligently(self, question: str) -> dict[str, Any]:
         """Perform intelligent search and answer synthesis."""
         question_analysis = self.understand_question(question)
 
@@ -353,8 +356,8 @@ class IntelligentSearchEngine:
     def _find_relevant_facts(
         self,
         question: str,
-        analysis: Dict[str, Any],
-    ) -> List[Dict[str, Any]]:
+        analysis: dict[str, Any],
+    ) -> list[dict[str, Any]]:
         """Find facts relevant to the question using the existing hasher system."""
         try:
             # Import the existing hasher system
@@ -431,7 +434,7 @@ class IntelligentSearchEngine:
         self,
         fact: Fact,
         question: str,
-        analysis: Dict[str, Any],
+        analysis: dict[str, Any],
     ) -> float:
         """Calculate how relevant a fact is to the question."""
         question_words = set(question.lower().split())
@@ -447,15 +450,18 @@ class IntelligentSearchEngine:
         base_score = overlap / total
 
         # Special handling for SEC company questions
-        if any(
-            word in question.lower()
-            for word in ["sec", "companies", "registered", "publicly"]
-        ):
-            if "sec" in fact.content.lower() and (
+        if (
+            any(
+                word in question.lower()
+                for word in ["sec", "companies", "registered", "publicly"]
+            )
+            and "sec" in fact.content.lower()
+            and (
                 "inc" in fact.content.lower()
                 or "corporation" in fact.content.lower()
-            ):
-                base_score += 0.5  # Significant boost for SEC company facts
+            )
+        ):
+            base_score += 0.5  # Significant boost for SEC company facts
 
         # Boost for question type matching
         if (
@@ -476,7 +482,7 @@ class IntelligentSearchEngine:
         self,
         fact_content: str,
         question: str,
-        analysis: Dict[str, Any],
+        analysis: dict[str, Any],
     ) -> float:
         """Calculate how relevant a fact content string is to the question."""
         question_words = set(question.lower().split())
@@ -550,9 +556,9 @@ class IntelligentSearchEngine:
     def _synthesize_answer(
         self,
         question: str,
-        facts: List[Dict[str, Any]],
-        analysis: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        facts: list[dict[str, Any]],
+        analysis: dict[str, Any],
+    ) -> dict[str, Any]:
         """Synthesize an intelligent answer from relevant facts."""
         if not facts:
             return {
@@ -562,7 +568,7 @@ class IntelligentSearchEngine:
             }
 
         # Get the most relevant fact
-        top_fact = facts[0]
+        facts[0]
 
         # Generate answer based on question type
         if analysis["question_type"] == "quantity":
@@ -579,8 +585,8 @@ class IntelligentSearchEngine:
     def _generate_quantity_answer(
         self,
         question: str,
-        facts: List[Dict[str, Any]],
-    ) -> Dict[str, Any]:
+        facts: list[dict[str, Any]],
+    ) -> dict[str, Any]:
         """Generate answer for quantity questions."""
         # Extract numbers from facts
         numbers = []
@@ -606,8 +612,8 @@ class IntelligentSearchEngine:
     def _generate_temporal_answer(
         self,
         question: str,
-        facts: List[Dict[str, Any]],
-    ) -> Dict[str, Any]:
+        facts: list[dict[str, Any]],
+    ) -> dict[str, Any]:
         """Generate answer for temporal questions."""
         # Look for date/time information in facts
         temporal_keywords = [
@@ -638,8 +644,8 @@ class IntelligentSearchEngine:
     def _generate_entity_answer(
         self,
         question: str,
-        facts: List[Dict[str, Any]],
-    ) -> Dict[str, Any]:
+        facts: list[dict[str, Any]],
+    ) -> dict[str, Any]:
         """Generate answer for entity questions."""
         # Extract entity information from the most relevant fact
         top_fact = facts[0]
@@ -666,8 +672,8 @@ class IntelligentSearchEngine:
     def _generate_general_answer(
         self,
         question: str,
-        facts: List[Dict[str, Any]],
-    ) -> Dict[str, Any]:
+        facts: list[dict[str, Any]],
+    ) -> dict[str, Any]:
         """Generate general answer from facts."""
         if not facts:
             return {

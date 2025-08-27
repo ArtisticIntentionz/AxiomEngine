@@ -15,7 +15,7 @@ from axiom_server.ledger import (
 )
 
 
-def main(db_path):
+def main(db_path: str) -> None:
     """Initialize a single database and populate it with validators."""
     print(f"--- Initializing and pre-populating database at: {db_path} ---")
 

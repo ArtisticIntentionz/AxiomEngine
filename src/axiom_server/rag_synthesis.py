@@ -298,6 +298,10 @@ def translate_user_query(user_query: str) -> tuple[bool, str, str]:
             stop=["<|end|>", "User:", "Verified Facts:"],
             echo=False,
         )
+        if not isinstance(response, dict):
+            raise TypeError(
+                f"Expected a dict response from LLM, but got {type(response)}",
+            )
         translated_query = response["choices"][0]["text"].strip()
 
         # Step 4: Validate generated prompt
@@ -366,6 +370,10 @@ def synthesize_secure_answer(
             echo=False,
         )
 
+        if not isinstance(response, dict):
+            raise TypeError(
+                f"Expected a dict response from LLM, but got {type(response)}",
+            )
         synthesized_answer = response["choices"][0]["text"].strip()
 
         # Validate response against original facts

@@ -35,7 +35,12 @@ def find_numbers(text: str) -> list[float]:
 
 
 # --- Numeric tolerance helper ---
-def numbers_are_close(a: float, b: float, rel_tol=0.05, abs_tol=2.0) -> bool:
+def numbers_are_close(
+    a: float,
+    b: float,
+    rel_tol: float = 0.05,
+    abs_tol: float = 2.0,
+) -> bool:
     """Return True if numbers are close enough to not be considered a contradiction."""
     if a == 0 or b == 0:
         return abs(a - b) <= abs_tol
@@ -43,7 +48,7 @@ def numbers_are_close(a: float, b: float, rel_tol=0.05, abs_tol=2.0) -> bool:
 
 
 # --- Fact type classifier (very simple heuristic) ---
-def classify_fact_type(doc: Doc):
+def classify_fact_type(doc: Doc) -> str:
     """Classify fact type for more precise comparison (e.g., company size, location, founding date)."""
     # This is a simple heuristic; can be expanded
     text = doc.text.lower()
@@ -59,7 +64,7 @@ def classify_fact_type(doc: Doc):
 
 
 # --- Entity extraction helper ---
-def get_main_entities(doc: Doc):
+def get_main_entities(doc: Doc) -> set[str]:
     """Return set of main entities (ORG, PERSON, GPE, EVENT) in lowercase."""
     return {
         ent.lemma_.lower()
@@ -105,7 +110,7 @@ def get_numeric_entities(doc: Doc) -> dict[str, float]:
 
 
 # --- Improved contradiction check with tolerance, fact type, and explainability ---
-def check_for_contradiction(doc1: Doc, doc2: Doc):
+def check_for_contradiction(doc1: Doc, doc2: Doc) -> tuple[bool, bool, str]:
     """Analyze two highly similar documents to find specific, high-confidence contradictions.
 
     Return (is_contradiction: bool, is_potential: bool, reason: str).

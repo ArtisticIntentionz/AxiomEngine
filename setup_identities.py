@@ -13,7 +13,7 @@ PUBLIC_EXPONENT = 65537
 NODE_IDS = [5001, 5002, 5004]
 
 
-def generate_key_pair():
+def generate_key_pair() -> tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
     """Generate a single RSA private/public key pair."""
     private_key = rsa.generate_private_key(
         public_exponent=PUBLIC_EXPONENT,
@@ -23,7 +23,7 @@ def generate_key_pair():
     return private_key, public_key
 
 
-def main():
+def main() -> None:
     """Generate and save keys for all nodes and create a validators.json file."""
     print("--- Generating unique identities for each node ---")
     validators = []

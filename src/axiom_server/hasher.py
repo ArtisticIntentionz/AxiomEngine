@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 from sqlalchemy import not_, or_
@@ -33,8 +33,8 @@ class FactIndexer:
         """Initialize the indexer with a database session."""
         self.session = session
         self.fact_id_to_content: dict[int, str] = {}
-        self.fact_id_to_vector: dict[int, np.ndarray] = {}
-        self.vector_matrix: np.ndarray | None = None
+        self.fact_id_to_vector: dict[int, Any] = {}
+        self.vector_matrix: Any | None = None
         self.fact_ids: list[int] = []
 
     def add_fact(self, fact: Fact) -> None:
@@ -50,7 +50,7 @@ class FactIndexer:
         self.fact_id_to_vector[fact.id] = fact_vector
         self.fact_ids.append(fact.id)
 
-        new_vector_row = fact_vector.reshape(1, -1)
+        new_vector_row = fact_vector.reshape((1, -1))
         if self.vector_matrix is None:
             self.vector_matrix = new_vector_row
         else:
@@ -73,7 +73,7 @@ class FactIndexer:
             self.fact_id_to_content[fact.id] = fact.content
             self.fact_id_to_vector[fact.id] = fact_vector
             self.fact_ids.append(fact.id)
-            row = fact_vector.reshape(1, -1)
+            row = fact_vector.reshape((1, -1))
             if self.vector_matrix is None:
                 self.vector_matrix = row
             else:
@@ -97,7 +97,7 @@ class FactIndexer:
         query_text: str,
         top_n: int = 3,
         min_similarity: float = 0.45,  # Lowered threshold for faster, more inclusive results
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """Perform ULTRA-FAST search using simple keyword extraction."""
         # Ultra-fast keyword extraction without spaCy
         keywords = self._extract_keywords_fast(query_text)

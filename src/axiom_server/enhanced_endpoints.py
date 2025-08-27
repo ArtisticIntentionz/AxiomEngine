@@ -191,7 +191,7 @@ def handle_analyze_question() -> Response | tuple[Response, int]:
 
     except Exception as e:
         logger.error(f"Question analysis failed: {e}")
-        return jsonify({"error": f"Question analysis failed: {e!s}"}), 500
+        return jsonify({"error": f"Question analysis failed: {e!s}"}), 500  # type: ignore[return-value]
 
 
 def handle_get_fact_statistics() -> Response:
@@ -212,7 +212,7 @@ def handle_get_fact_statistics() -> Response:
             facts_with_sources = (
                 session.query(Fact).join(Fact.sources).limit(100).all()
             )
-            source_counts = {}
+            source_counts: dict[str, int] = {}
             for fact in facts_with_sources:
                 for source in fact.sources:
                     source_counts[source.domain] = (
@@ -241,7 +241,7 @@ def handle_get_fact_statistics() -> Response:
         logger.error(f"Statistics retrieval failed: {e}")
         return jsonify(
             {"error": f"Statistics retrieval failed: {e!s}"},
-        ), 500
+        ), 500  # type: ignore[return-value]
 
 
 def handle_test_enhanced_search() -> Response:
@@ -286,4 +286,4 @@ def handle_test_enhanced_search() -> Response:
         logger.error(f"Enhanced search test failed: {e}")
         return jsonify(
             {"error": f"Enhanced search test failed: {e!s}"},
-        ), 500
+        ), 500  # type: ignore[return-value]

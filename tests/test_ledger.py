@@ -2,6 +2,7 @@
 
 import json
 import time
+from collections.abc import Generator
 
 import pytest
 from sqlalchemy import create_engine
@@ -11,6 +12,7 @@ from axiom_server.ledger import (
     Base,
     Block,
     Fact,
+    FactStatus,
     Source,
     create_genesis_block,
     get_latest_block,
@@ -22,7 +24,7 @@ SessionLocal = sessionmaker(bind=engine)
 
 
 @pytest.fixture
-def db_session() -> Session:
+def db_session() -> Generator[Session, None, None]:
     """Return a clean, isolated database session."""
     Base.metadata.create_all(engine)
     session = SessionLocal()
@@ -34,7 +36,7 @@ def db_session() -> Session:
 
 
 # --- UPDATED TEST FOR PROOF-OF-STAKE ---
-def test_genesis_block_creation(db_session: Session):
+def test_genesis_block_creation(db_session: Session) -> None:
     """Tests that the very first block is created correctly."""
     create_genesis_block(db_session)
     genesis = get_latest_block(db_session)
@@ -49,7 +51,7 @@ def test_genesis_block_creation(db_session: Session):
 
 
 # --- UPDATED TEST FOR PROOF-OF-STAKE ---
-def test_add_new_block_to_chain(db_session: Session):
+def test_add_new_block_to_chain(db_session: Session) -> None:
     """Tests that a new block is correctly chained to the previous one."""
     create_genesis_block(db_session)
     genesis = get_latest_block(db_session)
@@ -87,7 +89,7 @@ def test_add_new_block_to_chain(db_session: Session):
 
 
 # --- THIS TEST IS ALREADY CORRECT AND REMAINS UNCHANGED ---
-def test_fact_ingestion_default_status(db_session: Session):
+def test_fact_ingestion_default_status(db_session: Session) -> None:
     """Tests that a new fact is created with the correct default 'ingested' status."""
     source = Source(domain="example.com")
     db_session.add(source)
@@ -107,14 +109,14 @@ def test_fact_ingestion_default_status(db_session: Session):
 
 
 # --- THIS TEST IS ALREADY CORRECT AND REMAINS UNCHANGED ---
-def test_update_fact_status(db_session: Session):
+def test_update_fact_status(db_session: Session) -> None:
     """Tests that a fact's status can be correctly updated through its lifecycle."""
     source = Source(domain="example.com")
     fact = Fact(content="Lifecycle test", sources=[source])
     db_session.add(fact)
     db_session.commit()
 
-    fact.status = "logically_consistent"
+    fact.status = FactStatus.LOGICALLY_CONSISTENT
     db_session.commit()
 
     retrieved_fact = db_session.get(Fact, fact.id)
@@ -123,7 +125,7 @@ def test_update_fact_status(db_session: Session):
         "Status should update to 'logically_consistent'"
     )
 
-    fact.status = "empirically_verified"
+    fact.status = FactStatus.EMPIRICALLY_VERIFIED
     db_session.commit()
 
     retrieved_fact = db_session.get(Fact, fact.id)
