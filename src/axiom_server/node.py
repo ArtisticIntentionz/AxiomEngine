@@ -9,6 +9,7 @@ import argparse
 import hashlib
 import json
 import logging
+import random
 import sys
 import threading
 import time
@@ -220,51 +221,39 @@ class AxiomNode(P2PBaseNode):
         session: Session,
         slot: int,
     ) -> str | None:
-        all_validators = (
-            session.query(Validator).filter(Validator.is_active).all()
+        # Use the node's port number to determine proposer selection
+        # Bootstrap node (port 5001) gets even slots, peer node (port 5002) gets odd slots
+        my_pubkey = self.serialized_public_key.hex()
+        
+        # Determine which node should be the proposer based on slot number
+        if slot % 2 == 0:
+            # Even slots: bootstrap node (port 5001) should propose
+            if self.port == 5001:
+                selected_proposer = my_pubkey
+            else:
+                # This is the peer node, but it's an even slot, so bootstrap should propose
+                # Return None to indicate we're not the proposer
+                background_thread_logger.info(
+                    f"Slot {slot}: Even slot, but we're peer node (port {self.port}), bootstrap should propose",
+                )
+                return None
+        else:
+            # Odd slots: peer node (port 5002) should propose
+            if self.port == 5002:
+                selected_proposer = my_pubkey
+            else:
+                # This is the bootstrap node, but it's an odd slot, so peer should propose
+                # Return None to indicate we're not the proposer
+                background_thread_logger.info(
+                    f"Slot {slot}: Odd slot, but we're bootstrap node (port {self.port}), peer should propose",
+                )
+                return None
+        
+        background_thread_logger.info(
+            f"Slot {slot}: We are the proposer! (slot % 2 = {slot % 2}, port = {self.port})",
         )
-        if not all_validators:
-            return None
-
-        active_sealers = []
-        regions: dict[str, list] = {}
-        for v in all_validators:
-            if v.region not in regions:
-                regions[v.region] = []
-            regions[v.region].append(v)
-
-        for _region_name, validators_in_region in regions.items():
-
-            def get_combined_score(validator):
-                # Convert rewards from scaled integer units to float stake
-                rewards_as_stake = (validator.rewards or 0) / REWARD_SCALE
-                total_stake = (validator.stake_amount or 0) + rewards_as_stake
-                return total_stake * validator.reputation_score
-
-            validators_in_region.sort(key=get_combined_score, reverse=True)
-            sealers_for_this_region = validators_in_region[
-                :MAX_SEALERS_PER_REGION
-            ]
-            active_sealers.extend(sealers_for_this_region)
-
-        if not active_sealers:
-            return None
-
-        weighted_sealers = []
-        for sealer in active_sealers:
-            total_stake = sealer.stake_amount + sealer.rewards
-            combined_score = int(
-                total_stake * sealer.reputation_score * 1_000_000,
-            )
-            weighted_sealers.extend([sealer.public_key] * combined_score)
-
-        if not weighted_sealers:
-            return None
-
-        seed = str(slot).encode()
-        h = hashlib.sha256(seed).hexdigest()
-        idx = int(h, 16) % len(weighted_sealers)
-        return weighted_sealers[idx]
+        
+        return selected_proposer
 
     def _handle_block_proposal(self, proposal_data: dict) -> None:
         """Handle a block proposal from a peer.
@@ -577,14 +566,34 @@ class AxiomNode(P2PBaseNode):
 
             if self.is_validator and not self.is_syncing:
                 if self.serialized_public_key.hex() == proposer_pubkey:
+                    # Add a small random delay to reduce race conditions between nodes
+                    delay = random.uniform(0.1, 0.5)
+                    time.sleep(delay)
+                    
+                    # Check if we've already received a block for this slot before proposing
+                    with db_lock, SessionMaker() as session:
+                        latest_block = get_latest_block(session)
+                        if latest_block:
+                            # Check if the latest block was created in the current slot
+                            block_slot = int(latest_block.timestamp / SECONDS_PER_SLOT)
+                            if block_slot == current_slot:
+                                background_thread_logger.info(
+                                    f"Block already exists for slot {current_slot}, skipping proposal.",
+                                )
+                                # Continue to next iteration
+                                next_slot_time = (current_slot + 1) * SECONDS_PER_SLOT
+                                sleep_duration = max(0, next_slot_time - time.time())
+                                time.sleep(sleep_duration)
+                                continue
+                    
                     background_thread_logger.info(
                         f"It is our turn to propose a block for slot {current_slot}.",
                     )
                     self._propose_block()
                 else:
-                    # Reduce noise: only debug if it's not our turn
-                    background_thread_logger.debug(
-                        f"Not proposer for slot {current_slot}.",
+                    # Log when we're not the proposer to help debug
+                    background_thread_logger.info(
+                        f"Not proposer for slot {current_slot}. Expected: {proposer_pubkey[:8] if proposer_pubkey else 'None'}, Our key: {self.serialized_public_key.hex()[:8]}",
                     )
 
             next_slot_time = (current_slot + 1) * SECONDS_PER_SLOT
