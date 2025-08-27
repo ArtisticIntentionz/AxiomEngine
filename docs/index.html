@@ -18,7 +18,7 @@
             --confidence-medium: #FF9800;
             --confidence-low: #F44336;
         }
-        
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--background-color);
@@ -27,36 +27,36 @@
             padding: 0;
             line-height: 1.6;
         }
-        
+
         .container {
             max-width: 1000px;
             width: 90%;
             margin: 2rem auto;
             padding: 1rem;
         }
-        
+
         header {
             text-align: center;
             padding: 3rem 1rem;
             border-bottom: 1px solid var(--secondary-color);
         }
-        
+
         header h1 {
             font-size: 3rem;
             color: var(--text-color);
             margin: 0;
         }
-        
+
         header h1 span {
             color: var(--primary-color);
         }
-        
+
         header p {
             font-size: 1.1rem;
             color: #AAAAAA;
             margin-top: 0.5rem;
         }
-        
+
         .search-section {
             background-color: var(--card-color);
             border-radius: 12px;
@@ -64,7 +64,7 @@
             margin: 2rem 0;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
-        
+
         .search-input {
             width: 100%;
             padding: 1rem;
@@ -77,12 +77,12 @@
             margin-bottom: 1rem;
             transition: border-color 0.3s ease;
         }
-        
+
         .search-input:focus {
             outline: none;
             border-color: var(--primary-color);
         }
-        
+
         .search-button {
             width: 100%;
             padding: 1rem;
@@ -95,21 +95,21 @@
             cursor: pointer;
             transition: transform 0.2s ease;
         }
-        
+
         .search-button:hover {
             transform: translateY(-2px);
         }
-        
+
         .search-button:disabled {
             opacity: 0.6;
             cursor: not-allowed;
             transform: none;
         }
-        
+
         .results-section {
             margin-top: 2rem;
         }
-        
+
         .answer-card {
             background-color: var(--card-color);
             border-radius: 12px;
@@ -118,7 +118,7 @@
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
             border-left: 4px solid var(--primary-color);
         }
-        
+
         .confidence-indicator {
             display: inline-block;
             padding: 0.25rem 0.75rem;
@@ -127,42 +127,42 @@
             font-weight: bold;
             margin-bottom: 1rem;
         }
-        
+
         .confidence-high {
             background-color: var(--confidence-high);
             color: white;
         }
-        
+
         .confidence-medium {
             background-color: var(--confidence-medium);
             color: white;
         }
-        
+
         .confidence-low {
             background-color: var(--confidence-low);
             color: white;
         }
-        
+
         .answer-text {
             font-size: 1.2rem;
             line-height: 1.6;
             margin-bottom: 1.5rem;
         }
-        
+
         .sources-section {
             background-color: #2a2a2a;
             border-radius: 8px;
             padding: 1.5rem;
             margin-top: 1rem;
         }
-        
+
         .sources-title {
             font-size: 1rem;
             color: var(--primary-color);
             margin-bottom: 1rem;
             font-weight: bold;
         }
-        
+
         .source-item {
             background-color: #333;
             border-radius: 6px;
@@ -170,25 +170,25 @@
             margin-bottom: 0.5rem;
             border-left: 3px solid var(--primary-color);
         }
-        
+
         .source-domain {
             font-weight: bold;
             color: var(--primary-color);
             margin-bottom: 0.5rem;
         }
-        
+
         .source-content {
             font-size: 0.9rem;
             color: #ccc;
             font-style: italic;
         }
-        
+
         .loading {
             text-align: center;
             padding: 2rem;
             color: var(--primary-color);
         }
-        
+
         .loading-spinner {
             border: 3px solid var(--secondary-color);
             border-top: 3px solid var(--primary-color);
@@ -198,12 +198,12 @@
             animation: spin 1s linear infinite;
             margin: 0 auto 1rem;
         }
-        
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        
+
         .error-message {
             background-color: var(--error-color);
             color: white;
@@ -211,7 +211,7 @@
             border-radius: 8px;
             margin: 1rem 0;
         }
-        
+
         .question-analysis {
             background-color: #2a2a2a;
             border-radius: 8px;
@@ -219,12 +219,12 @@
             margin-bottom: 1rem;
             font-size: 0.9rem;
         }
-        
+
         .question-type {
             color: var(--primary-color);
             font-weight: bold;
         }
-        
+
         .status-bar {
             text-align: center;
             padding: 1rem;
@@ -234,7 +234,7 @@
             font-size: 0.9rem;
             color: #888;
         }
-        
+
         .status-indicator {
             display: inline-block;
             width: 8px;
@@ -243,11 +243,11 @@
             margin-right: 0.5rem;
             background-color: var(--error-color);
         }
-        
+
         .status-indicator.connected {
             background-color: var(--success-color);
         }
-        
+
         .fallback-answer {
             background-color: #2a2a2a;
             border-radius: 8px;
@@ -265,8 +265,8 @@
         </header>
 
         <div class="search-section">
-            <input type="text" id="question-input" class="search-input" 
-                   placeholder="Ask a question... (e.g., 'What companies are registered with the SEC?' or 'How many people were affected?')" 
+            <input type="text" id="question-input" class="search-input"
+                   placeholder="Ask a question... (e.g., 'What companies are registered with the SEC?' or 'How many people were affected?')"
                    autocomplete="off">
             <button id="ask-button" class="search-button">Ask Axiom</button>
         </div>
@@ -284,7 +284,7 @@
     <script>
         // Use ngrok URL for external access
         const AXIOM_NODE_URL = 'https://d089f71ab6a5.ngrok-free.app';
-        
+
         const questionInput = document.getElementById('question-input');
         const askButton = document.getElementById('ask-button');
         const resultsSection = document.getElementById('results-section');
@@ -297,7 +297,7 @@
                 const response = await fetch(`${AXIOM_NODE_URL}/status`, {
                     headers: { 'ngrok-skip-browser-warning': 'true' }
                 });
-                
+
                 if (response.ok) {
                     const data = await response.json();
                     statusIndicator.classList.add('connected');
@@ -319,7 +319,7 @@
 
             askButton.disabled = true;
             askButton.textContent = 'Analyzing...';
-            
+
             resultsSection.style.display = 'block';
             resultsSection.innerHTML = `
                 <div class="loading">
@@ -336,7 +336,7 @@
                         'Content-Type': 'application/json',
                         'ngrok-skip-browser-warning': 'true'
                     },
-                    body: JSON.stringify({ 
+                    body: JSON.stringify({
                         question: question,
                         use_intelligent_search: true
                     })
@@ -357,7 +357,7 @@
                         'Content-Type': 'application/json',
                         'ngrok-skip-browser-warning': 'true'
                     },
-                    body: JSON.stringify({ 
+                    body: JSON.stringify({
                         query: question
                     })
                 });
@@ -372,7 +372,7 @@
             } catch (error) {
                 resultsSection.innerHTML = `
                     <div class="error-message">
-                        <strong>Error:</strong> Could not get answer from Axiom network. 
+                        <strong>Error:</strong> Could not get answer from Axiom network.
                         Please ensure the Axiom node is running.
                         <br><br>
                         <em>${error.message}</em>
@@ -387,23 +387,23 @@
         function displayIntelligentAnswer(data) {
             const confidenceClass = getConfidenceClass(data.confidence);
             const confidenceText = getConfidenceText(data.confidence);
-            
+
             let html = `
                 <div class="answer-card">
                     <div class="confidence-indicator ${confidenceClass}">
                         ${confidenceText} (${Math.round(data.confidence * 100)}%)
                     </div>
-                    
+
                     <div class="answer-text">
                         ${data.answer}
                     </div>
-                    
+
                     <div class="question-analysis">
-                        <strong>Question Analysis:</strong> 
-                        <span class="question-type">${data.question_analysis.question_type}</span> | 
+                        <strong>Question Analysis:</strong>
+                        <span class="question-type">${data.question_analysis.question_type}</span> |
                         Entities: ${data.question_analysis.entities.join(', ') || 'None detected'}
                     </div>
-                    
+
                     <div class="sources-section">
                         <div class="sources-title">
                             Supporting Facts (${data.supporting_facts.length} sources)
@@ -415,7 +415,7 @@
                 html += `
                     <div class="source-item">
                         <div class="source-domain">
-                            ${fact.sources[0] || 'Unknown Source'} 
+                            ${fact.sources[0] || 'Unknown Source'}
                             <span style="color: #888; font-size: 0.8rem;">
                                 (Relevance: ${relevancePercent}%)
                             </span>
@@ -446,12 +446,12 @@
             if (data.intelligent_answer) {
                 const confidenceClass = getConfidenceClass(data.confidence || 0.5);
                 const confidenceText = getConfidenceText(data.confidence || 0.5);
-                
+
                 html += `
                     <div class="confidence-indicator ${confidenceClass}">
                         ${confidenceText} (${Math.round((data.confidence || 0.5) * 100)}%)
                     </div>
-                    
+
                     <div class="answer-text">
                         ${data.intelligent_answer}
                     </div>
@@ -463,7 +463,7 @@
                     </div>
                 `;
             }
-            
+
             if (data.results && data.results.length > 0) {
                 html += `
                     <div class="sources-section">
@@ -477,7 +477,7 @@
                     html += `
                         <div class="source-item">
                             <div class="source-domain">
-                                ${fact.sources[0] || 'Unknown Source'} 
+                                ${fact.sources[0] || 'Unknown Source'}
                                 <span style="color: #888; font-size: 0.8rem;">
                                     (Similarity: ${similarityPercent}%)
                                 </span>

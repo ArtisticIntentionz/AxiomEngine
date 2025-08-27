@@ -35,4 +35,3 @@ python3 -m axiom_server.node --host 0.0.0.0 --p2p-port 5001 --api-port 8001
 echo "Starting bootstrap node in foreground - you will see all discovery logs..."
 echo "After 2 minutes, open a new terminal and run: ./start_peer_after_bootstrap.sh"
 echo ""
-

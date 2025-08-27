@@ -625,7 +625,6 @@ class AxiomClientApp(QWidget):
                     f"<p>{response.get('message', 'No message available')}</p>"
                 )
 
-
         self.results_output.setHtml(html)
 
     def verify_selected(self) -> None:
