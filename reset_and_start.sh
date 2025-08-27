@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # --- PREPARATION ---
-echo "--- HARD RESET: Cleaning up the single-node instance ---"
-rm -rf node-data
+echo "--- HARD RESET: Cleaning up the P2P network ---"
+rm -rf node-data node-data-peer-local
 rm -f single_node_key.pem
 
 # Stop any lingering node processes
@@ -11,32 +11,27 @@ pkill -f "axiom_server.node" || true
 sleep 1
 
 # --- SETUP ---
-echo "--- Setting up a fresh single-node environment ---"
+echo "--- Setting up a fresh P2P network environment ---"
 mkdir node-data
+mkdir node-data-peer-local
 
-# Generate a single, unique identity for this node run
-# We use openssl which is a standard tool, removing dependency on helper scripts.
-echo "Generating new identity key..."
+# Generate unique identities for both nodes
+echo "Generating identity keys for bootstrap and peer nodes..."
 openssl genpkey -algorithm RSA -out single_node_key.pem -pkeyopt rsa_keygen_bits:2048
+openssl genpkey -algorithm RSA -out node-data-peer-local/peer_node_key.pem -pkeyopt rsa_keygen_bits:2048
 
-# --- LAUNCH THE SINGLE NODE ---
-echo "--- Launching the single Axiom node ---"
-(
-  # Run the node from within its own directory
-  cd node-data && \
+# --- LAUNCH THE BOOTSTRAP NODE ---
+echo "--- Launching the bootstrap Axiom node (Network Hub) ---"
+echo "This node will act as the network hub and start discovering facts immediately."
+echo ""
 
-  # Copy the unique key to the name the application expects
-  cp ../single_node_key.pem ./shared_node_key.pem && \
 
-  # Tell the node code to use the key file
-  export AXIOM_SHARED_KEYS=true && \
+cd node-data && \
+cp ../single_node_key.pem ./shared_node_key.pem && \
+export AXIOM_SHARED_KEYS=true && \
+python3 -m axiom_server.node --host 0.0.0.0 --p2p-port 5001 --api-port 8001
 
-  # Start the node. No bootstrap peer is needed since it's the only one.
-  python3 -m axiom_server.node --p2p-port 5001 --api-port 8001 &
-)
-sleep 5
-
-echo " "
-echo "Single node started successfully."
-echo "It will now create its own ledger and begin proposing blocks to itself."
-echo "API is available at http://127.0.0.1:8001"
+# Start bootstrap node in foreground (so you can see the logs)
+echo "Starting bootstrap node in foreground - you will see all discovery logs..."
+echo "After 2 minutes, open a new terminal and run: ./start_peer_after_bootstrap.sh"
+echo ""

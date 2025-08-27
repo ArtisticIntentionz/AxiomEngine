@@ -115,7 +115,12 @@ class Block(Base):
 
     def calculate_hash(self) -> str:
         """Return hash from this block."""
-        fact_hashes_as_strings = sorted(json.loads(self.fact_hashes))
+        # Parse fact hashes and ensure they're sorted consistently
+        fact_hashes_list = json.loads(self.fact_hashes)
+        if isinstance(fact_hashes_list, list):
+            fact_hashes_as_strings = sorted(fact_hashes_list)
+        else:
+            fact_hashes_as_strings = []
 
         block_string = json.dumps(
             {
@@ -124,7 +129,7 @@ class Block(Base):
                 "timestamp": self.timestamp,
                 "merkle_root": self.merkle_root,
                 "proposer_pubkey": self.proposer_pubkey,
-                "fact_hashes": fact_hashes_as_strings,  # --- FIX: Correctly include the sorted list ---
+                "fact_hashes": fact_hashes_as_strings,
             },
             sort_keys=True,
         ).encode()
@@ -235,30 +240,37 @@ class Fact(Base):
         viewonly=True,
     )
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
+        """Initialize a new Fact instance and set its hash."""
         super().__init__(**kwargs)
         if self.content:
             self.set_hash()
 
     @property
     def corroborated(self) -> bool:
+        """Return True if the fact has a positive corroboration score."""
         return self.score > 0
 
     def has_source(self, domain: str) -> bool:
+        """Check if the fact is attributed to a source from a specific domain."""
         return any(source.domain == domain for source in self.sources)
 
     def set_hash(self) -> str:
+        """Calculate and set the SHA256 hash of the fact's content."""
         self.hash = hashlib.sha256(self.content.encode("utf-8")).hexdigest()
         return self.hash
 
     def get_serialized_semantics(self) -> SerializedSemantics:
+        """Return the stored semantics as a serialized Pydantic model."""
         return SerializedSemantics.model_validate_json(self.semantics)
 
     def get_semantics(self) -> Semantics:
+        """Return the rich, deserialized Semantics object, including the spaCy Doc."""
         serializable = self.get_serialized_semantics()
         return semantics_from_serialized(serializable)
 
     def set_semantics(self, semantics: Semantics) -> None:
+        """Serialize and store the rich Semantics object as a JSON string."""
         self.semantics = json.dumps(
             {
                 "doc": json.dumps(semantics["doc"].to_json()),
@@ -292,7 +304,7 @@ class SerializedFact(BaseModel):
     @classmethod
     def from_fact(cls, fact: Fact) -> Self:
         """Return SerializedFact from Fact."""
-        data_for_model = {
+        data_for_model: dict[str, Any] = {
             "content": fact.content,
             "score": fact.score,
             "disputed": fact.disputed,

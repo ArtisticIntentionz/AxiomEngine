@@ -294,12 +294,17 @@ def _generate_key_pair(
                     f.read(),
                     password=None,
                 )
+            # Add a type check to satisfy mypy and ensure we have an RSA key.
+            if not isinstance(private_key, rsa.RSAPrivateKey):
+                # If it's not an RSA key, we treat it as a failure to load.
+                raise TypeError("Loaded key is not an RSA private key.")
+
             public_key = private_key.public_key()
             logger.info("Loaded shared key pair from file")
             return private_key, public_key
-        except Exception as e:
+        except (Exception, TypeError) as e:
             logger.warning(
-                f"Failed to load shared key: {e}, generating new one",
+                f"Failed to load or validate shared key: {e}, generating new one",
             )
 
     # Generate new key pair
@@ -862,8 +867,10 @@ class Node:
             link.alive = False
             try:
                 link.socket.close()
-            except Exception:
-                pass
+            except Exception as close_exc:
+                logger.debug(
+                    f"Exception during socket cleanup for {link.fmt_addr()}: {close_exc}",
+                )
 
     def _recv(self, link: PeerLink) -> None:
         chunk = link.socket.recv(NODE_CHUNK_SIZE)
@@ -894,4 +901,4 @@ if __name__ == "__main__":
                 node.update()
 
     except KeyboardInterrupt:
-        logger.info("user interrupted the node. goodbye! ^-^")
+        logger.info("user interrupted the node. goodbye! ^--^")

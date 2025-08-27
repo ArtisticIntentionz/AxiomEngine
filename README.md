@@ -1,3 +1,5 @@
+---
+
 # Axiom: A Decentralized Network for Verifiable Truth - A Grounding Engine
 
 ![Axiom Logo](https://raw.githubusercontent.com/ArtisticIntentionz/AxiomEngine/main/main/Axiom_logo.PNG)
@@ -24,6 +26,7 @@ This project is a statement: **objective reality matters, and access to it shoul
   - [Phase 2: Verification (The Crucible)](#phase-2-verification-the-crucible)
   - [Phase 3: Understanding (The Synthesizer)](#phase-3-understanding-the-synthesizer)
   - [Phase 4: Memory & Sharing](#phase-4-memory--sharing)
+  - [Phase 5: Inference (The HashNLP Engine)](#phase-5-inference-the-hashnlp-engine)
 - [Core Architecture & Technical Principles](#core-architecture--technical-principles)
 - [The Axiom Ethos: Our Core Philosophies](#the-axiom-ethos-our-core-philosophies)
 - [Comparison to Existing Alternatives](#comparison-to-existing-alternatives)
@@ -34,16 +37,15 @@ This project is a statement: **objective reality matters, and access to it shoul
 
 ---
 
-
 ## 🚀 Getting Started: Developer Setup
 
 This guide provides the essential steps to get a local development environment running. For a more detailed guide on network configurations and testing, please see our [**CONTRIBUTING.md**](./CONTRIBUTING.md) file.
 
-## Your First Code Contribution: Step-by-Step
+### Your First Code Contribution: Step-by-Step
 
 This guide provides the official, verified steps to get your development environment running perfectly. The process uses a hybrid Conda and Pip installation which is critical for success.
 
-### Step 1: Environment Setup
+#### Step 1: Environment Setup
 
 **Prerequisites**
 *   A working `git` installation.
@@ -60,7 +62,7 @@ Before you begin, ensure your system has no memory of previous installation atte
 2.  **Close and Re-open Your Terminal:** Your new terminal prompt should now be clean, without a `(base)` prefix.
 3.  **(Optional but Recommended) Purge Old Environments:** If you have any old Axiom environments, destroy them to avoid conflicts.
     ```bash
-    conda env remove -n Axiom -y
+    conda env remove -n Axiom10 -y
     # Add any other old environment names you might have used
     ```
 
@@ -75,105 +77,93 @@ Before you begin, ensure your system has no memory of previous installation atte
 
 2.  **Create and Activate the Conda Environment:**
     ```bash
-    conda create -n Axiom python=3.11 -y
-    conda activate Axiom
+    conda create -n Axiom10 python=3.11 -y
+    conda activate Axiom10
     ```
-    Your terminal prompt will now correctly show `(AxiomFork)`.
+    Your terminal prompt will now correctly show `(Axiom10)`.
 
 **Phase 3: The "Gold Standard" Installation**
 
 This hybrid approach is proven to work reliably. We use Conda for complex, pre-compiled libraries (like those for AI and cryptography) and Pip for pure-Python application dependencies.
 
-1. **Install Heavy Binaries with Conda:**
-
-```
-conda install -c conda-forge numpy scipy "spacy>=3.7.2,<3.8.0" cryptography beautifulsoup4 -y
-```
-3. **Install Pure-Python Libraries with Pip:**
-
-```
-pip install Flask gunicorn requests sqlalchemy pydantic feedparser Flask-Cors ruff mypy pytest pre-commit attrs types-requests sec_edgar_api
-```
-5. **Install the AI Model: We use a large, high-quality model for fact extraction.**
-
-```
-python -m spacy download en_core_web_lg
-```
-
-6. **Install the Axiom Project Itself:** This final step makes the axiom_server module available and installs it in an "editable" mode (-e), so your code changes are immediately reflected.
-
-```
-   pip install -e ."[test]"
-```
-
-**Step 2: One-Time Project Initialization (SSL)**
-The P2P engine requires SSL certificates for secure, encrypted communication between nodes.
-
-**Create the SSL Directory: From the project root (AxiomEngine/):**
-```
-mkdir -p ssl
-```
-
-**Generate the Certificates:**
-```
-openssl req -new -x509 -days 3650 -nodes -out ssl/node.crt -keyout ssl/node.key
-```
-(You will be prompted for information. You can press Enter for every question to accept the defaults.)
-
-**Step 3: Launch a Local P2P Network**
-
-Your environment is now complete. To simplify local development, you can launch a multi-node Axiom test network using the provided script.
-
-**Instructions:**
-
-1. From your project root directory, ensure your Conda environment is activated:
+1.  **Install Heavy Binaries with Conda:**
     ```bash
-    conda activate Axiom
+    conda install -c conda-forge numpy scipy "spacy>=3.7.2,<3.8.0" cryptography beautifulsoup4 -y
+    ```
+2.  **Install Pure-Python Libraries with Pip:**
+    ```bash
+    pip install Flask gunicorn requests sqlalchemy pydantic feedparser Flask-Cors ruff mypy pytest pre-commit attrs types-requests sec_edgar_api
+    ```
+3.  **Install the AI Model:** We use a large, high-quality model for fact extraction.
+    ```bash
+    python -m spacy download en_core_web_lg
+    ```
+4.  **Install the Axiom Project Itself:** This final step makes the `axiom_server` module available and installs it in an "editable" mode (`-e`), so your code changes are immediately reflected.
+    ```bash
+    pip install -e ."[test]"
     ```
 
-2. Run the node launch script:
+#### Step 2: One-Time Project Initialization (SSL)
+The P2P engine requires SSL certificates for secure, encrypted communication between nodes.
+
+1.  **Create the SSL Directory:** From the project root (`AxiomEngine/`):
+    ```bash
+    mkdir -p ssl
+    ```
+
+2.  **Generate the Certificates:**
+    ```bash
+    openssl req -new -x509 -days 3650 -nodes -out ssl/node.crt -keyout ssl/node.key
+    ```
+    (You will be prompted for information. You can press Enter for every question to accept the defaults.)
+
+#### Step 3: Launch & Interact with a Local P2P Network
+
+Your environment is now complete. To simplify local development, you can launch a multi-node Axiom test network and interact with it using the provided scripts and client.
+
+1.  **Activate Your Environment:** From your project root directory, ensure your Conda environment is activated:
+    ```bash
+    conda activate Axiom10
+    ```
+
+2.  **Start the Bootstrap Node (Network Hub):** In your first terminal, run:
     ```bash
     ./reset_and_start.sh
     ```
-2. Resume Node script:
+    This script will clean existing data, generate new keys, and start the bootstrap node in the foreground. It will begin discovering facts and creating blocks immediately.
+
+3.  **Start the Peer Node:** After the bootstrap node has been running for ~2 minutes, open a **new terminal** and run:
     ```bash
-    ./resume_nodes.sh
+    ./start_peer_after_bootstrap.sh
     ```
+    This will start a peer node that connects to the bootstrap and syncs the blockchain.
 
-This script will automatically start 2 Axiom nodes with the correct ports and bootstrap configuration. You will see logs for each node in your terminal, confirming that the local mesh network is running.
-
-**Verifying the Connection**
-
-- Check the logs to confirm nodes are communicating and proposing blocks.
-- The script handles staking and peer connections automatically.
-- Cd into factReports and use ``` python fact_reporter.py ``` to get a deep look at the recorded facts to verify quality etc.
-- from the root AxiomEngine use the command ``` python maintain_feeds.py ``` to autofix broken or malformed rss feeds.
-
-You are now ready to develop and test on a live, local Axiom network! **(Any changes made to your local setup will remain in your local environment and will not affect the main repo unless you contribute)**
-
-### Interact with the Network via the Axiom Client
-With your P2P network running, you can now launch the user client to test the front-end and the HashNLP chat feature.
-
-#### Terminal 3: The Axiom User Client
-
-1.  **Launch the client:** In a new terminal, run the following command. The client is configured to connect to the API of the node running on port `8001` by default.
+4.  **Launch the Axiom Client:** With the network running, open a **third terminal** to launch the user client:
     ```bash
     python src/axiom_client/main.py
     ```
-2.  **Start asking questions.** Once the client connects, you will see a `You:` text prompt field. Just ask a question, and if related facts are in the network, you will see a response.
-    > **Hint:** You can use the `curl` commands in the next section to see what facts are in the ledger to help you form a good test question.
+    Once the client connects, you can start asking questions at the `You:` prompt.
 
-### Step 3: Verifying the API and Code Quality
+**Alternative Node Management Scripts:**
+- **Resume Nodes:** To restart nodes while keeping existing data, use `./resume_nodes.sh` and `./resume_peer.sh`.
+- **Fact Reporting:** To inspect recorded facts, `cd factReports` and run `python fact_reporter.py`.
+- **Feed Maintenance:** To fix RSS feeds, run `python maintain_feeds.py` from the project root.
+
+You are now ready to develop and test on a live, local Axiom network!
+
+#### Step 4: Verifying the API and Code Quality
 
 With your network running, you can use these tools to test functionality and check code quality.
 
-#### Verifying the API with `curl`
+**Verifying the API with `curl`**
 
-You can send requests directly to the API of any running Axiom Node. Remember to use the correct API port for the node you want to query (e.g., `8001` or `8002`).
+You can send requests directly to the API of any running Axiom Node (e.g., port `8001` or `8002`).
 
 *   **Test the Chat Interface:**
     ```bash
-    curl -X POST -H "Content-Type: application/json" -d '{"query": "what is happening with China?"}' http://127.0.0.1:8001/chat | jq
+    curl -X POST -H "Content-Type: application/json" \
+    -d '{"query": "what is happening with China?"}' \
+    http://127.0.0.1:8001/chat | jq
     ```
 
 *   **Check Node Status:**
@@ -188,10 +178,12 @@ You can send requests directly to the API of any running Axiom Node. Remember to
 
 *   **Get Full Details for Specific Facts:**
     ```bash
-    curl -X POST -H "Content-Type: application/json" -d '{"fact_ids":}' http://127.0.0.1:8001/get_facts_by_id
+    curl -X POST -H "Content-Type: application/json" \
+    -d '{"fact_ids": ["some-fact-id-1", "some-fact-id-2"]}' \
+    http://127.0.0.1:8001/get_facts_by_id
     ```
 
-#### Code Quality Checks
+**Code Quality Checks**
 
 Before committing code, run these checks to ensure it meets project standards.
 
@@ -220,30 +212,24 @@ The engine begins by asking, "What is important to learn?" It uses a **Discovery
 This is where **The Crucible**, Axiom's AI brain, takes over.
 
 - **It is NOT a generative LLM.** The Crucible uses powerful **Analytical AI models (spaCy and Hugging Face Transformers)** for precise Natural Language Processing. It cannot "hallucinate" or invent facts.
-
 - **It surgically extracts objective statements** while discarding opinions, speculation, and biased language using an advanced subjectivity filter.
-
 - **The Corroboration Rule:** A fact is **never** trusted on first sight. It is stored as `ingested`. Only when another, independent source makes the same claim does its status become `corroborated`.
-
 - **It detects contradictions with NLI.** If two sources make opposing claims, The Crucible uses a **Natural Language Inference (NLI)** model to confirm the contradiction, then flags both facts as `disputed`, removing them from the pool of trusted knowledge.
 
 ### Phase 3: Understanding (The Synthesizer)
 Axiom doesn't just collect facts; it understands their relationships.
 
 - **The Knowledge Graph:** After facts are created, **The Synthesizer** analyzes them. It identifies shared entities (people, places, organizations) and infers the nature of their relationship (e.g., Causation, Chronology).
-
 - **Relationship Linking:** This transforms the ledger from a simple list into a rich **Knowledge Graph**, allowing the network to understand context.
 
 ### Phase 4: Memory & Sharing
 - **The Immutable Ledger:** Every fact is cryptographically hashed and stored in a local SQLite ledger, which is then sealed into a blockchain.
-
 - **P2P Synchronization:** Nodes constantly "gossip" and share newly sealed blocks, allowing the entire network to converge on a shared, verified history.
 
 ### Phase 5: Inference (The HashNLP Engine)
 This is the new, high-speed conversational layer.
 
 - **Real-Time Vector Indexing:** As each fact is verified, it is instantly converted into a numerical representation (a vector) and stored in a fast, in-memory index.
-
 - **High-Speed Similarity Search:** When a user asks a question, their query is also converted into a vector. The engine then performs a sub-second search to find the fact vectors with the closest mathematical similarity, returning the most relevant information from the entire ledger instantly.
 
 ---
@@ -286,7 +272,7 @@ This project is ambitious, and we are just getting started. For a detailed, up-t
 
 ---
 
-## Current Status: Alpha Stage
+## Current Status: Genesis Stage
 
 **The Axiom Network is LIVE and fully functional.**
 
@@ -300,11 +286,12 @@ A functional **Axiom Client** (GUI and Terminal) now exists, demonstrating the c
 
 This is a ground-floor opportunity to shape a new digital commonwealth. We are actively seeking contributors.
 
-1.  **Read the [CONTRIBUTING.md](CONTRIBUTING.md)** for the full step-by-step guide to setting up your environment.
-2.  **Join the conversation** on our official [Discord server](Your Discord Invite Link) and our [Subreddit](Your Subreddit Link).
-3.  **Check out the open "Issues"** on the repository to see where you can help.
+1.  Read the **[CONTRIBUTING.md](CONTRIBUTING.md)** for the full step-by-step guide to setting up your environment.
+2.  Join the conversation on our official [Discord server](Your Discord Invite Link) and our [Subreddit](Your Subreddit Link).
+3.  Check out the open **"Issues"** on the repository to see where you can help.
+
+---
 
 ## License
 
 This project is licensed under the **Peer Production License (PPL)**. This legally ensures that Axiom remains a non-commercial public utility. See the `LICENSE` file for details.
-```

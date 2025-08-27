@@ -20,7 +20,7 @@ echo "--- Restarting the single node with its existing ledger and identity ---"
   export AXIOM_SHARED_KEYS=true && \
 
   # Start the node. It will automatically load the existing 'ledger.db'.
-  python3 -m axiom_server.node --p2p-port 5001 --api-port 8001 &
+  python3 -m axiom_server.node --host 0.0.0.0 --p2p-port 5001 --api-port 8001
 )
 sleep 5
 

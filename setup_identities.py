@@ -1,3 +1,5 @@
+"""Set up cryptographic identities for Axiom nodes."""
+
 # setup_identities.py
 import json
 
@@ -11,8 +13,8 @@ PUBLIC_EXPONENT = 65537
 NODE_IDS = [5001, 5002, 5004]
 
 
-def generate_key_pair():
-    """Generates a single RSA private/public key pair."""
+def generate_key_pair() -> tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
+    """Generate a single RSA private/public key pair."""
     private_key = rsa.generate_private_key(
         public_exponent=PUBLIC_EXPONENT,
         key_size=KEY_SIZE,
@@ -21,8 +23,8 @@ def generate_key_pair():
     return private_key, public_key
 
 
-def main():
-    """Generates and saves keys for all nodes and creates a validators.json file."""
+def main() -> None:
+    """Generate and save keys for all nodes and create a validators.json file."""
     print("--- Generating unique identities for each node ---")
     validators = []
 
@@ -56,7 +58,10 @@ def main():
         public_key_hex = public_key_pem.hex()
 
         validators.append(
-            {"public_key": public_key_hex, "region": "local-test"},
+            {
+                "public_key": public_key_hex,
+                "region": "local-test",
+            },
         )
         print(
             f"Generated key pair for node-{node_id}. Private key saved to {private_key_path}",

@@ -134,7 +134,12 @@ class VerificationWorker(QThread):
 
     finished = pyqtSignal(object)
 
-    def __init__(self, node_url: str, fact_hash: str, block_height: int):
+    def __init__(
+        self,
+        node_url: str,
+        fact_hash: str,
+        block_height: int,
+    ) -> None:
         """Initialize the verification worker."""
         super().__init__()
         self.node_url = node_url
@@ -147,8 +152,8 @@ class VerificationWorker(QThread):
             response = requests.get(
                 f"{self.node_url}/get_merkle_proof",
                 params={
-                    "fact_hash": self.fact_hash,
-                    "block_height": self.block_height,
+                    "fact_hash": str(self.fact_hash),
+                    "block_height": str(self.block_height),
                 },
                 timeout=10,
             )
@@ -326,7 +331,9 @@ class AxiomClientApp(QWidget):
         think_row.addWidget(QLabel("Mode:"))
         self.think_button = QPushButton("⚡ Fast (NLI)")
         self.think_button.setCheckable(True)
-        self.think_button.setChecked(False)  # Default to NLI mode to avoid LLM issues
+        self.think_button.setChecked(
+            False,
+        )  # Default to NLI mode to avoid LLM issues
         self.think_button.setFont(QFont("Arial", 12))
         self.think_button.clicked.connect(self.toggle_think_mode)
         think_row.addWidget(self.think_button)
@@ -449,10 +456,16 @@ class AxiomClientApp(QWidget):
             )
         self.display_results(response)
 
-        if response.get("results"):
+        if (
+            isinstance(response, dict)
+            and "results" in response
+            and response.get("results")
+            and "error" not in response  # Ensure it's not an ErrorResponse
+        ):
             # Populate table with all results
-            self.results_table.setRowCount(len(response["results"]))
-            for r, item in enumerate(response["results"]):
+            results = response["results"]
+            self.results_table.setRowCount(len(results))
+            for r, item in enumerate(results):
                 content = item.get("content", "")
                 sources = ", ".join(item.get("sources", []))
                 similarity = f"{item.get('similarity', 0) * 100:.1f}%"
@@ -474,16 +487,16 @@ class AxiomClientApp(QWidget):
                     QTableWidgetItem(block_height),
                 )
 
-            top_result = response["results"][0]
-            similarity: float = top_result.get("similarity", 0.0)
-            fact_hash: str | None = top_result.get("fact_hash")
-            block_height: int | None = top_result.get("block_height")
+            top_result = results[0]
+            top_similarity: float = top_result.get("similarity", 0.0)
+            top_fact_hash: str | None = top_result.get("fact_hash")
+            top_block_height: int | None = top_result.get("block_height")
 
             if (
-                similarity > 0.85
+                top_similarity > 0.85
                 and not top_result.get("disputed")
-                and fact_hash
-                and block_height is not None
+                and top_fact_hash
+                and top_block_height is not None
             ):
                 node_url = self.connected_node_url or random.choice(  # noqa: S311
                     BOOTSTRAP_PEERS,
@@ -493,8 +506,8 @@ class AxiomClientApp(QWidget):
                 )
                 self.verification_worker = VerificationWorker(
                     node_url,
-                    fact_hash,
-                    block_height,
+                    top_fact_hash,
+                    top_block_height,
                 )
                 self.verification_worker.finished.connect(
                     self.handle_verification_result,
@@ -575,7 +588,8 @@ class AxiomClientApp(QWidget):
                     html += f"<p style='font-size: 12px; border-left: 3px solid #ccc; padding-left: 10px; margin: 5px 0;'><i>&ldquo;{content}&rdquo;</i></p>"
                     html += f"<p style='font-size: 10px; color: #555; margin: 5px 0 0 0;'><strong>Source(s):</strong> {sources}</p>"
                     html += "</div>"
-        elif synthesis_status := response.get("synthesis_status"):
+        elif "synthesis_status" in response:
+            synthesis_status = response.get("synthesis_status")
             if synthesis_status == "disabled":
                 # Fast mode: show only facts without LLM synthesis
                 html = "<h2>Fast Mode Results</h2>"
@@ -610,8 +624,6 @@ class AxiomClientApp(QWidget):
                 html += (
                     f"<p>{response.get('message', 'No message available')}</p>"
                 )
-        elif "results" in response and not response["results"]:
-            html = "<h2>No Relevant Facts Found</h2><p>I searched the ledger of proven facts, but I couldn't find a direct answer to your question.</p>"
 
         self.results_output.setHtml(html)
 
@@ -794,8 +806,8 @@ def cli_run() -> int:
     app = QApplication(sys.argv)
     ex = AxiomClientApp()
     ex.show()
-    sys.exit(app.exec())
+    return app.exec()
 
 
 if __name__ == "__main__":
-    cli_run()
+    sys.exit(cli_run())

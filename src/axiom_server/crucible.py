@@ -198,8 +198,10 @@ SENTENCE_CHECKS: Pipeline[Span] = Pipeline(
             "sentence must contain a verb",
         ),
         Check(
-            lambda sent: len(sent.ents) > 0
-            or any(t.pos_ in {"PROPN", "NOUN"} for t in sent),
+            lambda sent: (
+                len(sent.ents) > 0
+                or any(t.pos_ in {"PROPN", "NOUN"} for t in sent)
+            ),
             "sentence must contain named entities or salient nouns",
         ),
         Check(
@@ -282,7 +284,8 @@ def extract_facts_from_text(text_content: str, source_url: str) -> list[Fact]:
             checked_sentence := SENTENCE_CHECKS.run(clean_sentence_span)
         ) is not None:
             fact = Fact(
-                content=checked_sentence.text.strip(), source_url=source_url,
+                content=checked_sentence.text.strip(),
+                source_url=source_url,
             )
 
             semantics = Semantics(
@@ -365,7 +368,8 @@ def _infer_relationship(
     fact1: Fact,
     fact2: Fact,
 ) -> tuple[RelationshipType, float, str] | None:
-    """Analyzes two facts and infers their relationship, confidence, and reason.
+    """Analyze two facts and infer their relationship, confidence, and reason.
+
     Uses a powerful NLI model for logical inference.
     """
     try:
@@ -460,7 +464,7 @@ class CrucibleFactAdder:
     fact_indexer: FactIndexer
 
     def add(self, fact: Fact) -> None:
-        """Adds and processes a fact against the database and updates the search index."""
+        """Add and process a fact against the database and update the search index."""
         # Use a sub-pipeline for post-ingestion processing
         processing_pipeline = Pipeline(
             "Crucible Fact Processing",
@@ -484,7 +488,7 @@ class CrucibleFactAdder:
         self.session.commit()
 
     def _process_relationships(self, new_fact: Fact) -> Fact | None:
-        """Finds and processes all interactions for a new fact."""
+        """Find and process all interactions for a new fact."""
         new_doc = new_fact.get_semantics().get("doc")
         if not new_doc:
             return new_fact

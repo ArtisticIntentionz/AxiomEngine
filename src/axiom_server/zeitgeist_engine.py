@@ -31,16 +31,14 @@ logger.propagate = False
 
 def normalize_and_count_topics(
     entities: list[str],
-    similarity_threshold=0.90,
-) -> Counter:
-    """Normalizes a list of entities by grouping semantically similar ones,
-    then returns a Counter with the aggregated counts.
-    (This function is a dependency for the main logic and remains unchanged from Upgrade 2)
-    """
+    similarity_threshold: float = 0.90,
+) -> Counter[str]:
+    """Normalize a list of entities by grouping semantically similar ones, then return a Counter with the aggregated counts."""
     if not entities:
         return Counter()
 
-    unique_entities = sorted(list(set(entities)))
+    # The corrected line:
+    unique_entities = sorted(set(entities))
     entity_docs = {name: NLP_MODEL(name) for name in unique_entities}
 
     merged_topics = {}
@@ -65,7 +63,7 @@ def normalize_and_count_topics(
                 merged_topics[canonical_name].append(name2)
                 topic_map[name2] = canonical_name
 
-    final_counts = Counter()
+    final_counts: Counter[str] = Counter()
     for entity in entities:
         canonical_form = topic_map.get(entity, entity)
         final_counts[canonical_form] += 1
@@ -73,10 +71,8 @@ def normalize_and_count_topics(
     return final_counts
 
 
-def get_trending_topics(top_n: int = 5) -> dict:
-    """Fetch recent news headlines, analyze them for context, and return a dictionary
-    of the top trending topics with their associated terms.
-    """
+def get_trending_topics(top_n: int = 5) -> dict[str, Any]:
+    """Fetch recent news headlines, analyze them for context, and return a dictionary of the top trending topics with their associated terms."""
     logger.info("Discovering trending topics with context...")
     all_headlines = discovery_rss.get_all_headlines_from_feeds()
 
@@ -87,7 +83,9 @@ def get_trending_topics(top_n: int = 5) -> dict:
     # --- NEW DATA STRUCTURE: To hold topics and their context ---
     # Example: topic_context['ukraine']['verbs'].append('attack')
     #          topic_context['ukraine']['entities'].append('russia')
-    topic_context = defaultdict(lambda: {"verbs": [], "entities": []})
+    topic_context: dict[str, Any] = defaultdict(
+        lambda: {"verbs": [], "entities": []},
+    )
     all_primary_entities = []
 
     for title in all_headlines:
