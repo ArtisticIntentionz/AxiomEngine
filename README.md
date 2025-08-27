@@ -81,7 +81,7 @@ Before you begin, ensure your system has no memory of previous installation atte
 2.  **Close and Re-open Your Terminal:** Your new terminal prompt should now be clean, without a `(base)` prefix.
 3.  **(Optional but Recommended) Purge Old Environments:** If you have any old Axiom environments, destroy them to avoid conflicts.
     ```bash
-    conda env remove -n Axiom -y
+    conda env remove -n Axiom10 -y
     # Add any other old environment names you might have used
     ```
 
@@ -96,10 +96,10 @@ Before you begin, ensure your system has no memory of previous installation atte
 
 2.  **Create and Activate the Conda Environment:**
     ```bash
-    conda create -n Axiom python=3.11 -y
-    conda activate Axiom
+    conda create -n Axiom10 python=3.11 -y
+    conda activate Axiom10
     ```
-    Your terminal prompt will now correctly show `(AxiomFork)`.
+    Your terminal prompt will now correctly show `(Axiom10)`.
 
 **Phase 3: The "Gold Standard" Installation**
 
@@ -107,23 +107,23 @@ This hybrid approach is proven to work reliably. We use Conda for complex, pre-c
 
 1. **Install Heavy Binaries with Conda:**
 
-```
+```bash
 conda install -c conda-forge numpy scipy "spacy>=3.7.2,<3.8.0" cryptography beautifulsoup4 -y
 ```
 3. **Install Pure-Python Libraries with Pip:**
 
-```
+```bash
 pip install Flask gunicorn requests sqlalchemy pydantic feedparser Flask-Cors ruff mypy pytest pre-commit attrs types-requests sec_edgar_api
 ```
 5. **Install the AI Model: We use a large, high-quality model for fact extraction.**
 
-```
+```bash
 python -m spacy download en_core_web_lg
 ```
 
 6. **Install the Axiom Project Itself:** This final step makes the axiom_server module available and installs it in an "editable" mode (-e), so your code changes are immediately reflected.
 
-```
+```bash
    pip install -e ."[test]"
 ```
 
@@ -131,44 +131,69 @@ python -m spacy download en_core_web_lg
 The P2P engine requires SSL certificates for secure, encrypted communication between nodes.
 
 **Create the SSL Directory: From the project root (AxiomEngine/):**
-```
+```bash
 mkdir -p ssl
 ```
 
 **Generate the Certificates:**
-```
+```bash
 openssl req -new -x509 -days 3650 -nodes -out ssl/node.crt -keyout ssl/node.key
 ```
 (You will be prompted for information. You can press Enter for every question to accept the defaults.)
 
 **Step 3: Launch a Local P2P Network**
 
-Your environment is now complete. To simplify local development, you can launch a multi-node Axiom test network using the provided script.
+Your environment is now complete. To simplify local development, you can launch a multi-node Axiom test network using the provided scripts.
 
 **Instructions:**
 
 1. From your project root directory, ensure your Conda environment is activated:
     ```bash
-    conda activate Axiom
+    conda activate Axiom10
     ```
 
-2. Run the node launch script:
+2. **Start the Bootstrap Node (Network Hub):**
     ```bash
     ./reset_and_start.sh
     ```
-2. Resume Node script:
+    This script will:
+    - Clean up any existing node data
+    - Generate fresh identity keys for both bootstrap and peer nodes
+    - Start the bootstrap node in the foreground (you'll see all logs)
+    - The bootstrap node will begin discovering facts and creating blocks immediately
+
+3. **Start the Peer Node (in a new terminal):**
+    After the bootstrap node has been running for about 2 minutes and created its first block, open a new terminal and run:
+    ```bash
+    ./start_peer_after_bootstrap.sh
+    ```
+    This script will:
+    - Check if the bootstrap node is running
+    - Start a peer node that connects to the bootstrap
+    - The peer node will automatically sync the blockchain from the bootstrap
+
+**Alternative Node Management Scripts:**
+
+- **Resume Bootstrap Node:** If you need to restart the bootstrap node while keeping existing data:
     ```bash
     ./resume_nodes.sh
     ```
 
-This script will automatically start 2 Axiom nodes with the correct ports and bootstrap configuration. You will see logs for each node in your terminal, confirming that the local mesh network is running.
+- **Resume Peer Node:** If you need to restart the peer node while keeping existing data:
+    ```bash
+    ./resume_peer.sh
+    ```
 
 **Verifying the Connection**
 
 - Check the logs to confirm nodes are communicating and proposing blocks.
-- The script handles staking and peer connections automatically.
-- Cd into factReports and use ``` python fact_reporter.py ``` to get a deep look at the recorded facts to verify quality etc.
-- from the root AxiomEngine use the command ``` python maintain_feeds.py ``` to autofix broken or malformed rss feeds.
+- The scripts handle staking and peer connections automatically.
+- Cd into factReports and use ```bash
+python fact_reporter.py
+``` to get a deep look at the recorded facts to verify quality etc.
+- from the root AxiomEngine use the command ```bash
+python maintain_feeds.py
+``` to autofix broken or malformed rss feeds.
 
 You are now ready to develop and test on a live, local Axiom network! **(Any changes made to your local setup will remain in your local environment and will not affect the main repo unless you contribute)**
 

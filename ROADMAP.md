@@ -17,11 +17,18 @@
 **Goal:** To harden the V1 prototype into a truly resilient, scalable, and intelligent network that can survive in the real world. **The core P2P upgrade has completed a major part of this phase.**
 
 ### Sub-System: The Network (P2P & Governance)
--   **[IN PROGRESS] V2.0 Robust P2P Mesh Network:** The legacy client-server sync protocol has been **completely replaced** with a true, decentralized P2P mesh network.
+-   **[✓] V2.0 Robust P2P Mesh Network:** The legacy client-server sync protocol has been **completely replaced** with a true, decentralized P2P mesh network.
     -   **Action Complete:** Integrated a robust, third-party P2P library (`DigammaF/p2p-tools`).
     -   **Action Complete:** Replaced the passive "Listener Node" with a model where every node is a full peer.
     -   **Action Complete:** Implemented a **gossip protocol** for nodes to proactively broadcast new block headers.
--   **[IN PROGRESS] V2.0 Merkle Tree Synchronization:** The blockchain implementation now includes a **Merkle Root** in every block. The P2P layer broadcasts headers containing this root, allowing for efficient and secure verification of data integrity.
+    -   **Action Complete:** **Bootstrap Node Architecture:** Implemented a trusted bootstrap node system that acts as the network hub for peer discovery and initial synchronization.
+    -   **Action Complete:** **Block Synchronization:** Peer nodes can now automatically download and sync the complete blockchain from bootstrap nodes, handling genesis blocks and subsequent blocks with proper hash validation.
+    -   **Action Complete:** **Node Management Scripts:** Created comprehensive scripts for node lifecycle management:
+        - `reset_and_start.sh` - Fresh bootstrap node setup
+        - `resume_nodes.sh` - Resume bootstrap node with existing data
+        - `resume_peer.sh` - Resume peer node with existing data
+        - `start_peer_after_bootstrap.sh` - Start new peer node after bootstrap
+-   **[✓] V2.0 Merkle Tree Synchronization:** The blockchain implementation now includes a **Merkle Root** in every block. The P2P layer broadcasts headers containing this root, allowing for efficient and secure verification of data integrity.
 -   **[IN PROGRESS] V2.1 DAO Implementation:**
     -   **Status:** The on-chain data structures (`Proposal`, `Votes`) and API endpoints exist.
     -   **Next Step:** Build out the off-chain infrastructure (e.g., a dedicated web portal or Discord bot) for submitting and voting on Axiom Improvement Proposals (AIPs).
