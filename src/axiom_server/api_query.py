@@ -24,7 +24,7 @@ def semantic_search_ledger(
     search_term: str,
     min_status: str = "corroborated",
     top_n: int = 10,
-    similarity_threshold: float = 0.65,
+    similarity_threshold: float = 0.45,
 ) -> list[Fact]:
     """Perform a scalable, hybrid semantic search on the database.
 

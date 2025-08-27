@@ -326,7 +326,9 @@ class AxiomClientApp(QWidget):
         think_row.addWidget(QLabel("Mode:"))
         self.think_button = QPushButton("⚡ Fast (NLI)")
         self.think_button.setCheckable(True)
-        self.think_button.setChecked(False)  # Default to NLI mode to avoid LLM issues
+        self.think_button.setChecked(
+            False,
+        )  # Default to NLI mode to avoid LLM issues
         self.think_button.setFont(QFont("Arial", 12))
         self.think_button.clicked.connect(self.toggle_think_mode)
         think_row.addWidget(self.think_button)
