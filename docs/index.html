@@ -89,6 +89,11 @@
             color: var(--primary-color);
             border: 2px solid var(--primary-color);
         }
+        
+        .button.secondary:hover {
+            background-color: var(--primary-color);
+            color: var(--background-color);
+        }
 
         /* --- NEW STYLES FOR THE WEB CLIENT --- */
         #axiom-client-container {
@@ -177,7 +182,9 @@
                 <h2>Try Axiom Live</h2>
                 <div id="axiom-client-container">
                     <input type="text" id="query-input" placeholder="Ask a question..." autocomplete="off">
-                    <button id="search-button" class="button">Search the Ledger</button>
+                    <div style="margin-bottom: 1rem;">
+                        <button id="search-button" class="button" style="width: 100%;">Search the Ledger</button>
+                    </div>
                     <div id="results-output">
                         <!-- Results will be displayed here -->
                         <p>Your results will appear here. The client is currently attempting to connect to a live node.</p>
@@ -268,13 +275,15 @@
                 }
             };
 
+
+
             const performSearch = async () => {
                 const query = queryInput.value.trim();
                 if (!query) return;
 
                 searchButton.disabled = true;
                 searchButton.textContent = 'Searching...';
-                resultsOutput.innerHTML = '<p>Querying the network...</p>';
+                resultsOutput.innerHTML = `<p>Querying the network (fast mode - NLI only)...</p>`;
 
                 try {
                     const response = await fetch(`${AXIOM_NODE_URL}/chat`, {
@@ -283,7 +292,10 @@
                             'Content-Type': 'application/json',
                             'ngrok-skip-browser-warning': 'true'
                         },
-                        body: JSON.stringify({ query: query })
+                        body: JSON.stringify({ 
+                            query: query,
+                            use_llm: false
+                        })
                     });
 
                     if (!response.ok) {
@@ -291,7 +303,7 @@
                     }
 
                     const data = await response.json();
-                    displayResults(data.results);
+                    displayResults(data);
 
                 } catch (error) {
                     resultsOutput.innerHTML = `<h4>Error</h4><p>Could not perform search. Please ensure the Axiom node is running and accessible.</p><p><em>${error.message}</em></p>`;
@@ -302,71 +314,51 @@
                 }
             };
 
-            // --- CAREFULLY ENHANCED displayResults FUNCTION ---
-            const displayResults = (results) => {
-                if (!results || results.length === 0) {
-                    resultsOutput.innerHTML = '<h4>No Relevant Facts Found</h4><p>The network searched the ledger but could not find a fact that semantically matched your question.</p>';
-                    return;
+            // --- SIMPLIFIED displayResults FUNCTION FOR NLI ONLY ---
+            const displayResults = (data) => {
+                // Handle NLI-only mode
+                let resultsHtml = `<h4>Search Results</h4>`;
+                resultsHtml += `<p style="font-size: 0.9rem; color: #aaa; margin-bottom: 1rem;">`;
+                resultsHtml += `⚡ <strong>Fast Mode</strong> - Showing relevant facts from the Axiom ledger using semantic search.</p>`;
+                
+                if (data.results && data.results.length > 0) {
+                    resultsHtml += `<h4>Relevant Facts from Axiom Ledger</h4>`;
+                    
+                    const topResults = data.results.slice(0, 5);
+                    resultsHtml += topResults.map((result, index) => {
+                        const content = result.content || '[Content not available]';
+                        const similarity = result.similarity * 100;
+                        const sourceDomain = (result.sources && result.sources.length > 0) ? result.sources[0] : 'Unknown Source';
+                        const sanitizedContent = content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                        const isDisputed = result.disputed || false;
+                        
+                        const separator = index > 0 ? '<hr style="border-color: var(--secondary-color); margin: 1em 0;">' : '';
+                        const linkUrl = result.source_url ? result.source_url : `https://${sourceDomain}`;
+                        const disputeStyle = isDisputed ? 'border-left-color: #ff4444;' : 'border-left-color: #4CAF50;';
+                        const disputeText = isDisputed ? ' (DISPUTED)' : '';
+                        
+                        let sourceHtml;
+                        if (sourceDomain !== 'Unknown Source') {
+                            sourceHtml = `<a href="${linkUrl}" target="_blank" rel="noopener noreferrer" style="color: var(--primary-color); text-decoration: underline;">${sourceDomain}</a>`;
+                        } else {
+                            sourceHtml = sourceDomain;
+                        }
+                        
+                        return `
+                            ${separator}
+                            <div style="background-color: #2a2a2a; padding: 1rem; border-radius: 5px; margin-bottom: 1rem;">
+                                <p style="font-size: 0.9rem; color: #ccc; margin: 0 0 0.5rem 0;"><strong>Relevance:</strong> ${similarity.toFixed(1)}%${disputeText}</p>
+                                <blockquote style="margin: 0; padding-left: 1rem; border-left: 3px solid; font-style: italic; font-size: 0.9rem; ${disputeStyle}">
+                                    "${sanitizedContent}"
+                                </blockquote>
+                                <p style="font-size: 0.8rem; color: #888; margin: 0.5rem 0 0 0;"><strong>Source:</strong> ${sourceHtml}</p>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    resultsHtml += `<p>No relevant facts found in the ledger.</p>`;
                 }
-
-                results.sort((a, b) => b.similarity - a.similarity);
-
-                const topResults = results.slice(0, 3);
-
-                let resultsHtml = topResults.map((result, index) => {
-                    const content = result.content || '[Content not available]';
-                    const similarity = result.similarity * 100;
-
-                    let title = '';
-                    let explanation = '';
-
-                    if (similarity > 85) {
-                        title = `Direct Answer Found (${similarity.toFixed(1)}% Match)`;
-                        explanation = `The following fact is a high-confidence semantic match to your question:`;
-                    } else if (similarity > 65) {
-                        title = `Related Fact Found (${similarity.toFixed(1)}% Match)`;
-                        explanation = `While not a direct answer, the following fact from the ledger is highly related to your query:`;
-                    } else {
-                        title = `Possible Hint Found (${similarity.toFixed(1)}% Match)`;
-                        explanation = `I'm not very sure, but this is the most related information I could find in the ledger:`;
-                    }
-
-                    const sourceDomain = (result.sources && result.sources.length > 0) ? result.sources[0] : 'Unknown Source';
-
-                    const sanitizedContent = content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-                    const separator = index > 0 ? '<hr style="border-color: var(--secondary-color); margin: 2em 0;">' : '';
-
-                    // *** THE CAREFUL CHANGE IS HERE ***
-                    // We now check for the full article URL. If it exists, we use it.
-                    // If not, we safely fall back to linking the domain homepage.
-                    const linkUrl = result.source_url ? result.source_url : `https://${sourceDomain}`;
-
-                    let sourceHtml;
-                    if (sourceDomain !== 'Unknown Source') {
-                        // The link now uses the specific article URL if available.
-                        // The VISIBLE TEXT remains the clean domain name.
-                        sourceHtml = `<a
-                            href="${linkUrl}"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style="color: var(--primary-color); text-decoration: underline;"
-                        >${sourceDomain}</a>`;
-                    } else {
-                        sourceHtml = sourceDomain;
-                    }
-
-                    return `
-                        ${separator}
-                        <h4>${title}</h4>
-                        <p><em>${explanation}</em></p>
-                        <blockquote style="margin-left: 0; padding-left: 1em; border-left: 3px solid var(--secondary-color); font-style: italic;">
-                           "${sanitizedContent}"
-                        </blockquote>
-                        <p style="font-size: 0.9em; color: #aaa;"><strong>Source:</strong> ${sourceHtml}</p>
-                    `;
-                }).join('');
-
+                
                 resultsOutput.innerHTML = resultsHtml;
             };
 
