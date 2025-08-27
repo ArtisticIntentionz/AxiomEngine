@@ -6,7 +6,6 @@ from __future__ import annotations
 # This program is licensed under the Peer Production License (PPL).
 # See the LICENSE file for full details.
 import argparse
-import hashlib
 import json
 import logging
 import random
@@ -224,7 +223,7 @@ class AxiomNode(P2PBaseNode):
         # Use the node's port number to determine proposer selection
         # Bootstrap node (port 5001) gets even slots, peer node (port 5002) gets odd slots
         my_pubkey = self.serialized_public_key.hex()
-        
+
         # Determine which node should be the proposer based on slot number
         if slot % 2 == 0:
             # Even slots: bootstrap node (port 5001) should propose
@@ -248,11 +247,11 @@ class AxiomNode(P2PBaseNode):
                     f"Slot {slot}: Odd slot, but we're bootstrap node (port {self.port}), peer should propose",
                 )
                 return None
-        
+
         background_thread_logger.info(
             f"Slot {slot}: We are the proposer! (slot % 2 = {slot % 2}, port = {self.port})",
         )
-        
+
         return selected_proposer
 
     def _handle_block_proposal(self, proposal_data: dict) -> None:
@@ -569,23 +568,29 @@ class AxiomNode(P2PBaseNode):
                     # Add a small random delay to reduce race conditions between nodes
                     delay = random.uniform(0.1, 0.5)
                     time.sleep(delay)
-                    
+
                     # Check if we've already received a block for this slot before proposing
                     with db_lock, SessionMaker() as session:
                         latest_block = get_latest_block(session)
                         if latest_block:
                             # Check if the latest block was created in the current slot
-                            block_slot = int(latest_block.timestamp / SECONDS_PER_SLOT)
+                            block_slot = int(
+                                latest_block.timestamp / SECONDS_PER_SLOT,
+                            )
                             if block_slot == current_slot:
                                 background_thread_logger.info(
                                     f"Block already exists for slot {current_slot}, skipping proposal.",
                                 )
                                 # Continue to next iteration
-                                next_slot_time = (current_slot + 1) * SECONDS_PER_SLOT
-                                sleep_duration = max(0, next_slot_time - time.time())
+                                next_slot_time = (
+                                    current_slot + 1
+                                ) * SECONDS_PER_SLOT
+                                sleep_duration = max(
+                                    0, next_slot_time - time.time(),
+                                )
                                 time.sleep(sleep_duration)
                                 continue
-                    
+
                     background_thread_logger.info(
                         f"It is our turn to propose a block for slot {current_slot}.",
                     )
