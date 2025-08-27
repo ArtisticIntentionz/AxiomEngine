@@ -148,12 +148,7 @@ Your environment is now complete. To simplify local development, you can launch 
 
 - Check the logs to confirm nodes are communicating and proposing blocks.
 - The scripts handle staking and peer connections automatically.
-- Cd into factReports and use ```bash
-python fact_reporter.py
-``` to get a deep look at the recorded facts to verify quality etc.
-- from the root AxiomEngine use the command ```bash
-python maintain_feeds.py
-``` to autofix broken or malformed rss feeds.
+
 
 You are now ready to develop and test on a live, local Axiom network! **(Any changes made to your local setup will remain in your local environment and will not affect the main repo unless you contribute)**
 
