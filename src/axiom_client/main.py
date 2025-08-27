@@ -92,7 +92,7 @@ class NetworkWorker(QThread):
     finished = pyqtSignal(object)
     progress = pyqtSignal(str)
 
-    def __init__(self, query_term: str, use_llm: bool = True) -> None:
+    def __init__(self, query_term: str, use_llm: bool = False) -> None:
         """Initialize the network worker."""
         super().__init__()
         self.query_term = query_term
@@ -324,9 +324,9 @@ class AxiomClientApp(QWidget):
         # Think toggle row
         think_row = QHBoxLayout()
         think_row.addWidget(QLabel("Mode:"))
-        self.think_button = QPushButton("🤔 Think (LLM)")
+        self.think_button = QPushButton("⚡ Fast (NLI)")
         self.think_button.setCheckable(True)
-        self.think_button.setChecked(True)  # Default to LLM mode
+        self.think_button.setChecked(False)  # Default to NLI mode to avoid LLM issues
         self.think_button.setFont(QFont("Arial", 12))
         self.think_button.clicked.connect(self.toggle_think_mode)
         think_row.addWidget(self.think_button)

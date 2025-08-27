@@ -899,8 +899,8 @@ def handle_chat_query() -> Response | tuple[Response, int]:
     user_query = data["query"]
     use_llm = data.get(
         "use_llm",
-        True,
-    )  # Default to True for backward compatibility
+        False,
+    )  # Default to False to avoid LLM issues
 
     # Step 1: Find relevant facts from the ledger
     with fact_indexer_lock:
@@ -957,6 +957,15 @@ def handle_chat_query() -> Response | tuple[Response, int]:
             },
         )
 
+
+@app.route("/debug/propose_block", methods=["POST"])
+def debug_propose_block():
+    """Debug endpoint to manually trigger block proposal."""
+    try:
+        node_instance._propose_block()
+        return jsonify({"status": "success", "message": "Block proposal triggered"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route("/dao/dispute_fact", methods=["POST"])
 def handle_dispute_fact():

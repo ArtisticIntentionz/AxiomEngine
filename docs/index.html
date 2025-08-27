@@ -182,9 +182,8 @@
                 <h2>Try Axiom Live</h2>
                 <div id="axiom-client-container">
                     <input type="text" id="query-input" placeholder="Ask a question..." autocomplete="off">
-                    <div style="display: flex; gap: 10px; margin-bottom: 1rem;">
-                        <button id="search-button" class="button" style="flex: 1;">Search the Ledger</button>
-                        <button id="think-toggle" class="button secondary" style="flex: 0 0 auto;">🤔 Think (LLM)</button>
+                    <div style="margin-bottom: 1rem;">
+                        <button id="search-button" class="button" style="width: 100%;">Search the Ledger</button>
                     </div>
                     <div id="results-output">
                         <!-- Results will be displayed here -->
@@ -252,13 +251,9 @@
             // --- UI ELEMENTS ---
             const queryInput = document.getElementById('query-input');
             const searchButton = document.getElementById('search-button');
-            const thinkToggle = document.getElementById('think-toggle');
             const resultsOutput = document.getElementById('results-output');
             const statusLight = document.getElementById('status-light');
             const statusText = document.getElementById('status-text');
-
-            // --- STATE ---
-            let useLLM = true; // Default to LLM mode
 
             // --- CORE FUNCTIONS ---
 
@@ -280,18 +275,7 @@
                 }
             };
 
-            const toggleThinkMode = () => {
-                useLLM = !useLLM;
-                if (useLLM) {
-                    thinkToggle.textContent = '🤔 Think (LLM)';
-                    thinkToggle.style.backgroundColor = 'var(--primary-color)';
-                    thinkToggle.style.color = 'var(--background-color)';
-                } else {
-                    thinkToggle.textContent = '⚡ Fast (NLI)';
-                    thinkToggle.style.backgroundColor = '#FF9800';
-                    thinkToggle.style.color = 'white';
-                }
-            };
+
 
             const performSearch = async () => {
                 const query = queryInput.value.trim();
@@ -299,8 +283,7 @@
 
                 searchButton.disabled = true;
                 searchButton.textContent = 'Searching...';
-                const modeText = useLLM ? 'with LLM synthesis' : 'fast mode (NLI only)';
-                resultsOutput.innerHTML = `<p>Querying the network (${modeText})...</p>`;
+                resultsOutput.innerHTML = `<p>Querying the network (fast mode - NLI only)...</p>`;
 
                 try {
                     const response = await fetch(`${AXIOM_NODE_URL}/chat`, {
@@ -311,7 +294,7 @@
                         },
                         body: JSON.stringify({ 
                             query: query,
-                            use_llm: useLLM
+                            use_llm: false
                         })
                     });
 
@@ -331,177 +314,56 @@
                 }
             };
 
-            // --- CAREFULLY ENHANCED displayResults FUNCTION ---
+            // --- SIMPLIFIED displayResults FUNCTION FOR NLI ONLY ---
             const displayResults = (data) => {
-                // Check if we have a synthesized answer from the secure RAG system
-                if (data.answer) {
-                    let resultsHtml = `<h4>Direct Answer</h4>`;
-                    resultsHtml += `<div style="background-color: #1a1a1a; padding: 1.5rem; border-radius: 8px; border-left: 4px solid var(--primary-color); margin-bottom: 1.5rem;">`;
-                    resultsHtml += `<p style="font-size: 1.1rem; line-height: 1.6; margin: 0;">${data.answer}</p>`;
-                    resultsHtml += `</div>`;
+                // Handle NLI-only mode
+                let resultsHtml = `<h4>Search Results</h4>`;
+                resultsHtml += `<p style="font-size: 0.9rem; color: #aaa; margin-bottom: 1rem;">`;
+                resultsHtml += `⚡ <strong>Fast Mode</strong> - Showing relevant facts from the Axiom ledger using semantic search.</p>`;
+                
+                if (data.results && data.results.length > 0) {
+                    resultsHtml += `<h4>Relevant Facts from Axiom Ledger</h4>`;
                     
-                    // Add synthesis status if available
-                    if (data.synthesis_status) {
-                        const statusColor = data.synthesis_status === 'success' ? 'var(--success-color)' : 'var(--error-color)';
-                        resultsHtml += `<p style="font-size: 0.8rem; color: ${statusColor}; margin-bottom: 1rem;">`;
-                        resultsHtml += `<strong>Synthesis Status:</strong> ${data.synthesis_status} - ${data.message || ''}`;
-                        resultsHtml += `</p>`;
-                    }
-                    
-                    // Show supporting facts if available
-                    if (data.results && data.results.length > 0) {
-                        resultsHtml += `<h4>Supporting Facts from Axiom Ledger</h4>`;
-                        resultsHtml += `<p style="font-size: 0.9rem; color: #aaa; margin-bottom: 1rem;">`;
-                        resultsHtml += `The answer above is based on these verified facts from the Axiom network:`;
-                        resultsHtml += `</p>`;
+                    const topResults = data.results.slice(0, 5);
+                    resultsHtml += topResults.map((result, index) => {
+                        const content = result.content || '[Content not available]';
+                        const similarity = result.similarity * 100;
+                        const sourceDomain = (result.sources && result.sources.length > 0) ? result.sources[0] : 'Unknown Source';
+                        const sanitizedContent = content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                        const isDisputed = result.disputed || false;
                         
-                        const topResults = data.results.slice(0, 3);
-                        resultsHtml += topResults.map((result, index) => {
-                            const content = result.content || '[Content not available]';
-                            const similarity = result.similarity * 100;
-                            const sourceDomain = (result.sources && result.sources.length > 0) ? result.sources[0] : 'Unknown Source';
-                            const sanitizedContent = content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                            
-                            const separator = index > 0 ? '<hr style="border-color: var(--secondary-color); margin: 1em 0;">' : '';
-                            const linkUrl = result.source_url ? result.source_url : `https://${sourceDomain}`;
-                            
-                            let sourceHtml;
-                            if (sourceDomain !== 'Unknown Source') {
-                                sourceHtml = `<a href="${linkUrl}" target="_blank" rel="noopener noreferrer" style="color: var(--primary-color); text-decoration: underline;">${sourceDomain}</a>`;
-                            } else {
-                                sourceHtml = sourceDomain;
-                            }
-                            
-                            return `
-                                ${separator}
-                                <div style="background-color: #2a2a2a; padding: 1rem; border-radius: 5px; margin-bottom: 1rem;">
-                                    <p style="font-size: 0.9rem; color: #ccc; margin: 0 0 0.5rem 0;"><strong>Relevance:</strong> ${similarity.toFixed(1)}%</p>
-                                    <blockquote style="margin: 0; padding-left: 1rem; border-left: 3px solid var(--secondary-color); font-style: italic; font-size: 0.9rem;">
-                                        "${sanitizedContent}"
-                                    </blockquote>
-                                    <p style="font-size: 0.8rem; color: #888; margin: 0.5rem 0 0 0;"><strong>Source:</strong> ${sourceHtml}</p>
-                                </div>
-                            `;
-                        }).join('');
-                    }
-                    
-                    resultsOutput.innerHTML = resultsHtml;
-                    return;
+                        const separator = index > 0 ? '<hr style="border-color: var(--secondary-color); margin: 1em 0;">' : '';
+                        const linkUrl = result.source_url ? result.source_url : `https://${sourceDomain}`;
+                        const disputeStyle = isDisputed ? 'border-left-color: #ff4444;' : 'border-left-color: #4CAF50;';
+                        const disputeText = isDisputed ? ' (DISPUTED)' : '';
+                        
+                        let sourceHtml;
+                        if (sourceDomain !== 'Unknown Source') {
+                            sourceHtml = `<a href="${linkUrl}" target="_blank" rel="noopener noreferrer" style="color: var(--primary-color); text-decoration: underline;">${sourceDomain}</a>`;
+                        } else {
+                            sourceHtml = sourceDomain;
+                        }
+                        
+                        return `
+                            ${separator}
+                            <div style="background-color: #2a2a2a; padding: 1rem; border-radius: 5px; margin-bottom: 1rem;">
+                                <p style="font-size: 0.9rem; color: #ccc; margin: 0 0 0.5rem 0;"><strong>Relevance:</strong> ${similarity.toFixed(1)}%${disputeText}</p>
+                                <blockquote style="margin: 0; padding-left: 1rem; border-left: 3px solid; font-style: italic; font-size: 0.9rem; ${disputeStyle}">
+                                    "${sanitizedContent}"
+                                </blockquote>
+                                <p style="font-size: 0.8rem; color: #888; margin: 0.5rem 0 0 0;"><strong>Source:</strong> ${sourceHtml}</p>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    resultsHtml += `<p>No relevant facts found in the ledger.</p>`;
                 }
                 
-                // Handle fast mode (LLM disabled)
-                if (data.synthesis_status === 'disabled') {
-                    let resultsHtml = `<h4>Fast Mode Results</h4>`;
-                    resultsHtml += `<p style="font-size: 0.9rem; color: #aaa; margin-bottom: 1rem;">`;
-                    resultsHtml += `🤔 <strong>Think mode is OFF</strong> - Showing raw facts from the ledger without LLM synthesis for faster response times.</p>`;
-                    
-                    if (data.results && data.results.length > 0) {
-                        resultsHtml += `<h4>Relevant Facts from Axiom Ledger</h4>`;
-                        
-                        const topResults = data.results.slice(0, 5);
-                        resultsHtml += topResults.map((result, index) => {
-                            const content = result.content || '[Content not available]';
-                            const similarity = result.similarity * 100;
-                            const sourceDomain = (result.sources && result.sources.length > 0) ? result.sources[0] : 'Unknown Source';
-                            const sanitizedContent = content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                            const isDisputed = result.disputed || false;
-                            
-                            const separator = index > 0 ? '<hr style="border-color: var(--secondary-color); margin: 1em 0;">' : '';
-                            const linkUrl = result.source_url ? result.source_url : `https://${sourceDomain}`;
-                            const disputeStyle = isDisputed ? 'border-left-color: #ff4444;' : 'border-left-color: #4CAF50;';
-                            const disputeText = isDisputed ? ' (DISPUTED)' : '';
-                            
-                            let sourceHtml;
-                            if (sourceDomain !== 'Unknown Source') {
-                                sourceHtml = `<a href="${linkUrl}" target="_blank" rel="noopener noreferrer" style="color: var(--primary-color); text-decoration: underline;">${sourceDomain}</a>`;
-                            } else {
-                                sourceHtml = sourceDomain;
-                            }
-                            
-                            return `
-                                ${separator}
-                                <div style="background-color: #2a2a2a; padding: 1rem; border-radius: 5px; margin-bottom: 1rem;">
-                                    <p style="font-size: 0.9rem; color: #ccc; margin: 0 0 0.5rem 0;"><strong>Relevance:</strong> ${similarity.toFixed(1)}%${disputeText}</p>
-                                    <blockquote style="margin: 0; padding-left: 1rem; border-left: 3px solid; font-style: italic; font-size: 0.9rem; ${disputeStyle}">
-                                        "${sanitizedContent}"
-                                    </blockquote>
-                                    <p style="font-size: 0.8rem; color: #888; margin: 0.5rem 0 0 0;"><strong>Source:</strong> ${sourceHtml}</p>
-                                </div>
-                            `;
-                        }).join('');
-                    } else {
-                        resultsHtml += `<p>No relevant facts found in the ledger.</p>`;
-                    }
-                    
-                    resultsOutput.innerHTML = resultsHtml;
-                    return;
-                }
-                
-                // Fallback to old format if no synthesized answer
-                const results = data.results || data;
-                if (!results || results.length === 0) {
-                    resultsOutput.innerHTML = '<h4>No Relevant Facts Found</h4><p>The network searched the ledger but could not find a fact that semantically matched your question.</p>';
-                    return;
-                }
-
-                results.sort((a, b) => b.similarity - a.similarity);
-                const topResults = results.slice(0, 3);
-
-                let resultsHtml = topResults.map((result, index) => {
-                    const content = result.content || '[Content not available]';
-                    const similarity = result.similarity * 100;
-
-                    let title = '';
-                    let explanation = '';
-
-                    if (similarity > 85) {
-                        title = `Direct Answer Found (${similarity.toFixed(1)}% Match)`;
-                        explanation = `The following fact is a high-confidence semantic match to your question:`;
-                    } else if (similarity > 65) {
-                        title = `Related Fact Found (${similarity.toFixed(1)}% Match)`;
-                        explanation = `While not a direct answer, the following fact from the ledger is highly related to your query:`;
-                    } else {
-                        title = `Possible Hint Found (${similarity.toFixed(1)}% Match)`;
-                        explanation = `I'm not very sure, but this is the most related information I could find in the ledger:`;
-                    }
-
-                    const sourceDomain = (result.sources && result.sources.length > 0) ? result.sources[0] : 'Unknown Source';
-                    const sanitizedContent = content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-                    const separator = index > 0 ? '<hr style="border-color: var(--secondary-color); margin: 2em 0;">' : '';
-                    const linkUrl = result.source_url ? result.source_url : `https://${sourceDomain}`;
-
-                    let sourceHtml;
-                    if (sourceDomain !== 'Unknown Source') {
-                        // The link now uses the specific article URL if available.
-                        // The VISIBLE TEXT remains the clean domain name.
-                        sourceHtml = `<a
-                            href="${linkUrl}"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style="color: var(--primary-color); text-decoration: underline;"
-                        >${sourceDomain}</a>`;
-                    } else {
-                        sourceHtml = sourceDomain;
-                    }
-
-                    return `
-                        ${separator}
-                        <h4>${title}</h4>
-                        <p><em>${explanation}</em></p>
-                        <blockquote style="margin-left: 0; padding-left: 1em; border-left: 3px solid var(--secondary-color); font-style: italic;">
-                           "${sanitizedContent}"
-                        </blockquote>
-                        <p style="font-size: 0.9em; color: #aaa;"><strong>Source:</strong> ${sourceHtml}</p>
-                    `;
-                }).join('');
-
                 resultsOutput.innerHTML = resultsHtml;
             };
 
             // --- EVENT LISTENERS ---
             searchButton.addEventListener('click', performSearch);
-            thinkToggle.addEventListener('click', toggleThinkMode);
             queryInput.addEventListener('keypress', (event) => {
                 if (event.key === 'Enter') {
                     performSearch();
@@ -509,10 +371,6 @@
             });
 
             // --- INITIALIZATION ---
-            // Initialize toggle button styling
-            thinkToggle.style.backgroundColor = 'var(--primary-color)';
-            thinkToggle.style.color = 'var(--background-color)';
-            
             checkNodeStatus(); // Check status on page load
             setInterval(checkNodeStatus, 60000); // And check every 60 seconds
         });

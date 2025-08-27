@@ -115,10 +115,7 @@ class FactIndexer:
         self,
         query_text: str,
         top_n: int = 3,
-<<<<<<< HEAD
-=======
         min_similarity: float = 0.75,  # Increased threshold for better relevance
->>>>>>> ec5fd83 (Fixes)
     ) -> list[dict]:
         """Perform a HYBRID search and enriches results with blockchain data."""
         # <<< CHANGE 3 HERE: Use the new advanced parser >>>

@@ -6,6 +6,9 @@ axiom_ledger.db
 *.pem
 validators.json
 *.gguf
+node-5001.pem
+shared_node_key.pem
+facts_analysis_report.txt
 # Temp file during Mypy processing
 mypy_annotate.dat
 test-results.xml

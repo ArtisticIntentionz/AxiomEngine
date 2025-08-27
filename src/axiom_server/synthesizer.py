@@ -235,17 +235,11 @@ def link_related_facts(
                 if not new_doc.has_vector or not existing_doc.has_vector:
                     continue
                 # Priority 1: Check for a high-confidence contradiction.
-<<<<<<< HEAD
-                is_contradiction, is_potential, reason = checkForContradiction(
-                    new_doc,
-                    existing_doc,
-=======
                 is_contradiction, is_potential, reason = (
                     check_for_contradiction(
                         new_doc,
                         existing_doc,
                     )
->>>>>>> ec5fd83 (Fixes)
                 )
                 if is_contradiction:
                     logger.info(f"CONFIRMED CONTRADICTION: {reason}")

@@ -31,7 +31,7 @@ MODEL_PATH = (
 llm_instance: Llama | None = None
 
 # Configuration flag to disable LLM entirely (set to True to disable LLM)
-DISABLE_LLM = False  # Set to True to disable LLM and use fallback only
+DISABLE_LLM = True  # Set to True to disable LLM and use fallback only
 
 
 def _get_llm_instance() -> Llama | None:

@@ -282,12 +282,8 @@ def extract_facts_from_text(text_content: str, source_url: str) -> list[Fact]:
             checked_sentence := SENTENCE_CHECKS.run(clean_sentence_span)
         ) is not None:
             fact = Fact(
-<<<<<<< HEAD
-                content=checked_sentence.text.strip(), source_url=source_url,
-=======
                 content=checked_sentence.text.strip(),
                 source_url=source_url,
->>>>>>> ec5fd83 (Fixes)
             )
 
             semantics = Semantics(
