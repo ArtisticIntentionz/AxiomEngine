@@ -243,7 +243,10 @@ def get_content_from_prioritized_feed(
             if domain in BLACKLISTED_DOMAINS:
                 logger.debug(f"Skipping blacklisted feed: {feed_url}")
                 continue
-        except Exception:
+        except Exception as e:
+            logger.warning(
+                f"Could not parse URL '{feed_url}' for domain check. Skipping. Error: {e}",
+            )
             continue
         logger.info(f"Attempting to process feed: {feed_url}")
         try:

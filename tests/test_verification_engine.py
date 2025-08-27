@@ -1,4 +1,5 @@
 # tests/test_verification_engine.py
+from __future__ import annotations
 
 # No longer need unittest
 from unittest.mock import MagicMock, patch
@@ -27,7 +28,7 @@ class MockSpacyDoc:
         self.text = text
         self.similarity_map = similarity_map or {}
 
-    def similarity(self, other_doc: "MockSpacyDoc") -> float:
+    def similarity(self, other_doc: MockSpacyDoc) -> float:
         """Return a pre-defined similarity score, checking in both directions."""
         if other_doc.text in self.similarity_map:
             return self.similarity_map[other_doc.text]
@@ -39,7 +40,7 @@ class MockSpacyDoc:
 # --- Pytest Fixture for Mocks ---
 @pytest.fixture
 def mock_session() -> MagicMock:
-    """Provides a fresh MagicMock for the database session for each test."""
+    """Provide a fresh MagicMock for the database session for each test."""
     return MagicMock(spec=Session)
 
 

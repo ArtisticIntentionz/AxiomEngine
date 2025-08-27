@@ -1,3 +1,5 @@
+"""A script to pre-populate an Axiom ledger with validator identities."""
+
 # prepopulate_validators.py (Corrected Version)
 import json
 import sys
@@ -14,13 +16,13 @@ from axiom_server.ledger import (
 
 
 def main(db_path):
-    """Initializes a single database and populates it with validators."""
+    """Initialize a single database and populate it with validators."""
     print(f"--- Initializing and pre-populating database at: {db_path} ---")
 
     # *** FIX IS HERE: Create a new engine and session factory for THIS specific database ***
     engine_url = f"sqlite:///{db_path}"
     engine = create_engine(engine_url)
-    LocalSessionMaker = sessionmaker(bind=engine)
+    local_session_maker = sessionmaker(bind=engine)
 
     # Initialize the database schema using our new engine
     initialize_database(engine)
@@ -30,7 +32,7 @@ def main(db_path):
         validators_data = json.load(f)
 
     # Use our new, local session maker
-    with LocalSessionMaker() as session:
+    with local_session_maker() as session:
         # Every ledger needs a genesis block
         create_genesis_block(session)
 
