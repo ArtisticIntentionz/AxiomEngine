@@ -193,7 +193,7 @@
             border-left: 3px solid var(--primary-color);
             transition: all 0.3s ease;
         }
-        
+
         .source-item:hover {
             background: rgba(255, 255, 255, 0.08);
             transform: translateX(4px);
@@ -284,7 +284,7 @@
             margin-bottom: 1rem;
             border-left: 3px solid var(--warning-color);
         }
-        
+
         .neural-verification {
             background-color: #1a2e1a;
             border-radius: 8px;
@@ -292,7 +292,7 @@
             margin-bottom: 1rem;
             border-left: 3px solid var(--success-color);
         }
-        
+
         .dispute-section {
             background-color: #2e1a1a;
             border-radius: 8px;
@@ -300,13 +300,13 @@
             margin-top: 1rem;
             border-left: 3px solid var(--warning-color);
         }
-        
+
         .dispute-form {
             display: grid;
             gap: 1rem;
             margin-top: 1rem;
         }
-        
+
         .dispute-input {
             padding: 0.5rem;
             border-radius: 4px;
@@ -314,12 +314,12 @@
             background-color: #2c2c2c;
             color: var(--text-color);
         }
-        
+
         .dispute-textarea {
             min-height: 80px;
             resize: vertical;
         }
-        
+
         .neural-confidence {
             display: inline-block;
             padding: 0.25rem 0.5rem;
@@ -328,13 +328,13 @@
             font-weight: bold;
             margin-left: 0.5rem;
         }
-        
+
         .fact-actions {
             display: flex;
             gap: 0.5rem;
             margin-top: 0.5rem;
         }
-        
+
         .action-button {
             padding: 0.5rem 1rem;
             border-radius: 8px;
@@ -345,17 +345,17 @@
             transition: all 0.3s ease;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
-        
+
         .action-button:hover {
             transform: translateY(-1px);
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
-        
+
         .verify-button {
             background-color: var(--success-color);
             color: white;
         }
-        
+
         .dispute-fact-button {
             background-color: var(--warning-color);
             color: white;
@@ -432,12 +432,12 @@
                 const response = await fetch(`${AXIOM_NODE_URL}/neural/performance`, {
                     headers: { 'ngrok-skip-browser-warning': 'true' }
                 });
-                
+
                 if (response.ok) {
                     const data = await response.json();
                     neuralStatus.style.display = 'block';
                     modelStatus.textContent = data.neural_metrics.status || 'Active';
-                    processingStats.textContent = data.processing_stats ? 
+                    processingStats.textContent = data.processing_stats ?
                         `Processed: ${data.processing_stats.total_facts || 0}` : 'No data';
                 }
             } catch (error) {
@@ -618,7 +618,7 @@
             data.supporting_facts.forEach((fact, index) => {
                 const relevancePercent = Math.round(fact.relevance_score * 100);
                 const factId = fact.id || `fact_${index}`;
-                
+
                 html += `
                     <div class="source-item">
                         <div class="source-domain">
@@ -741,7 +741,7 @@
                 if (result) {
                     const confidenceClass = getConfidenceClass(result.confidence);
                     const confidenceText = getConfidenceText(result.confidence);
-                    
+
                     // Find the confidence indicator for this fact
                     const factIndex = factId.replace('fact_', '');
                     const confidenceSpan = document.getElementById(`neural-confidence-${factIndex}`);
@@ -750,7 +750,7 @@
                         confidenceSpan.className = `neural-confidence ${confidenceClass}`;
                         confidenceSpan.style.display = 'inline-block';
                     }
-                    
+
                     // Show verification result
                     alert(`Neural Verification Result:\n\nConfidence: ${confidenceText} (${Math.round(result.confidence * 100)}%)\nVerified: ${result.verified ? 'Yes' : 'No'}\nModel: ${result.model_used}`);
                 }
@@ -777,7 +777,7 @@
                     </div>
                 </div>
             `;
-            
+
             // Add dispute form to the results section
             resultsSection.insertAdjacentHTML('beforeend', disputeHtml);
         }
@@ -785,12 +785,12 @@
         async function submitDispute(factId) {
             const reason = document.getElementById('dispute-reason').value.trim();
             const evidence = document.getElementById('dispute-evidence').value.trim();
-            
+
             if (!reason) {
                 alert('Please provide a reason for the dispute.');
                 return;
             }
-            
+
             try {
                 const evidenceData = [{
                     node_id: 'web_interface',
@@ -798,7 +798,7 @@
                     evidence_content: evidence,
                     confidence_score: 0.8
                 }];
-                
+
                 const result = await createDispute(factId, reason, evidenceData);
                 if (result) {
                     alert(`Dispute submitted successfully!\n\nDispute ID: ${result.dispute_id}\nStatus: Submitted for network review`);
@@ -845,7 +845,7 @@
             askButton.disabled = true;
             neuralVerifyButton.disabled = true;
             neuralVerifyButton.textContent = 'Analyzing with Neural Network...';
-            
+
             resultsSection.style.display = 'block';
             resultsSection.innerHTML = `
                 <div class="loading">
@@ -882,7 +882,7 @@
                         'Content-Type': 'application/json',
                         'ngrok-skip-browser-warning': 'true'
                     },
-                    body: JSON.stringify({ 
+                    body: JSON.stringify({
                         question: question,
                         use_intelligent_search: true
                     })
@@ -898,7 +898,7 @@
             } catch (error) {
                 resultsSection.innerHTML = `
                     <div class="error-message">
-                        <strong>Error:</strong> Could not get neural network analysis from Axiom network. 
+                        <strong>Error:</strong> Could not get neural network analysis from Axiom network.
                         Please ensure the Axiom node is running with neural network support.
                         <br><br>
                         <em>${error.message}</em>
@@ -915,7 +915,7 @@
             const result = data.processing_result;
             const confidenceClass = getConfidenceClass(result.neural_verification.confidence);
             const confidenceText = getConfidenceText(result.neural_verification.confidence);
-            
+
             let html = `
                 <div class="answer-card">
                     <div class="neural-verification">
@@ -924,12 +924,12 @@
                         Status: ${result.status}<br>
                         Processing Time: ${result.processing_time}s
                     </div>
-                    
+
                     <div class="answer-text">
                         <strong>Question:</strong> ${question}<br><br>
                         <strong>Analysis:</strong> ${result.analysis || 'No analysis available'}
                     </div>
-                    
+
                     <div class="sources-section">
                         <div class="sources-title">
                             Neural Network Verification Results

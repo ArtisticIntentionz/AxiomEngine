@@ -221,22 +221,32 @@ def link_related_facts(
                 for ent in get_main_entities(doc):
                     entity_to_facts[ent].append(fact)
         except Exception as e:
-            logger.warning(f"Skipping fact {fact.id} due to semantics error: {e}")
+            logger.warning(
+                f"Skipping fact {fact.id} due to semantics error: {e}",
+            )
             continue
     links_found = 0
     disputes_found = 0
     for new_fact in new_facts_batch:
         try:
             new_semantics = new_fact.get_semantics()
-            if not new_semantics or "doc" not in new_semantics or not new_semantics["doc"]:
-                logger.warning(f"Skipping new fact {new_fact.id} - no valid semantics")
+            if (
+                not new_semantics
+                or "doc" not in new_semantics
+                or not new_semantics["doc"]
+            ):
+                logger.warning(
+                    f"Skipping new fact {new_fact.id} - no valid semantics",
+                )
                 continue
             new_doc = new_semantics["doc"]
             new_entities = get_main_entities(new_doc)
             if not new_entities:
                 continue
         except Exception as e:
-            logger.warning(f"Skipping new fact {new_fact.id} due to semantics error: {e}")
+            logger.warning(
+                f"Skipping new fact {new_fact.id} due to semantics error: {e}",
+            )
             continue
         # Only compare to facts sharing at least one main entity
         compared_facts = set()

@@ -23,7 +23,9 @@ def handle_enhanced_chat() -> Response | tuple[Response, int]:
     question = data["question"]
 
     logger.info(f"Enhanced chat called with question: {question}")
-    print(f"Enhanced chat called with question: {question}")  # Direct print for debugging
+    print(
+        f"Enhanced chat called with question: {question}",
+    )  # Direct print for debugging
 
     try:
         # For now, return a simple response since we removed the IntelligentSearchEngine
