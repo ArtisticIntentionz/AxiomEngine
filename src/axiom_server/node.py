@@ -259,6 +259,7 @@ class AxiomNode(P2PBaseNode):
         my_pubkey = self.serialized_public_key.hex()
 
         # Determine which node should be the proposer based on slot number
+
         proposer_port = 5001 + (slot % 3)  # 5001, 5002, or 5003
 
         if self.port == proposer_port:
@@ -267,10 +268,13 @@ class AxiomNode(P2PBaseNode):
             )
             return my_pubkey
         # This is not our turn to propose
+
         background_thread_logger.info(
             f"Slot {slot}: Not proposer for slot {slot}. Expected: port {proposer_port}, Our port: {self.port}",
         )
+
         return None
+
 
     def _handle_block_proposal(self, proposal_data: dict) -> None:
         """Handle a block proposal from a peer.
@@ -627,8 +631,10 @@ class AxiomNode(P2PBaseNode):
                                     current_slot + 1
                                 ) * SECONDS_PER_SLOT
                                 sleep_duration = max(
+
                                     0,
                                     next_slot_time - time.time(),
+
                                 )
                                 time.sleep(sleep_duration)
                                 continue

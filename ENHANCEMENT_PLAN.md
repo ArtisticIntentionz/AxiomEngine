@@ -130,7 +130,7 @@ fact = {
 # Before: Return article list
 results = [
     "Article 1 about Ohio",
-    "Article 2 about Ohio", 
+    "Article 2 about Ohio",
     "Article 3 about Ohio"
 ]
 
@@ -152,7 +152,7 @@ confidence = {
     "level": "high",
     "factors": [
         "multiple_sources",
-        "authoritative_sources", 
+        "authoritative_sources",
         "recent_information"
     ]
 }
