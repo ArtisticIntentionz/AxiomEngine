@@ -29,6 +29,7 @@ from axiom_server import (
 )
 from axiom_server.api_query import semantic_search_ledger
 from axiom_server.crucible import _extract_dates
+from axiom_server.dispute_system import DisputeSystem
 from axiom_server.enhanced_endpoints import (
     handle_analyze_question,
     handle_enhanced_chat,
@@ -37,6 +38,7 @@ from axiom_server.enhanced_endpoints import (
     handle_test_enhanced_search,
     handle_verify_fact,
 )
+from axiom_server.enhanced_fact_processor import EnhancedFactProcessor
 from axiom_server.hasher import FactIndexer
 from axiom_server.ledger import (
     ENGINE,
@@ -54,8 +56,8 @@ from axiom_server.ledger import (
     initialize_database,
     mark_fact_objects_as_disputed,
 )
+from axiom_server.neural_verifier import NeuralFactVerifier
 from axiom_server.p2p.constants import (
-    BOOTSTRAP_IP_ADDR,
     BOOTSTRAP_PORT,
 )
 from axiom_server.p2p.node import (
@@ -157,6 +159,20 @@ class AxiomNode(P2PBaseNode):
         self.attestation_lock = threading.Lock()
         self.active_proposals: dict[int, Proposal] = {}
 
+        # Initialize Neural Network and Dispute System
+        logger.info("Initializing Neural Network Verification System...")
+        self.neural_verifier = NeuralFactVerifier()
+        self.dispute_system = DisputeSystem(
+            node_id=self.serialized_public_key.hex(),
+            neural_verifier=self.neural_verifier,
+        )
+        self.enhanced_fact_processor = EnhancedFactProcessor(
+            node_id=self.serialized_public_key.hex(),
+        )
+        logger.info(
+            "✅ Neural Network and Dispute System initialized successfully",
+        )
+
         initialize_database(ENGINE)
         with SessionMaker() as session:
             create_genesis_block(session)
@@ -169,14 +185,34 @@ class AxiomNode(P2PBaseNode):
                 logger.info("This node is already an active validator.")
 
         if bootstrap_peer:
-            parsed_url = urlparse(bootstrap_peer)
-            bootstrap_host = parsed_url.hostname or BOOTSTRAP_IP_ADDR
-            bootstrap_port = parsed_url.port or BOOTSTRAP_PORT
+            background_thread_logger.info(
+                f"Connecting to bootstrap peer: {bootstrap_peer}",
+            )
+
+            # Handle both URL format (http://host:port) and simple format (host:port)
+            if bootstrap_peer.startswith(("http://", "https://")):
+                parsed_url = urlparse(bootstrap_peer)
+                bootstrap_host = parsed_url.hostname
+                bootstrap_port = parsed_url.port
+            else:
+                # Simple format: host:port
+                if ":" in bootstrap_peer:
+                    bootstrap_host, port_str = bootstrap_peer.split(":", 1)
+                    bootstrap_port = int(port_str)
+                else:
+                    bootstrap_host = bootstrap_peer
+                    bootstrap_port = BOOTSTRAP_PORT
+
+            background_thread_logger.info(
+                f"Parsed bootstrap host: {bootstrap_host}, port: {bootstrap_port}",
+            )
             threading.Thread(
                 target=self.bootstrap,
                 args=(bootstrap_host, bootstrap_port),
                 daemon=True,
             ).start()
+        else:
+            background_thread_logger.info("No bootstrap peer specified")
 
     def broadcast_application_message(self, message: str) -> None:
         """Send an application message to all connected peers in a thread-safe manner."""
@@ -221,38 +257,25 @@ class AxiomNode(P2PBaseNode):
         slot: int,
     ) -> str | None:
         # Use the node's port number to determine proposer selection
-        # Bootstrap node (port 5001) gets even slots, peer node (port 5002) gets odd slots
+        # 3-node rotation: Bootstrap (5001), Peer1 (5002), Peer2 (5003)
         my_pubkey = self.serialized_public_key.hex()
 
         # Determine which node should be the proposer based on slot number
-        if slot % 2 == 0:
-            # Even slots: bootstrap node (port 5001) should propose
-            if self.port == 5001:
-                selected_proposer = my_pubkey
-            else:
-                # This is the peer node, but it's an even slot, so bootstrap should propose
-                # Return None to indicate we're not the proposer
-                background_thread_logger.info(
-                    f"Slot {slot}: Even slot, but we're peer node (port {self.port}), bootstrap should propose",
-                )
-                return None
-        else:
-            # Odd slots: peer node (port 5002) should propose
-            if self.port == 5002:
-                selected_proposer = my_pubkey
-            else:
-                # This is the bootstrap node, but it's an odd slot, so peer should propose
-                # Return None to indicate we're not the proposer
-                background_thread_logger.info(
-                    f"Slot {slot}: Odd slot, but we're bootstrap node (port {self.port}), peer should propose",
-                )
-                return None
+
+        proposer_port = 5001 + (slot % 3)  # 5001, 5002, or 5003
+
+        if self.port == proposer_port:
+            background_thread_logger.info(
+                f"Slot {slot}: We are the proposer! (slot % 3 = {slot % 3}, port = {self.port})",
+            )
+            return my_pubkey
+        # This is not our turn to propose
 
         background_thread_logger.info(
-            f"Slot {slot}: We are the proposer! (slot % 2 = {slot % 2}, port = {self.port})",
+            f"Slot {slot}: Not proposer for slot {slot}. Expected: port {proposer_port}, Our port: {self.port}",
         )
 
-        return selected_proposer
+        return None
 
     def _handle_block_proposal(self, proposal_data: dict) -> None:
         """Handle a block proposal from a peer.
@@ -272,6 +295,11 @@ class AxiomNode(P2PBaseNode):
                 session,
                 current_slot,
             )
+            if expected_proposer is None:
+                background_thread_logger.warning(
+                    f"Rejected block {block_hash[:8]} - not our turn to propose for this slot.",
+                )
+                return
             if proposer_pubkey != expected_proposer:
                 background_thread_logger.warning(
                     f"Rejected block {block_hash[:8]} from wrong proposer. Expected {expected_proposer[:8]}, got {proposer_pubkey[:8]}.",
@@ -314,6 +342,13 @@ class AxiomNode(P2PBaseNode):
             background_thread_logger.info(
                 f"Added Block #{block_data['height']} from peer to local ledger.",
             )
+
+            # Update known network height when receiving blocks from peers
+            if block_data["height"] > self.known_network_height:
+                self.known_network_height = block_data["height"]
+                background_thread_logger.info(
+                    f"📡 NETWORK HEIGHT UPDATED: {self.known_network_height} (Block #{block_data['height']} received from peer)",
+                )
 
             # Step 3: If we are a validator, attest to the block (VALIDATORS ONLY).
             if self.is_validator:
@@ -552,9 +587,20 @@ class AxiomNode(P2PBaseNode):
         background_thread_logger.info(
             "Starting Proof-of-Stake consensus cycle.",
         )
+        last_status_update = 0
         while True:
             current_time = time.time()
             current_slot = int(current_time / SECONDS_PER_SLOT)
+
+            # Periodic network height status update (every 30 seconds)
+            if current_time - last_status_update >= 30:
+                with db_lock, SessionMaker() as session:
+                    latest_block = get_latest_block(session)
+                    my_height = latest_block.height if latest_block else 0
+                    background_thread_logger.info(
+                        f"📊 NETWORK STATUS: Local height {my_height}, Network height {self.known_network_height}, Slot {current_slot}",
+                    )
+                last_status_update = current_time
 
             proposer_pubkey = None
             with db_lock, SessionMaker() as session:
@@ -586,7 +632,8 @@ class AxiomNode(P2PBaseNode):
                                     current_slot + 1
                                 ) * SECONDS_PER_SLOT
                                 sleep_duration = max(
-                                    0, next_slot_time - time.time(),
+                                    0,
+                                    next_slot_time - time.time(),
                                 )
                                 time.sleep(sleep_duration)
                                 continue
@@ -770,6 +817,13 @@ class AxiomNode(P2PBaseNode):
             my_latest_block = get_latest_block(session)
             my_height = my_latest_block.height if my_latest_block else -1
 
+            # Update network height to match our local height if we're ahead
+            if my_height > self.known_network_height:
+                self.known_network_height = my_height
+                background_thread_logger.info(
+                    f"Updated network height to {self.known_network_height} based on local height",
+                )
+
             # The crucial check:
             if my_height >= self.known_network_height:
                 background_thread_logger.info(
@@ -834,6 +888,13 @@ class AxiomNode(P2PBaseNode):
             background_thread_logger.info(
                 f"Proposed and added Block #{new_block.height} to local ledger.",
             )
+
+            # Update known network height when we propose a block
+            if new_block.height > self.known_network_height:
+                self.known_network_height = new_block.height
+                background_thread_logger.info(
+                    f"🚀 NETWORK HEIGHT UPDATED: {self.known_network_height} (Block #{new_block.height} proposed)",
+                )
 
             # --- ADD THIS FINAL BLOCK OF CODE ---
             if proposer_validator:
@@ -1592,6 +1653,174 @@ def handle_get_ledger_growth() -> Response:
         return jsonify(fact_growth_data)
 
 
+# Neural Network and Dispute System Endpoints
+@app.route("/neural/verify_fact", methods=["POST"])
+def handle_neural_verify_fact():
+    """Verify a fact using the neural network system."""
+    data = request.get_json()
+    if not data or "content" not in data:
+        return jsonify({"error": "Request must include 'content'"}), 400
+
+    try:
+        # Create a temporary fact for verification
+        sources = []
+        if "sources" in data:
+            sources = [
+                Source(domain=s.get("domain", "")) for s in data["sources"]
+            ]
+
+        fact = Fact(
+            content=data["content"],
+            sources=sources,
+            status=FactStatus.INGESTED,
+        )
+
+        # Use the neural verifier
+        result = node_instance.neural_verifier.verify_fact(fact)
+
+        return jsonify({"status": "success", "verification_result": result})
+    except Exception as e:
+        logger.error(f"Error in neural verification: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/neural/process_fact", methods=["POST"])
+def handle_neural_process_fact():
+    """Process a fact through the enhanced fact processor."""
+    data = request.get_json()
+    if not data or "content" not in data:
+        return jsonify({"error": "Request must include 'content'"}), 400
+
+    try:
+        sources = []
+        if "sources" in data:
+            sources = data["sources"]
+
+        metadata = data.get("metadata", {})
+
+        # Use the enhanced fact processor
+        result = node_instance.enhanced_fact_processor.process_fact(
+            fact_content=data["content"], sources=sources, metadata=metadata,
+        )
+
+        return jsonify({"status": "success", "processing_result": result})
+    except Exception as e:
+        logger.error(f"Error in fact processing: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/dispute/create", methods=["POST"])
+def handle_create_dispute():
+    """Create a new dispute against a fact."""
+    data = request.get_json()
+    if not data or "fact_id" not in data or "reason" not in data:
+        return jsonify(
+            {"error": "Request must include 'fact_id' and 'reason'"},
+        ), 400
+
+    try:
+        evidence = None
+        if "evidence" in data:
+            from axiom_server.dispute_system import DisputeEvidence
+
+            evidence = [DisputeEvidence(**ev) for ev in data["evidence"]]
+
+        dispute = node_instance.dispute_system.create_dispute(
+            fact_id=data["fact_id"], reason=data["reason"], evidence=evidence,
+        )
+
+        # Broadcast dispute to network
+        broadcast_result = node_instance.dispute_system.broadcast_dispute(
+            dispute,
+        )
+
+        return jsonify(
+            {
+                "status": "success",
+                "dispute_id": dispute.dispute_id,
+                "broadcast_result": broadcast_result,
+            },
+        )
+    except Exception as e:
+        logger.error(f"Error creating dispute: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/dispute/vote", methods=["POST"])
+def handle_vote_on_dispute():
+    """Cast a vote on a dispute."""
+    data = request.get_json()
+    if (
+        not data
+        or "dispute_id" not in data
+        or "vote" not in data
+        or "reasoning" not in data
+    ):
+        return jsonify(
+            {
+                "error": "Request must include 'dispute_id', 'vote', and 'reasoning'",
+            },
+        ), 400
+
+    try:
+        success = node_instance.dispute_system.cast_vote(
+            dispute_id=data["dispute_id"],
+            vote=data["vote"],  # True = fact is false, False = fact is true
+            reasoning=data["reasoning"],
+            confidence=data.get("confidence", 0.8),
+        )
+
+        return jsonify(
+            {
+                "status": "success" if success else "failed",
+                "message": "Vote cast successfully"
+                if success
+                else "Failed to cast vote",
+            },
+        )
+    except Exception as e:
+        logger.error(f"Error casting vote: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/dispute/status", methods=["GET"])
+def handle_get_dispute_status():
+    """Get status of all disputes."""
+    try:
+        disputes = node_instance.dispute_system.get_active_disputes()
+        stats = node_instance.dispute_system.get_dispute_statistics()
+
+        return jsonify(
+            {"status": "success", "disputes": disputes, "statistics": stats},
+        )
+    except Exception as e:
+        logger.error(f"Error getting dispute status: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/neural/performance", methods=["GET"])
+def handle_get_neural_performance():
+    """Get neural network performance metrics."""
+    try:
+        neural_metrics = (
+            node_instance.neural_verifier.get_performance_metrics()
+        )
+        processing_stats = (
+            node_instance.enhanced_fact_processor.get_processing_statistics()
+        )
+
+        return jsonify(
+            {
+                "status": "success",
+                "neural_metrics": neural_metrics,
+                "processing_stats": processing_stats,
+            },
+        )
+    except Exception as e:
+        logger.error(f"Error getting neural performance: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 def main() -> None:
     """Handle running an Axiom Node from the command line."""
     global node_instance, fact_indexer, API_PORT
@@ -1625,6 +1854,13 @@ def main() -> None:
     args = parser.parse_args()
 
     try:
+        # Debug: Print the arguments
+        logger.info("Starting node with arguments:")
+        logger.info(f"  host: {args.host}")
+        logger.info(f"  p2p_port: {args.p2p_port}")
+        logger.info(f"  api_port: {args.api_port}")
+        logger.info(f"  bootstrap_peer: {args.bootstrap_peer}")
+
         # 2. Create the AxiomNode instance, passing the arguments directly.
         node_instance = AxiomNode(
             host=args.host,

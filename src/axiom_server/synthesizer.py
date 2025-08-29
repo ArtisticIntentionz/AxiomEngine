@@ -214,16 +214,39 @@ def link_related_facts(
     all_facts_in_ledger = session.query(Fact).all()
     entity_to_facts = defaultdict(list)
     for fact in all_facts_in_ledger:
-        doc = fact.get_semantics()["doc"]
-        for ent in get_main_entities(doc):
-            entity_to_facts[ent].append(fact)
+        try:
+            semantics = fact.get_semantics()
+            if semantics and "doc" in semantics and semantics["doc"]:
+                doc = semantics["doc"]
+                for ent in get_main_entities(doc):
+                    entity_to_facts[ent].append(fact)
+        except Exception as e:
+            logger.warning(
+                f"Skipping fact {fact.id} due to semantics error: {e}",
+            )
+            continue
     links_found = 0
     disputes_found = 0
     for new_fact in new_facts_batch:
-        new_semantics = new_fact.get_semantics()
-        new_doc = new_semantics["doc"]
-        new_entities = get_main_entities(new_doc)
-        if not new_entities:
+        try:
+            new_semantics = new_fact.get_semantics()
+            if (
+                not new_semantics
+                or "doc" not in new_semantics
+                or not new_semantics["doc"]
+            ):
+                logger.warning(
+                    f"Skipping new fact {new_fact.id} - no valid semantics",
+                )
+                continue
+            new_doc = new_semantics["doc"]
+            new_entities = get_main_entities(new_doc)
+            if not new_entities:
+                continue
+        except Exception as e:
+            logger.warning(
+                f"Skipping new fact {new_fact.id} due to semantics error: {e}",
+            )
             continue
         # Only compare to facts sharing at least one main entity
         compared_facts = set()

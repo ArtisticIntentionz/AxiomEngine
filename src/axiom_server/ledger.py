@@ -262,7 +262,21 @@ class Fact(Base):
 
     def get_serialized_semantics(self) -> SerializedSemantics:
         """Return the stored semantics as a serialized Pydantic model."""
-        return SerializedSemantics.model_validate_json(self.semantics)
+        try:
+            if (
+                not self.semantics
+                or self.semantics == "{}"
+                or self.semantics == "null"
+            ):
+                # Return default semantics if none exist
+                return SerializedSemantics(doc="{}", subject="", object="")
+            return SerializedSemantics.model_validate_json(self.semantics)
+        except Exception as e:
+            # If validation fails, return default semantics
+            logger.warning(
+                f"Failed to validate semantics for fact {self.id}: {e}",
+            )
+            return SerializedSemantics(doc="{}", subject="", object="")
 
     def get_semantics(self) -> Semantics:
         """Return the rich, deserialized Semantics object, including the spaCy Doc."""
