@@ -1,723 +1,435 @@
-"""Enhanced Fact Processor - Intelligent Truth Grounding Engine."""
+"""Enhanced Fact Processor with Neural Network Verification and Dispute System."""
 
 from __future__ import annotations
 
+import json
 import logging
-import re
-from typing import TYPE_CHECKING, Any
+import sys
+import time
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Tuple
 
-from sqlalchemy import or_
+from sqlalchemy.orm import Session
 
-from axiom_server.ledger import Fact, SessionMaker
+from axiom_server.dispute_system import DisputeSystem, DisputeEvidence
+from axiom_server.ledger import Fact, FactStatus, SessionMaker
+from axiom_server.neural_verifier import NeuralFactVerifier
+from axiom_server.verification_engine import find_corroborating_claims, verify_citations
 
-if TYPE_CHECKING:
-    from sqlalchemy.orm import Session
+logger = logging.getLogger(__name__)
 
-logger = logging.getLogger("enhanced-fact-processor")
+stdout_handler = logging.StreamHandler(stream=sys.stdout)
+stdout_handler.setFormatter(
+    logging.Formatter(
+        "[%(name)s] %(asctime)s | %(levelname)s | %(filename)s:%(lineno)s >>> %(message)s",
+    ),
+)
+logger.addHandler(stdout_handler)
+logger.setLevel(logging.INFO)
+logger.propagate = False
 
 
 class EnhancedFactProcessor:
-    """Advanced fact extraction and verification system."""
-
-    def __init__(self) -> None:
-        """Initialize the fact processor with credible sources and patterns."""
-        self.credible_sources = {
-            "reuters.com": 0.9,
-            "ap.org": 0.9,
-            "bbc.com": 0.85,
-            "npr.org": 0.8,
-            "wsj.com": 0.8,
-            "nytimes.com": 0.8,
-            "washingtonpost.com": 0.8,
-            "theguardian.com": 0.75,
-            "cnn.com": 0.7,
-            "foxnews.com": 0.65,
-        }
-
-        self.fact_patterns = [
-            r"(\w+)\s+(?:is|are|was|were)\s+(\d+(?:\.\d+)?)\s*([^\s,]+)",  # "X is 5 units"
-            r"(\w+)\s+(?:announced|reported|said|confirmed)\s+that\s+(.+)",  # "X announced that Y"
-            r"(\w+)\s+(?:increased|decreased|grew|fell)\s+by\s+(\d+(?:\.\d+)?%?)",  # "X increased by 5%"
-            r"(\w+)\s+(?:will|plans to|intends to)\s+(.+)",  # "X will do Y"
-            r"(\w+)\s+(?:has|have)\s+(.+)",  # "X has Y"
-        ]
-
-    def extract_facts_from_content(
-        self,
-        content: str,
-        source_url: str,
-    ) -> list[dict[str, Any]]:
-        """Extract verifiable facts from content using NLP and pattern matching."""
-        facts = []
-
-        # Split into sentences
-        sentences = re.split(r"[.!?]+", content)
-
-        for sentence in sentences:
-            sentence = sentence.strip()
-            if len(sentence) < 20:  # Skip very short sentences
-                continue
-
-            # Extract structured facts
-            extracted_facts = self._extract_structured_facts(sentence)
-
-            for fact_data in extracted_facts:
-                fact_data["source_url"] = source_url
-                fact_data["extraction_method"] = "pattern_matching"
-                fact_data["confidence"] = (
-                    self._calculate_extraction_confidence(sentence, fact_data)
-                )
-
-                if (
-                    fact_data["confidence"] > 0.3
-                ):  # Only keep reasonably confident facts
-                    facts.append(fact_data)
-
-        return facts
-
-    def _extract_structured_facts(self, sentence: str) -> list[dict[str, Any]]:
-        """Extract structured facts using regex patterns."""
-        facts = []
-
-        for pattern in self.fact_patterns:
-            matches = re.finditer(pattern, sentence, re.IGNORECASE)
-            for match in matches:
-                if pattern == self.fact_patterns[0]:  # "X is 5 units"
-                    facts.append(
-                        {
-                            "subject": match.group(1),
-                            "predicate": "quantity",
-                            "object": f"{match.group(2)} {match.group(3)}",
-                            "fact_type": "measurement",
-                        },
-                    )
-                elif pattern == self.fact_patterns[1]:  # "X announced that Y"
-                    facts.append(
-                        {
-                            "subject": match.group(1),
-                            "predicate": "announced",
-                            "object": match.group(2),
-                            "fact_type": "statement",
-                        },
-                    )
-                # Add more pattern handlers...
-
-        return facts
-
-    def _calculate_extraction_confidence(
-        self,
-        sentence: str,
-        fact_data: dict[str, Any],
-    ) -> float:
-        """Calculate confidence score for extracted fact."""
-        confidence = 0.5  # Base confidence
-
-        # Boost confidence for specific fact types
-        if fact_data["fact_type"] == "measurement":
-            confidence += 0.2
-        elif fact_data["fact_type"] == "statement":
-            confidence += 0.1
-
-        # Boost for longer, more detailed facts
-        if len(fact_data["object"]) > 20:
-            confidence += 0.1
-
-        # Penalize for subjective language
-        subjective_words = [
-            "believe",
-            "think",
-            "feel",
-            "seems",
-            "appears",
-            "might",
-            "could",
-        ]
-        if any(word in sentence.lower() for word in subjective_words):
-            confidence -= 0.3
-
-        return min(1.0, max(0.0, confidence))
-
-    def verify_fact_against_sources(
-        self,
-        fact: dict[str, Any],
-    ) -> dict[str, Any]:
-        """Verify a fact by checking multiple sources."""
-        verification_results = {
-            "verified": False,
-            "confidence": 0.0,
-            "supporting_sources": [],
-            "contradicting_sources": [],
-            "verification_method": "source_checking",
-        }
-
-        # Search for similar facts in our database
-        with SessionMaker() as session:
-            similar_facts = self._find_similar_facts(session, fact)
-
-            if similar_facts:
-                verification_results = self._analyze_fact_consistency(
-                    similar_facts,
-                    fact,
-                )
-
-        return verification_results
-
-    def _find_similar_facts(
-        self,
-        session: Session,
-        fact: dict[str, Any],
-    ) -> list[Fact]:
-        """Find facts in database that might verify or contradict the given fact."""
-        # Create search terms from the fact
-        search_terms = [fact["subject"], fact["predicate"]]
-        if isinstance(fact["object"], str):
-            search_terms.extend(
-                fact["object"].split()[:3],
-            )  # First 3 words of object
-
-        # Build query
-        conditions = []
-        for term in search_terms:
-            if len(term) > 2:  # Skip very short terms
-                conditions.append(Fact.content.ilike(f"%{term}%"))
-
-        if not conditions:
-            return []
-
-        return session.query(Fact).filter(or_(*conditions)).limit(10).all()
-
-    def _analyze_fact_consistency(
-        self,
-        existing_facts: list[Fact],
-        new_fact: dict[str, Any],
-    ) -> dict[str, Any]:
-        """Analyze consistency between new fact and existing facts."""
-        results: dict[str, Any] = {
-            "verified": False,
-            "confidence": 0.0,
-            "supporting_sources": [],
-            "contradicting_sources": [],
-            "verification_method": "consistency_analysis",
-        }
-
-        supporting_count = 0
-        contradicting_count = 0
-
-        for existing_fact in existing_facts:
-            similarity = self._calculate_fact_similarity(
-                new_fact,
-                existing_fact,
-            )
-
-            if similarity > 0.7:  # High similarity
-                if self._facts_agree(new_fact, existing_fact):
-                    supporting_count += 1
-                    results["supporting_sources"].append(
-                        {
-                            "source": existing_fact.sources[0].domain
-                            if existing_fact.sources
-                            else "unknown",
-                            "content": existing_fact.content,
-                            "similarity": similarity,
-                        },
-                    )
-                else:
-                    contradicting_count += 1
-                    results["contradicting_sources"].append(
-                        {
-                            "source": existing_fact.sources[0].domain
-                            if existing_fact.sources
-                            else "unknown",
-                            "content": existing_fact.content,
-                            "similarity": similarity,
-                        },
-                    )
-
-        # Calculate confidence based on supporting vs contradicting sources
-        total_relevant = supporting_count + contradicting_count
-        if total_relevant > 0:
-            results["confidence"] = supporting_count / total_relevant
-            confidence = float(results["confidence"])
-            results["verified"] = confidence > 0.6 and supporting_count >= 2
-
-        return results
-
-    def _calculate_fact_similarity(
-        self,
-        fact1: dict[str, Any],
-        fact2: Fact,
-    ) -> float:
-        """Calculate similarity between two facts."""
-        # Simple keyword-based similarity for now
-        fact1_text = f"{fact1['subject']} {fact1['predicate']} {fact1['object']}".lower()
-        fact2_text = fact2.content.lower()
-
-        fact1_words = set(fact1_text.split())
-        fact2_words = set(fact2_text.split())
-
-        if not fact1_words or not fact2_words:
-            return 0.0
-
-        intersection = fact1_words.intersection(fact2_words)
-        union = fact1_words.union(fact2_words)
-
-        return len(intersection) / len(union)
-
-    def _facts_agree(self, fact1: dict[str, Any], fact2: Fact) -> bool:
-        """Determine if two facts agree or contradict each other."""
-        # This is a simplified implementation
-        # In a real system, you'd use more sophisticated NLP
-        fact1_text = f"{fact1['subject']} {fact1['predicate']} {fact1['object']}".lower()
-        fact2_text = fact2.content.lower()
-
-        # Check for negation words
-        negation_words = ["not", "no", "never", "none", "neither", "nor"]
-
-        fact1_negated = any(word in fact1_text for word in negation_words)
-        fact2_negated = any(word in fact2_text for word in negation_words)
-
-        # If one is negated and the other isn't, they contradict
-        if fact1_negated != fact2_negated:
-            return False
-
-        # For now, assume they agree if they're similar enough
-        return self._calculate_fact_similarity(fact1, fact2) > 0.5
-
-
-class IntelligentSearchEngine:
-    """Advanced search engine that understands questions and provides intelligent answers."""
-
-    def __init__(self) -> None:
-        """Initialize the intelligent search engine with question patterns."""
-        self.question_patterns = {
-            "what": "definition_or_description",
-            "when": "temporal",
-            "where": "location",
-            "who": "person_or_entity",
-            "why": "causation",
-            "how": "process_or_method",
-            "how_many": "quantity",
-            "how_much": "quantity",
-        }
-
-    def understand_question(self, question: str) -> dict[str, Any]:
-        """Analyze the question to understand what type of answer is needed."""
-        question_lower = question.lower()
-
-        analysis: dict[str, Any] = {
-            "question_type": "general",
-            "entities": [],
-            "temporal_context": None,
-            "expected_answer_type": "fact",
-            "confidence": 0.5,
-        }
-
-        # Determine question type
-        for pattern, q_type in self.question_patterns.items():
-            if pattern in question_lower:
-                analysis["question_type"] = q_type
-                analysis["expected_answer_type"] = q_type
-                break
-
-        # Extract entities (simplified)
-        words = question_lower.split()
-        analysis["entities"] = [
-            word
-            for word in words
-            if len(word) > 3
-            and word not in ["what", "when", "where", "who", "why", "how"]
-        ]
-
-        return analysis
-
-    def search_intelligently(self, question: str) -> dict[str, Any]:
-        """Perform intelligent search and answer synthesis."""
-        question_analysis = self.understand_question(question)
-
-        # Find relevant facts
-        relevant_facts = self._find_relevant_facts(question, question_analysis)
-
-        # Synthesize answer
-        answer = self._synthesize_answer(
-            question,
-            relevant_facts,
-            question_analysis,
+    """Enhanced fact processor with neural network verification and dispute system."""
+    
+    def __init__(self, node_id: str):
+        self.node_id = node_id
+        self.neural_verifier = NeuralFactVerifier()
+        self.dispute_system = DisputeSystem(node_id, self.neural_verifier)
+        self.processing_history = []
+        self.verification_threshold = 0.85
+        self.auto_dispute_threshold = 0.3  # If confidence is below this, auto-create dispute
+        
+    def process_fact(self, fact_content: str, sources: List[Dict[str, Any]], 
+                    metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Process a new fact through the enhanced verification pipeline."""
+        
+        start_time = time.time()
+        
+        # Create fact object
+        from axiom_server.ledger import Source
+        source_objects = [Source(domain=s.get('domain', '')) for s in sources]
+        fact = Fact(
+            content=fact_content,
+            sources=source_objects,
+            metadata=metadata or {},
+            status=FactStatus.INGESTED
         )
-
-        return {
-            "question": question,
-            "question_analysis": question_analysis,
-            "answer": answer["text"],
-            "confidence": answer["confidence"],
-            "supporting_facts": relevant_facts,
-            "answer_type": answer["type"],
+        
+        # Step 1: Neural Network Verification
+        neural_result = self.neural_verifier.verify_fact(fact)
+        
+        # Step 2: Traditional Verification
+        with SessionMaker() as session:
+            session.add(fact)
+            session.commit()
+            
+            # Get corroborating claims
+            corroborations = find_corroborating_claims(fact, session)
+            
+            # Verify citations
+            citations = verify_citations(fact)
+            
+            session.refresh(fact)
+        
+        # Step 3: Enhanced Analysis
+        enhanced_analysis = self._perform_enhanced_analysis(fact, neural_result, corroborations, citations)
+        
+        # Step 4: Determine Final Status
+        final_status = self._determine_final_status(neural_result, enhanced_analysis)
+        fact.status = final_status
+        
+        # Step 5: Check if dispute is needed
+        dispute_created = None
+        if neural_result['confidence'] < self.auto_dispute_threshold:
+            dispute_created = self._create_auto_dispute(fact, neural_result, enhanced_analysis)
+        
+        # Step 6: Update fact with results
+        fact.metadata = fact.metadata or {}
+        fact.metadata['neural_verification'] = neural_result
+        fact.metadata['enhanced_analysis'] = enhanced_analysis
+        fact.metadata['processing_timestamp'] = datetime.now(timezone.utc).isoformat()
+        fact.metadata['processor_node'] = self.node_id
+        
+        if dispute_created:
+            fact.metadata['auto_dispute_created'] = dispute_created['dispute_id']
+        
+        # Save final fact
+        with SessionMaker() as session:
+            session.merge(fact)
+            session.commit()
+            session.refresh(fact)
+        
+        processing_time = time.time() - start_time
+        
+        result = {
+            'fact_id': fact.id,
+            'status': fact.status.value,
+            'neural_verification': neural_result,
+            'enhanced_analysis': enhanced_analysis,
+            'corroborations_count': len(corroborations),
+            'citations_count': len(citations),
+            'processing_time': processing_time,
+            'dispute_created': dispute_created,
+            'timestamp': datetime.now(timezone.utc).isoformat()
         }
-
-    def _find_relevant_facts(
-        self,
-        question: str,
-        analysis: dict[str, Any],
-    ) -> list[dict[str, Any]]:
-        """Find facts relevant to the question using the existing hasher system."""
-        try:
-            # Import the existing hasher system
-            from axiom_server.hasher import FactIndexer
-            from axiom_server.ledger import SessionMaker
-
-            # Create a fact indexer instance with session
-            with SessionMaker() as session:
-                fact_indexer = FactIndexer(session)
-
-                # Use the existing search method
-                facts = fact_indexer.find_closest_facts(question, top_n=10)
-
-            logger.info(
-                f"Enhanced fact processor found {len(facts)} facts via hasher",
-            )
-            print(
-                f"Enhanced fact processor found {len(facts)} facts via hasher",
-            )  # Direct print
-
-            # Debug: log the first few facts
-            for i, fact in enumerate(facts[:3]):
-                logger.info(
-                    f"Fact {i}: {fact.get('content', 'NO CONTENT')[:100]}...",
-                )
-                print(
-                    f"Fact {i}: {fact.get('content', 'NO CONTENT')[:100]}...",
-                )  # Direct print
-
-            # Convert to the format expected by the enhanced processor
-            scored_facts = []
-            for fact in facts:
-                # The hasher returns dictionaries, not Fact objects
-                content = fact.get("content", "")
-                sources = fact.get("sources", [])
-                fact_id = fact.get("fact_id", 0)
-
-                relevance_score = self._calculate_relevance_dict(
-                    content,
-                    question,
-                    analysis,
-                )
-                if (
-                    relevance_score > 0.3
-                ):  # Higher threshold to filter out irrelevant facts
-                    scored_facts.append(
-                        {
-                            "relevance_score": relevance_score,
-                            "content": content,
-                            "sources": sources,
-                            "fact_id": fact_id,
-                        },
-                    )
-
-            # Sort by relevance
-            scored_facts.sort(key=lambda x: x["relevance_score"], reverse=True)
-            logger.info(
-                f"Enhanced fact processor returning {len(scored_facts)} scored facts",
-            )
-            print(
-                f"Enhanced fact processor returning {len(scored_facts)} scored facts",
-            )  # Direct print
-            return scored_facts[:5]  # Return top 5
-
-        except Exception as e:
-            logger.error(f"Enhanced fact processor error: {e}")
-            print(f"Enhanced fact processor error: {e}")  # Direct print
-            import traceback
-
-            traceback.print_exc()
-            return []
-
-    def _calculate_relevance(
-        self,
-        fact: Fact,
-        question: str,
-        analysis: dict[str, Any],
-    ) -> float:
-        """Calculate how relevant a fact is to the question."""
-        question_words = set(question.lower().split())
-        fact_words = set(fact.content.lower().split())
-
-        # Simple word overlap
-        overlap = len(question_words.intersection(fact_words))
-        total = len(question_words.union(fact_words))
-
-        if total == 0:
-            return 0.0
-
-        base_score = overlap / total
-
-        # Special handling for SEC company questions
-        if (
-            any(
-                word in question.lower()
-                for word in ["sec", "companies", "registered", "publicly"]
-            )
-            and "sec" in fact.content.lower()
-            and (
-                "inc" in fact.content.lower()
-                or "corporation" in fact.content.lower()
-            )
-        ):
-            base_score += 0.5  # Significant boost for SEC company facts
-
-        # Boost for question type matching
-        if (
-            analysis["question_type"] == "quantity"
-            and any(char.isdigit() for char in fact.content)
-        ) or (
-            analysis["question_type"] == "temporal"
-            and any(
-                word in fact.content.lower()
-                for word in ["today", "yesterday", "tomorrow", "date", "time"]
-            )
-        ):
-            base_score += 0.2
-
-        return min(1.0, base_score)
-
-    def _calculate_relevance_dict(
-        self,
-        fact_content: str,
-        question: str,
-        analysis: dict[str, Any],
-    ) -> float:
-        """Calculate how relevant a fact content string is to the question."""
-        question_words = set(question.lower().split())
-        fact_words = set(fact_content.lower().split())
-
-        # Simple word overlap
-        overlap = len(question_words.intersection(fact_words))
-        total = len(question_words.union(fact_words))
-
-        if total == 0:
-            return 0.0
-
-        base_score = overlap / total
-
-        # Special handling for SEC company questions - much more aggressive
-        if any(
-            word in question.lower()
-            for word in [
-                "sec",
-                "companies",
-                "registered",
-                "publicly",
-                "traded",
-            ]
-        ):
-            if "sec" in fact_content.lower():
-                base_score += 0.8  # Very significant boost for SEC facts
-                if any(
-                    company_word in fact_content.lower()
-                    for company_word in [
-                        "inc",
-                        "corporation",
-                        "company",
-                        "ltd",
-                    ]
-                ):
-                    base_score += 0.3  # Additional boost for company facts
-                # Penalize facts that don't contain company information
-                if not any(
-                    company_word in fact_content.lower()
-                    for company_word in [
-                        "inc",
-                        "corporation",
-                        "company",
-                        "ltd",
-                        "cik",
-                    ]
-                ):
-                    base_score -= 0.5  # Penalty for non-company SEC facts
-            elif any(
-                company_word in fact_content.lower()
-                for company_word in ["inc", "corporation", "company", "ltd"]
-            ):
-                base_score += 0.4  # Boost for company facts even without SEC
-
-        # Boost for question type matching
-        if (
-            analysis["question_type"] == "quantity"
-            and any(char.isdigit() for char in fact_content)
-        ) or (
-            analysis["question_type"] == "temporal"
-            and any(
-                word in fact_content.lower()
-                for word in ["today", "yesterday", "tomorrow", "date", "time"]
-            )
-        ):
-            base_score += 0.2
-
-        return min(1.0, base_score)
-
-    def _synthesize_answer(
-        self,
-        question: str,
-        facts: list[dict[str, Any]],
-        analysis: dict[str, Any],
-    ) -> dict[str, Any]:
-        """Synthesize an intelligent answer from relevant facts."""
-        if not facts:
+        
+        self.processing_history.append(result)
+        logger.info(f"Processed fact {fact.id} with status {fact.status.value}")
+        
+        return result
+    
+    def _perform_enhanced_analysis(self, fact: Fact, neural_result: Dict[str, Any], 
+                                 corroborations: List[Dict[str, Any]], 
+                                 citations: List[Dict[str, str]]) -> Dict[str, Any]:
+        """Perform enhanced analysis combining multiple verification methods."""
+        
+        analysis = {
+            'neural_confidence': neural_result['confidence'],
+            'neural_verified': neural_result['verified'],
+            'corroborations': {
+                'count': len(corroborations),
+                'avg_similarity': sum(c['similarity'] for c in corroborations) / max(len(corroborations), 1),
+                'sources': list(set(c['source'] for c in corroborations))
+            },
+            'citations': {
+                'count': len(citations),
+                'valid_count': sum(1 for c in citations if c.get('status') == 'valid'),
+                'invalid_count': sum(1 for c in citations if c.get('status') == 'invalid')
+            },
+            'source_analysis': self._analyze_sources(fact.sources),
+            'content_analysis': self._analyze_content(fact.content),
+            'overall_confidence': 0.0
+        }
+        
+        # Calculate overall confidence score
+        confidence_factors = []
+        
+        # Neural network confidence (weight: 0.4)
+        confidence_factors.append(neural_result['confidence'] * 0.4)
+        
+        # Corroboration strength (weight: 0.3)
+        corrob_strength = min(len(corroborations) * 0.1 + analysis['corroborations']['avg_similarity'] * 0.2, 1.0)
+        confidence_factors.append(corrob_strength * 0.3)
+        
+        # Citation validity (weight: 0.2)
+        citation_strength = analysis['citations']['valid_count'] / max(analysis['citations']['count'], 1)
+        confidence_factors.append(citation_strength * 0.2)
+        
+        # Source diversity (weight: 0.1)
+        source_strength = analysis['source_analysis']['diversity_score']
+        confidence_factors.append(source_strength * 0.1)
+        
+        analysis['overall_confidence'] = sum(confidence_factors)
+        
+        return analysis
+    
+    def _analyze_sources(self, sources: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Analyze the quality and diversity of sources."""
+        if not sources:
             return {
-                "text": "I don't have enough information to answer that question.",
-                "confidence": 0.0,
-                "type": "no_information",
+                'count': 0,
+                'diversity_score': 0.0,
+                'reliability_score': 0.0,
+                'domains': []
             }
-
-        # Get the most relevant fact
-        facts[0]
-
-        # Generate answer based on question type
-        if analysis["question_type"] == "quantity":
-            answer = self._generate_quantity_answer(question, facts)
-        elif analysis["question_type"] == "temporal":
-            answer = self._generate_temporal_answer(question, facts)
-        elif analysis["question_type"] == "person_or_entity":
-            answer = self._generate_entity_answer(question, facts)
+        
+        domains = [s.get('domain', '') for s in sources]
+        unique_domains = len(set(domains))
+        diversity_score = unique_domains / len(domains)
+        
+        # Simple reliability scoring based on domain patterns
+        reliable_domains = {
+            'reuters.com', 'ap.org', 'bbc.com', 'npr.org', 'nytimes.com',
+            'washingtonpost.com', 'wsj.com', 'economist.com', 'nature.com',
+            'science.org', 'arxiv.org', 'pubmed.ncbi.nlm.nih.gov'
+        }
+        
+        reliable_count = sum(1 for domain in domains if domain in reliable_domains)
+        reliability_score = reliable_count / len(domains)
+        
+        return {
+            'count': len(sources),
+            'diversity_score': diversity_score,
+            'reliability_score': reliability_score,
+            'domains': domains,
+            'reliable_domains_count': reliable_count
+        }
+    
+    def _analyze_content(self, content: str) -> Dict[str, Any]:
+        """Analyze the content quality and characteristics."""
+        words = content.split()
+        sentences = content.split('.')
+        
+        # Calculate readability (simplified Flesch score)
+        syllables = sum(self._count_syllables(word) for word in words)
+        if len(sentences) > 0 and len(words) > 0:
+            readability = 206.835 - 1.015 * (len(words) / len(sentences)) - 84.6 * (syllables / len(words))
         else:
-            answer = self._generate_general_answer(question, facts)
-
-        return answer
-
-    def _generate_quantity_answer(
-        self,
-        question: str,
-        facts: list[dict[str, Any]],
-    ) -> dict[str, Any]:
-        """Generate answer for quantity questions."""
-        # Extract numbers from facts
-        numbers = []
-        for fact in facts:
-            import re
-
-            matches = re.findall(r"\d+(?:\.\d+)?", fact["content"])
-            numbers.extend([float(match) for match in matches])
-
-        if numbers:
-            if "how many" in question.lower():
-                answer_text = f"Based on available information, the count is approximately {numbers[0]}."
-            else:
-                answer_text = f"The value is approximately {numbers[0]}."
-
-            return {"text": answer_text, "confidence": 0.7, "type": "quantity"}
-        return {
-            "text": "I couldn't find specific numerical information to answer your question.",
-            "confidence": 0.3,
-            "type": "no_quantity",
-        }
-
-    def _generate_temporal_answer(
-        self,
-        question: str,
-        facts: list[dict[str, Any]],
-    ) -> dict[str, Any]:
-        """Generate answer for temporal questions."""
-        # Look for date/time information in facts
-        temporal_keywords = [
-            "today",
-            "yesterday",
-            "tomorrow",
-            "recently",
-            "announced",
-            "reported",
+            readability = 0.0
+        
+        # Check for factual indicators
+        factual_indicators = [
+            'according to', 'study shows', 'research indicates', 'data shows',
+            'statistics', 'survey', 'analysis', 'report', 'findings'
         ]
-
-        for fact in facts:
-            fact_lower = fact["content"].lower()
-            for keyword in temporal_keywords:
-                if keyword in fact_lower:
-                    return {
-                        "text": f"This occurred {keyword} according to {fact['sources'][0] if fact['sources'] else 'available sources'}.",
-                        "confidence": 0.6,
-                        "type": "temporal",
-                    }
-
+        
+        factual_count = sum(1 for indicator in factual_indicators if indicator.lower() in content.lower())
+        
         return {
-            "text": "I couldn't find specific timing information for this question.",
-            "confidence": 0.3,
-            "type": "no_temporal",
+            'word_count': len(words),
+            'sentence_count': len(sentences),
+            'readability_score': readability,
+            'factual_indicators': factual_count,
+            'avg_sentence_length': len(words) / max(len(sentences), 1)
         }
-
-    def _generate_entity_answer(
-        self,
-        question: str,
-        facts: list[dict[str, Any]],
-    ) -> dict[str, Any]:
-        """Generate answer for entity questions."""
-        # Extract entity information from the most relevant fact
-        top_fact = facts[0]
-
-        # Simple entity extraction (in a real system, you'd use NER)
-        words = top_fact["content"].split()
-        entities = [
-            word for word in words if word[0].isupper() and len(word) > 2
-        ]
-
-        if entities:
-            return {
-                "text": f"According to {top_fact['sources'][0] if top_fact['sources'] else 'available sources'}, {entities[0]} is mentioned in relation to this topic.",
-                "confidence": 0.6,
-                "type": "entity",
-            }
-
-        return {
-            "text": "I couldn't identify specific entities related to your question.",
-            "confidence": 0.3,
-            "type": "no_entity",
-        }
-
-    def _generate_general_answer(
-        self,
-        question: str,
-        facts: list[dict[str, Any]],
-    ) -> dict[str, Any]:
-        """Generate general answer from facts."""
-        if not facts:
-            return {
-                "text": "I don't have enough information to answer that question.",
-                "confidence": 0.0,
-                "type": "no_information",
-            }
-
-        # Special handling for SEC company questions
-        if any(
-            word in question.lower()
-            for word in ["sec", "companies", "registered", "publicly"]
-        ):
-            sec_facts = [f for f in facts if "sec" in f["content"].lower()]
-            if sec_facts:
-                company_names = []
-                for fact in sec_facts:
-                    # Extract company name from fact content
-                    content = fact["content"]
-                    if "inc." in content or "corporation" in content:
-                        # Extract the company name part
-                        parts = content.split("(")[0].strip()
-                        company_names.append(parts)
-
-                if company_names:
-                    answer_text = f"The following companies are registered with the SEC: {', '.join(company_names)}."
-                    return {
-                        "text": answer_text,
-                        "confidence": 0.9,
-                        "type": "company_list",
-                    }
-
-        # For other questions, return the most relevant fact
-        if len(facts) >= 2:
-            # Multiple sources support the answer
-            answer_text = f"Based on multiple sources including {facts[0]['sources'][0] if facts[0]['sources'] else 'available sources'}, {facts[0]['content']}"
-            confidence = 0.8
+    
+    def _count_syllables(self, word: str) -> int:
+        """Count syllables in a word."""
+        word = word.lower()
+        count = 0
+        vowels = "aeiouy"
+        on_vowel = False
+        
+        for char in word:
+            is_vowel = char in vowels
+            if is_vowel and not on_vowel:
+                count += 1
+            on_vowel = is_vowel
+            
+        if word.endswith('e'):
+            count -= 1
+        return max(count, 1)
+    
+    def _determine_final_status(self, neural_result: Dict[str, Any], 
+                              enhanced_analysis: Dict[str, Any]) -> FactStatus:
+        """Determine the final status of a fact based on all verification results."""
+        
+        overall_confidence = enhanced_analysis['overall_confidence']
+        
+        if overall_confidence >= 0.9:
+            return FactStatus.EMPIRICALLY_VERIFIED
+        elif overall_confidence >= 0.8:
+            return FactStatus.CORROBORATED
+        elif overall_confidence >= 0.6:
+            return FactStatus.LOGICALLY_CONSISTENT
+        elif overall_confidence >= 0.4:
+            return FactStatus.PROPOSED
         else:
-            # Single source
-            answer_text = f"According to {facts[0]['sources'][0] if facts[0]['sources'] else 'available sources'}, {facts[0]['content']}"
-            confidence = 0.6
-
+            return FactStatus.INGESTED
+    
+    def _create_auto_dispute(self, fact: Fact, neural_result: Dict[str, Any], 
+                           enhanced_analysis: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Automatically create a dispute for low-confidence facts."""
+        
+        reason = f"Auto-dispute: Low confidence score ({neural_result['confidence']:.3f}) and overall confidence ({enhanced_analysis['overall_confidence']:.3f})"
+        
+        evidence = DisputeEvidence(
+            node_id=self.node_id,
+            evidence_type="neural_verification",
+            evidence_content=f"Neural network confidence: {neural_result['confidence']:.3f}, Overall confidence: {enhanced_analysis['overall_confidence']:.3f}",
+            confidence_score=1.0 - neural_result['confidence']  # Inverse confidence as evidence strength
+        )
+        
+        dispute = self.dispute_system.create_dispute(
+            fact_id=fact.id,
+            reason=reason,
+            evidence=[evidence]
+        )
+        
+        # Broadcast dispute to network
+        broadcast_result = self.dispute_system.broadcast_dispute(dispute)
+        
+        logger.info(f"Auto-created dispute {dispute.dispute_id} for fact {fact.id}")
+        
         return {
-            "text": answer_text,
-            "confidence": confidence,
-            "type": "general",
+            'dispute_id': dispute.dispute_id,
+            'reason': reason,
+            'broadcast_result': broadcast_result
         }
+    
+    def review_fact(self, fact_id: str, review_decision: str, 
+                   reasoning: str, confidence: float = 0.8) -> Dict[str, Any]:
+        """Review a fact and potentially update its status."""
+        
+        with SessionMaker() as session:
+            fact = session.query(Fact).filter(Fact.id == fact_id).first()
+            if not fact:
+                return {'error': 'Fact not found'}
+            
+            if review_decision == 'dispute':
+                # Create manual dispute
+                evidence = DisputeEvidence(
+                    node_id=self.node_id,
+                    evidence_type="manual_review",
+                    evidence_content=reasoning,
+                    confidence_score=confidence
+                )
+                
+                dispute = self.dispute_system.create_dispute(
+                    fact_id=fact_id,
+                    reason=f"Manual review: {reasoning}",
+                    evidence=[evidence]
+                )
+                
+                # Broadcast dispute
+                broadcast_result = self.dispute_system.broadcast_dispute(dispute)
+                
+                return {
+                    'action': 'dispute_created',
+                    'dispute_id': dispute.dispute_id,
+                    'broadcast_result': broadcast_result
+                }
+            
+            elif review_decision == 'verify':
+                # Update fact status to verified
+                fact.status = FactStatus.CORROBORATED
+                fact.metadata = fact.metadata or {}
+                fact.metadata['manual_verification'] = {
+                    'reviewer': self.node_id,
+                    'reasoning': reasoning,
+                    'confidence': confidence,
+                    'timestamp': datetime.now(timezone.utc).isoformat()
+                }
+                
+                session.commit()
+                
+                return {
+                    'action': 'fact_verified',
+                    'new_status': fact.status.value,
+                    'fact_id': fact_id
+                }
+            
+            elif review_decision == 'reject':
+                # Mark fact as disputed
+                fact.status = FactStatus.INGESTED
+                fact.metadata = fact.metadata or {}
+                fact.metadata['manual_rejection'] = {
+                    'reviewer': self.node_id,
+                    'reasoning': reasoning,
+                    'timestamp': datetime.now(timezone.utc).isoformat()
+                }
+                
+                session.commit()
+                
+                return {
+                    'action': 'fact_rejected',
+                    'new_status': fact.status.value,
+                    'fact_id': fact_id
+                }
+        
+        return {'error': 'Invalid review decision'}
+    
+    def get_processing_statistics(self) -> Dict[str, Any]:
+        """Get statistics about fact processing."""
+        if not self.processing_history:
+            return {'status': 'No processing history available'}
+        
+        total_processed = len(self.processing_history)
+        status_counts = {}
+        avg_confidence = 0.0
+        avg_processing_time = 0.0
+        
+        for result in self.processing_history:
+            status = result['status']
+            status_counts[status] = status_counts.get(status, 0) + 1
+            
+            neural_conf = result['neural_verification']['confidence']
+            avg_confidence += neural_conf
+            
+            avg_processing_time += result['processing_time']
+        
+        avg_confidence /= total_processed
+        avg_processing_time /= total_processed
+        
+        disputes_created = sum(1 for r in self.processing_history if r.get('dispute_created'))
+        
+        return {
+            'total_facts_processed': total_processed,
+            'status_distribution': status_counts,
+            'average_neural_confidence': avg_confidence,
+            'average_processing_time': avg_processing_time,
+            'auto_disputes_created': disputes_created,
+            'neural_verifier_metrics': self.neural_verifier.get_performance_metrics(),
+            'dispute_statistics': self.dispute_system.get_dispute_statistics()
+        }
+    
+    def train_neural_verifier(self, training_data: List[Tuple[str, int]]) -> Dict[str, Any]:
+        """Train the neural verifier with new data."""
+        # This would require getting Fact objects from the ledger
+        # For now, we'll create a simplified training interface
+        
+        facts = []
+        labels = []
+        
+        with SessionMaker() as session:
+            for fact_content, label in training_data:
+                # Find or create fact
+                fact = session.query(Fact).filter(Fact.content == fact_content).first()
+                if not fact:
+                    fact = Fact(content=fact_content, status=FactStatus.INGESTED)
+                    session.add(fact)
+                    session.commit()
+                
+                facts.append(fact)
+                labels.append(label)
+        
+        if facts:
+            return self.neural_verifier.train_on_facts(facts, labels)
+        else:
+            return {'error': 'No valid training data provided'}
+    
+    def export_processing_data(self, filepath: str) -> None:
+        """Export processing data for analysis."""
+        data = {
+            'processing_history': self.processing_history,
+            'neural_verifier_history': self.neural_verifier.get_verification_history(),
+            'dispute_statistics': self.dispute_system.get_dispute_statistics(),
+            'node_id': self.node_id,
+            'export_timestamp': datetime.now(timezone.utc).isoformat()
+        }
+        
+        with open(filepath, 'w') as f:
+            json.dump(data, f, indent=2)
+        
+        logger.info(f"Processing data exported to {filepath}")

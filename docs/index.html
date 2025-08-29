@@ -6,45 +6,53 @@
     <title>Axiom - Intelligent Truth Engine</title>
     <style>
         :root {
-            --background-color: #0a0a0a;
-            --text-color: #EAEAEA;
-            --primary-color: #00BFFF;
-            --secondary-color: #333333;
-            --card-color: #1E1E1E;
-            --success-color: #2E7D32;
-            --warning-color: #FF9800;
-            --error-color: #C62828;
-            --confidence-high: #4CAF50;
-            --confidence-medium: #FF9800;
-            --confidence-low: #F44336;
+            --background-color: #0f0f23;
+            --text-color: #ffffff;
+            --primary-color: #6366f1;
+            --secondary-color: #1e1e2e;
+            --card-color: #1a1a2e;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --error-color: #ef4444;
+            --confidence-high: #10b981;
+            --confidence-medium: #f59e0b;
+            --confidence-low: #ef4444;
+            --border-radius: 16px;
+            --shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--background-color);
+            background: linear-gradient(135deg, var(--background-color) 0%, #1a1a2e 100%);
             color: var(--text-color);
             margin: 0;
             padding: 0;
             line-height: 1.6;
+            min-height: 100vh;
         }
         
         .container {
-            max-width: 1000px;
-            width: 90%;
-            margin: 2rem auto;
-            padding: 1rem;
+            max-width: 1200px;
+            width: 95%;
+            margin: 0 auto;
+            padding: 2rem 1rem;
         }
         
         header {
             text-align: center;
-            padding: 3rem 1rem;
-            border-bottom: 1px solid var(--secondary-color);
+            padding: 2rem 1rem 3rem;
+            margin-bottom: 2rem;
         }
         
         header h1 {
-            font-size: 3rem;
-            color: var(--text-color);
+            font-size: 4rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary-color), #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             margin: 0;
+            letter-spacing: -0.02em;
         }
         
         header h1 span {
@@ -52,58 +60,67 @@
         }
         
         header p {
-            font-size: 1.1rem;
-            color: #AAAAAA;
-            margin-top: 0.5rem;
+            font-size: 1.2rem;
+            color: #94a3b8;
+            margin-top: 1rem;
+            font-weight: 500;
         }
         
         .search-section {
-            background-color: var(--card-color);
-            border-radius: 12px;
-            padding: 2rem;
+            background: rgba(26, 26, 46, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--border-radius);
+            padding: 2.5rem;
             margin: 2rem 0;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            box-shadow: var(--shadow);
         }
         
         .search-input {
             width: 100%;
-            padding: 1rem;
+            padding: 1.25rem 1.5rem;
             font-size: 1.1rem;
-            border-radius: 8px;
-            border: 2px solid var(--secondary-color);
-            background-color: #2c2c2c;
+            border-radius: var(--border-radius);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
             color: var(--text-color);
             box-sizing: border-box;
-            margin-bottom: 1rem;
-            transition: border-color 0.3s ease;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
         }
         
         .search-input:focus {
             outline: none;
             border-color: var(--primary-color);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
         }
         
         .search-button {
-            width: 100%;
-            padding: 1rem;
-            font-size: 1.1rem;
-            font-weight: bold;
-            background-color: var(--primary-color);
-            color: var(--background-color);
+            padding: 1rem 2rem;
+            font-size: 1rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, var(--primary-color), #8b5cf6);
+            color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: var(--border-radius);
             cursor: pointer;
-            transition: transform 0.2s ease;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.3);
+            min-width: 140px;
         }
         
         .search-button:hover {
             transform: translateY(-2px);
+            box-shadow: 0 8px 25px 0 rgba(99, 102, 241, 0.4);
         }
         
         .search-button:disabled {
             opacity: 0.6;
             cursor: not-allowed;
             transform: none;
+            box-shadow: none;
         }
         
         .results-section {
@@ -111,21 +128,24 @@
         }
         
         .answer-card {
-            background-color: var(--card-color);
-            border-radius: 12px;
-            padding: 2rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            background: rgba(26, 26, 46, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--border-radius);
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
             border-left: 4px solid var(--primary-color);
         }
         
         .confidence-indicator {
             display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            margin-bottom: 1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
         
         .confidence-high {
@@ -144,16 +164,18 @@
         }
         
         .answer-text {
-            font-size: 1.2rem;
-            line-height: 1.6;
-            margin-bottom: 1.5rem;
+            font-size: 1.125rem;
+            line-height: 1.7;
+            margin-bottom: 2rem;
+            color: #e2e8f0;
         }
         
         .sources-section {
-            background-color: #2a2a2a;
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-top: 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-top: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
         
         .sources-title {
@@ -164,11 +186,17 @@
         }
         
         .source-item {
-            background-color: #333;
-            border-radius: 6px;
-            padding: 1rem;
-            margin-bottom: 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 1rem;
             border-left: 3px solid var(--primary-color);
+            transition: all 0.3s ease;
+        }
+        
+        .source-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateX(4px);
         }
         
         .source-domain {
@@ -227,12 +255,13 @@
         
         .status-bar {
             text-align: center;
-            padding: 1rem;
-            background-color: var(--card-color);
-            border-radius: 8px;
-            margin-top: 2rem;
+            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: var(--border-radius);
+            margin-top: 3rem;
             font-size: 0.9rem;
-            color: #888;
+            color: #94a3b8;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
         
         .status-indicator {
@@ -255,6 +284,82 @@
             margin-bottom: 1rem;
             border-left: 3px solid var(--warning-color);
         }
+        
+        .neural-verification {
+            background-color: #1a2e1a;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 3px solid var(--success-color);
+        }
+        
+        .dispute-section {
+            background-color: #2e1a1a;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            border-left: 3px solid var(--warning-color);
+        }
+        
+        .dispute-form {
+            display: grid;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .dispute-input {
+            padding: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid var(--secondary-color);
+            background-color: #2c2c2c;
+            color: var(--text-color);
+        }
+        
+        .dispute-textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        
+        .neural-confidence {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-left: 0.5rem;
+        }
+        
+        .fact-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .action-button {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            border: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .action-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .verify-button {
+            background-color: var(--success-color);
+            color: white;
+        }
+        
+        .dispute-fact-button {
+            background-color: var(--warning-color);
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -268,7 +373,32 @@
             <input type="text" id="question-input" class="search-input" 
                    placeholder="Ask a question... (e.g., 'What companies are registered with the SEC?' or 'How many people were affected?')" 
                    autocomplete="off">
-            <button id="ask-button" class="search-button">Ask Axiom</button>
+            <div style="display: grid; grid-template-columns: 1fr auto auto; gap: 1rem; margin-top: 1.5rem;">
+                <button id="ask-button" class="search-button" style="width: 100%;">
+                    Ask Axiom
+                </button>
+                <button id="neural-verify-button" class="search-button" style="background: linear-gradient(135deg, var(--success-color), #059669);">
+                    🧠 Neural Verify
+                </button>
+                <button id="dispute-button" class="search-button" style="background: linear-gradient(135deg, var(--warning-color), #d97706);">
+                    ⚖️ Dispute
+                </button>
+            </div>
+        </div>
+
+        <!-- Neural Network Status Panel -->
+        <div id="neural-status" class="search-section" style="display: none;">
+            <h3 style="color: var(--primary-color); margin-top: 0; font-size: 1.5rem; font-weight: 600;">🧠 Neural Network Status</h3>
+            <div id="neural-metrics" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
+                <div style="background: rgba(255, 255, 255, 0.05); padding: 1.5rem; border-radius: var(--border-radius); border: 1px solid rgba(255, 255, 255, 0.1);">
+                    <div style="font-weight: 600; color: var(--primary-color); margin-bottom: 0.5rem;">Model Status</div>
+                    <div id="model-status" style="color: #94a3b8;">Loading...</div>
+                </div>
+                <div style="background: rgba(255, 255, 255, 0.05); padding: 1.5rem; border-radius: var(--border-radius); border: 1px solid rgba(255, 255, 255, 0.1);">
+                    <div style="font-weight: 600; color: var(--primary-color); margin-bottom: 0.5rem;">Processing Stats</div>
+                    <div id="processing-stats" style="color: #94a3b8;">Loading...</div>
+                </div>
+            </div>
         </div>
 
         <div id="results-section" class="results-section" style="display: none;">
@@ -287,9 +417,84 @@
         
         const questionInput = document.getElementById('question-input');
         const askButton = document.getElementById('ask-button');
+        const neuralVerifyButton = document.getElementById('neural-verify-button');
+        const disputeButton = document.getElementById('dispute-button');
         const resultsSection = document.getElementById('results-section');
         const statusIndicator = document.getElementById('status-indicator');
         const statusText = document.getElementById('status-text');
+        const neuralStatus = document.getElementById('neural-status');
+        const modelStatus = document.getElementById('model-status');
+        const processingStats = document.getElementById('processing-stats');
+
+        // Check neural network performance
+        async function checkNeuralPerformance() {
+            try {
+                const response = await fetch(`${AXIOM_NODE_URL}/neural/performance`, {
+                    headers: { 'ngrok-skip-browser-warning': 'true' }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    neuralStatus.style.display = 'block';
+                    modelStatus.textContent = data.neural_metrics.status || 'Active';
+                    processingStats.textContent = data.processing_stats ? 
+                        `Processed: ${data.processing_stats.total_facts || 0}` : 'No data';
+                }
+            } catch (error) {
+                console.log('Neural performance check failed:', error);
+            }
+        }
+
+        // Neural verification function
+        async function neuralVerifyFact(factContent, sources) {
+            try {
+                const response = await fetch(`${AXIOM_NODE_URL}/neural/verify_fact`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'ngrok-skip-browser-warning': 'true'
+                    },
+                    body: JSON.stringify({
+                        content: factContent,
+                        sources: sources
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.verification_result;
+                }
+            } catch (error) {
+                console.error('Neural verification failed:', error);
+            }
+            return null;
+        }
+
+        // Create dispute function
+        async function createDispute(factId, reason, evidence) {
+            try {
+                const response = await fetch(`${AXIOM_NODE_URL}/dispute/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'ngrok-skip-browser-warning': 'true'
+                    },
+                    body: JSON.stringify({
+                        fact_id: factId,
+                        reason: reason,
+                        evidence: evidence
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    return data;
+                }
+            } catch (error) {
+                console.error('Dispute creation failed:', error);
+            }
+            return null;
+        }
 
         // Check connection status
         async function checkConnection() {
@@ -411,6 +616,8 @@
 
             data.supporting_facts.forEach((fact, index) => {
                 const relevancePercent = Math.round(fact.relevance_score * 100);
+                const factId = fact.id || `fact_${index}`;
+                
                 html += `
                     <div class="source-item">
                         <div class="source-domain">
@@ -418,9 +625,18 @@
                             <span style="color: #888; font-size: 0.8rem;">
                                 (Relevance: ${relevancePercent}%)
                             </span>
+                            <span id="neural-confidence-${index}" class="neural-confidence" style="display: none;"></span>
                         </div>
                         <div class="source-content">
                             "${fact.content}"
+                        </div>
+                        <div class="fact-actions">
+                            <button class="action-button verify-button" onclick="verifyFact('${factId}', '${fact.content.replace(/'/g, "\\'")}', ${JSON.stringify(fact.sources).replace(/"/g, '&quot;')})">
+                                🧠 Neural Verify
+                            </button>
+                            <button class="action-button dispute-fact-button" onclick="showDisputeForm('${factId}', '${fact.content.replace(/'/g, "\\'")}')">
+                                ⚖️ Dispute
+                            </button>
                         </div>
                     </div>
                 `;
@@ -512,17 +728,233 @@
             return 'Low Confidence';
         }
 
+        // Global functions for neural verification and disputes
+        async function verifyFact(factId, factContent, sources) {
+            const button = event.target;
+            const originalText = button.textContent;
+            button.textContent = 'Verifying...';
+            button.disabled = true;
+
+            try {
+                const result = await neuralVerifyFact(factContent, sources);
+                if (result) {
+                    const confidenceClass = getConfidenceClass(result.confidence);
+                    const confidenceText = getConfidenceText(result.confidence);
+                    
+                    // Find the confidence indicator for this fact
+                    const factIndex = factId.replace('fact_', '');
+                    const confidenceSpan = document.getElementById(`neural-confidence-${factIndex}`);
+                    if (confidenceSpan) {
+                        confidenceSpan.textContent = `🧠 ${confidenceText} (${Math.round(result.confidence * 100)}%)`;
+                        confidenceSpan.className = `neural-confidence ${confidenceClass}`;
+                        confidenceSpan.style.display = 'inline-block';
+                    }
+                    
+                    // Show verification result
+                    alert(`Neural Verification Result:\n\nConfidence: ${confidenceText} (${Math.round(result.confidence * 100)}%)\nVerified: ${result.verified ? 'Yes' : 'No'}\nModel: ${result.model_used}`);
+                }
+            } catch (error) {
+                alert('Neural verification failed. Please try again.');
+            } finally {
+                button.textContent = originalText;
+                button.disabled = false;
+            }
+        }
+
+        function showDisputeForm(factId, factContent) {
+            const disputeHtml = `
+                <div class="dispute-section">
+                    <h4>⚖️ Dispute Fact</h4>
+                    <p><strong>Fact:</strong> "${factContent}"</p>
+                    <div class="dispute-form">
+                        <input type="text" id="dispute-reason" class="dispute-input" placeholder="Reason for dispute...">
+                        <textarea id="dispute-evidence" class="dispute-input dispute-textarea" placeholder="Provide evidence or reasoning for your dispute..."></textarea>
+                        <div style="display: flex; gap: 1rem;">
+                            <button onclick="submitDispute('${factId}')" class="action-button verify-button">Submit Dispute</button>
+                            <button onclick="cancelDispute()" class="action-button dispute-fact-button">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add dispute form to the results section
+            resultsSection.insertAdjacentHTML('beforeend', disputeHtml);
+        }
+
+        async function submitDispute(factId) {
+            const reason = document.getElementById('dispute-reason').value.trim();
+            const evidence = document.getElementById('dispute-evidence').value.trim();
+            
+            if (!reason) {
+                alert('Please provide a reason for the dispute.');
+                return;
+            }
+            
+            try {
+                const evidenceData = [{
+                    node_id: 'web_interface',
+                    evidence_type: 'user_dispute',
+                    evidence_content: evidence,
+                    confidence_score: 0.8
+                }];
+                
+                const result = await createDispute(factId, reason, evidenceData);
+                if (result) {
+                    alert(`Dispute submitted successfully!\n\nDispute ID: ${result.dispute_id}\nStatus: Submitted for network review`);
+                    cancelDispute();
+                } else {
+                    alert('Failed to submit dispute. Please try again.');
+                }
+            } catch (error) {
+                alert('Error submitting dispute. Please try again.');
+            }
+        }
+
+        function cancelDispute() {
+            const disputeSection = document.querySelector('.dispute-section');
+            if (disputeSection) {
+                disputeSection.remove();
+            }
+        }
+
         // Event listeners
         askButton.addEventListener('click', askQuestion);
+        neuralVerifyButton.addEventListener('click', () => {
+            const question = questionInput.value.trim();
+            if (question) {
+                askQuestionWithNeuralVerification();
+            } else {
+                alert('Please enter a question first.');
+            }
+        });
+        disputeButton.addEventListener('click', () => {
+            alert('To dispute a fact, first ask a question and then use the "Dispute" button on any fact in the results.');
+        });
         questionInput.addEventListener('keypress', (event) => {
             if (event.key === 'Enter') {
                 askQuestion();
             }
         });
 
+        // Enhanced question asking with neural verification
+        async function askQuestionWithNeuralVerification() {
+            const question = questionInput.value.trim();
+            if (!question) return;
+
+            askButton.disabled = true;
+            neuralVerifyButton.disabled = true;
+            neuralVerifyButton.textContent = 'Analyzing with Neural Network...';
+            
+            resultsSection.style.display = 'block';
+            resultsSection.innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>🧠 Using neural network to analyze your question and verify facts...</p>
+                </div>
+            `;
+
+            try {
+                // Try enhanced fact processing first
+                let response = await fetch(`${AXIOM_NODE_URL}/neural/process_fact`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'ngrok-skip-browser-warning': 'true'
+                    },
+                    body: JSON.stringify({
+                        content: question,
+                        sources: [{'domain': 'user_question'}],
+                        metadata: {'question_type': 'user_query'}
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    displayNeuralProcessedAnswer(data, question);
+                    return;
+                }
+
+                // Fallback to regular enhanced chat
+                response = await fetch(`${AXIOM_NODE_URL}/enhanced_chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'ngrok-skip-browser-warning': 'true'
+                    },
+                    body: JSON.stringify({ 
+                        question: question,
+                        use_intelligent_search: true
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    displayIntelligentAnswer(data);
+                } else {
+                    throw new Error(`Server responded with status: ${response.status}`);
+                }
+
+            } catch (error) {
+                resultsSection.innerHTML = `
+                    <div class="error-message">
+                        <strong>Error:</strong> Could not get neural network analysis from Axiom network. 
+                        Please ensure the Axiom node is running with neural network support.
+                        <br><br>
+                        <em>${error.message}</em>
+                    </div>
+                `;
+            } finally {
+                askButton.disabled = false;
+                neuralVerifyButton.disabled = false;
+                neuralVerifyButton.textContent = '🧠 Neural Verify';
+            }
+        }
+
+        function displayNeuralProcessedAnswer(data, question) {
+            const result = data.processing_result;
+            const confidenceClass = getConfidenceClass(result.neural_verification.confidence);
+            const confidenceText = getConfidenceText(result.neural_verification.confidence);
+            
+            let html = `
+                <div class="answer-card">
+                    <div class="neural-verification">
+                        <strong>🧠 Neural Network Analysis</strong><br>
+                        Confidence: <span class="${confidenceClass}">${confidenceText} (${Math.round(result.neural_verification.confidence * 100)}%)</span><br>
+                        Status: ${result.status}<br>
+                        Processing Time: ${result.processing_time}s
+                    </div>
+                    
+                    <div class="answer-text">
+                        <strong>Question:</strong> ${question}<br><br>
+                        <strong>Analysis:</strong> ${result.analysis || 'No analysis available'}
+                    </div>
+                    
+                    <div class="sources-section">
+                        <div class="sources-title">
+                            Neural Network Verification Results
+                        </div>
+                        <div class="source-item">
+                            <div class="source-domain">
+                                Neural Verification
+                            </div>
+                            <div class="source-content">
+                                Model: ${result.neural_verification.model_used}<br>
+                                Confidence: ${Math.round(result.neural_verification.confidence * 100)}%<br>
+                                Verified: ${result.neural_verification.verified ? 'Yes' : 'No'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            resultsSection.innerHTML = html;
+        }
+
         // Initialize
         checkConnection();
+        checkNeuralPerformance();
         setInterval(checkConnection, 30000); // Check every 30 seconds
+        setInterval(checkNeuralPerformance, 60000); // Check neural performance every minute
     </script>
 </body>
 </html>
