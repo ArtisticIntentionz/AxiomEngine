@@ -502,18 +502,29 @@ class NeuralFactVerifier:
 
     def get_performance_metrics(self) -> Dict[str, Any]:
         """Get current performance metrics."""
+        # Always provide a status, even if no training history
         if not self.accuracy_history:
-            return {"status": "No training history available"}
-
+            return {
+                'status': 'Active - Ready for verification',
+                'model_loaded': self.model is not None,
+                'total_verifications': len(self.verification_history),
+                'confidence_threshold': self.confidence_threshold,
+                'last_verification': self.verification_history[-1]['timestamp'] if self.verification_history else None,
+                'training_required': len(self.verification_history) < 10
+            }
+        
         latest = self.accuracy_history[-1]
         return {
-            "current_accuracy": latest["accuracy"],
-            "current_precision": latest["precision"],
-            "current_recall": latest["recall"],
-            "current_f1": latest["f1"],
-            "total_verifications": len(self.verification_history),
-            "training_sessions": len(self.accuracy_history),
-            "last_training": latest["timestamp"],
+            'status': 'Trained and Active',
+            'current_accuracy': latest['accuracy'],
+            'current_precision': latest['precision'],
+            'current_recall': latest['recall'],
+            'current_f1': latest['f1'],
+            'total_verifications': len(self.verification_history),
+            'training_sessions': len(self.accuracy_history),
+            'last_training': latest['timestamp'],
+            'model_loaded': self.model is not None,
+            'confidence_threshold': self.confidence_threshold
         }
 
     def update_confidence_threshold(self, new_threshold: float) -> None:

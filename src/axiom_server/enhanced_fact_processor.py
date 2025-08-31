@@ -435,8 +435,13 @@ class EnhancedFactProcessor:
     def get_processing_statistics(self) -> Dict[str, Any]:
         """Get statistics about fact processing."""
         if not self.processing_history:
-            return {"status": "No processing history available"}
-
+            return {
+                'status': 'Ready for processing',
+                'total_facts_processed': 0,
+                'neural_verifier_status': self.neural_verifier.get_performance_metrics(),
+                'dispute_system_status': self.dispute_system.get_dispute_statistics()
+            }
+        
         total_processed = len(self.processing_history)
         status_counts = {}
         avg_confidence = 0.0
@@ -459,13 +464,14 @@ class EnhancedFactProcessor:
         )
 
         return {
-            "total_facts_processed": total_processed,
-            "status_distribution": status_counts,
-            "average_neural_confidence": avg_confidence,
-            "average_processing_time": avg_processing_time,
-            "auto_disputes_created": disputes_created,
-            "neural_verifier_metrics": self.neural_verifier.get_performance_metrics(),
-            "dispute_statistics": self.dispute_system.get_dispute_statistics(),
+            'status': 'Active - Processing facts',
+            'total_facts_processed': total_processed,
+            'status_distribution': status_counts,
+            'average_neural_confidence': avg_confidence,
+            'average_processing_time': avg_processing_time,
+            'auto_disputes_created': disputes_created,
+            'neural_verifier_metrics': self.neural_verifier.get_performance_metrics(),
+            'dispute_statistics': self.dispute_system.get_dispute_statistics()
         }
 
     def train_neural_verifier(

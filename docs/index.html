@@ -413,8 +413,7 @@
 
     <script>
         // Use ngrok URL for external access
-        const AXIOM_NODE_URL = 'https://d089f71ab6a5.ngrok-free.app';
-
+        const AXIOM_NODE_URL = 'https://fb1a98e25be8.ngrok-free.app';
         const questionInput = document.getElementById('question-input');
         const askButton = document.getElementById('ask-button');
         const neuralVerifyButton = document.getElementById('neural-verify-button');
@@ -430,7 +429,9 @@
         async function checkNeuralPerformance() {
             try {
                 const response = await fetch(`${AXIOM_NODE_URL}/neural/performance`, {
-                    headers: { 'ngrok-skip-browser-warning': 'true' }
+                    headers: {
+                        'ngrok-skip-browser-warning': 'true'
+                    }
                 });
 
                 if (response.ok) {
@@ -500,7 +501,9 @@
         async function checkConnection() {
             try {
                 const response = await fetch(`${AXIOM_NODE_URL}/status`, {
-                    headers: { 'ngrok-skip-browser-warning': 'true' }
+                    headers: {
+                        'ngrok-skip-browser-warning': 'true'
+                    }
                 });
 
                 if (response.ok) {
