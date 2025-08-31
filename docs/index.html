@@ -20,7 +20,7 @@
             --border-radius: 16px;
             --shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
-        
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background: linear-gradient(135deg, var(--background-color) 0%, #1a1a2e 100%);
@@ -30,20 +30,20 @@
             line-height: 1.6;
             min-height: 100vh;
         }
-        
+
         .container {
             max-width: 1200px;
             width: 95%;
             margin: 0 auto;
             padding: 2rem 1rem;
         }
-        
+
         header {
             text-align: center;
             padding: 2rem 1rem 3rem;
             margin-bottom: 2rem;
         }
-        
+
         header h1 {
             font-size: 4rem;
             font-weight: 800;
@@ -54,18 +54,18 @@
             margin: 0;
             letter-spacing: -0.02em;
         }
-        
+
         header h1 span {
             color: var(--primary-color);
         }
-        
+
         header p {
             font-size: 1.2rem;
             color: #94a3b8;
             margin-top: 1rem;
             font-weight: 500;
         }
-        
+
         .search-section {
             background: rgba(26, 26, 46, 0.8);
             backdrop-filter: blur(20px);
@@ -75,7 +75,7 @@
             margin: 2rem 0;
             box-shadow: var(--shadow);
         }
-        
+
         .search-input {
             width: 100%;
             padding: 1.25rem 1.5rem;
@@ -89,14 +89,14 @@
             transition: all 0.3s ease;
             backdrop-filter: blur(10px);
         }
-        
+
         .search-input:focus {
             outline: none;
             border-color: var(--primary-color);
             background: rgba(255, 255, 255, 0.08);
             box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
         }
-        
+
         .search-button {
             padding: 1rem 2rem;
             font-size: 1rem;
@@ -110,23 +110,23 @@
             box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.3);
             min-width: 140px;
         }
-        
+
         .search-button:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 25px 0 rgba(99, 102, 241, 0.4);
         }
-        
+
         .search-button:disabled {
             opacity: 0.6;
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
         }
-        
+
         .results-section {
             margin-top: 2rem;
         }
-        
+
         .answer-card {
             background: rgba(26, 26, 46, 0.8);
             backdrop-filter: blur(20px);
@@ -137,7 +137,7 @@
             box-shadow: var(--shadow);
             border-left: 4px solid var(--primary-color);
         }
-        
+
         .confidence-indicator {
             display: inline-block;
             padding: 0.5rem 1rem;
@@ -147,29 +147,29 @@
             margin-bottom: 1.5rem;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
-        
+
         .confidence-high {
             background-color: var(--confidence-high);
             color: white;
         }
-        
+
         .confidence-medium {
             background-color: var(--confidence-medium);
             color: white;
         }
-        
+
         .confidence-low {
             background-color: var(--confidence-low);
             color: white;
         }
-        
+
         .answer-text {
             font-size: 1.125rem;
             line-height: 1.7;
             margin-bottom: 2rem;
             color: #e2e8f0;
         }
-        
+
         .sources-section {
             background: rgba(255, 255, 255, 0.03);
             border-radius: var(--border-radius);
@@ -177,14 +177,14 @@
             margin-top: 1.5rem;
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
-        
+
         .sources-title {
             font-size: 1rem;
             color: var(--primary-color);
             margin-bottom: 1rem;
             font-weight: bold;
         }
-        
+
         .source-item {
             background: rgba(255, 255, 255, 0.05);
             border-radius: var(--border-radius);
@@ -193,30 +193,30 @@
             border-left: 3px solid var(--primary-color);
             transition: all 0.3s ease;
         }
-        
+
         .source-item:hover {
             background: rgba(255, 255, 255, 0.08);
             transform: translateX(4px);
         }
-        
+
         .source-domain {
             font-weight: bold;
             color: var(--primary-color);
             margin-bottom: 0.5rem;
         }
-        
+
         .source-content {
             font-size: 0.9rem;
             color: #ccc;
             font-style: italic;
         }
-        
+
         .loading {
             text-align: center;
             padding: 2rem;
             color: var(--primary-color);
         }
-        
+
         .loading-spinner {
             border: 3px solid var(--secondary-color);
             border-top: 3px solid var(--primary-color);
@@ -226,12 +226,12 @@
             animation: spin 1s linear infinite;
             margin: 0 auto 1rem;
         }
-        
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        
+
         .error-message {
             background-color: var(--error-color);
             color: white;
@@ -239,7 +239,7 @@
             border-radius: 8px;
             margin: 1rem 0;
         }
-        
+
         .question-analysis {
             background-color: #2a2a2a;
             border-radius: 8px;
@@ -247,12 +247,12 @@
             margin-bottom: 1rem;
             font-size: 0.9rem;
         }
-        
+
         .question-type {
             color: var(--primary-color);
             font-weight: bold;
         }
-        
+
         .status-bar {
             text-align: center;
             padding: 1.5rem;
@@ -263,7 +263,7 @@
             color: #94a3b8;
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
-        
+
         .status-indicator {
             display: inline-block;
             width: 8px;
@@ -272,11 +272,11 @@
             margin-right: 0.5rem;
             background-color: var(--error-color);
         }
-        
+
         .status-indicator.connected {
             background-color: var(--success-color);
         }
-        
+
         .fallback-answer {
             background-color: #2a2a2a;
             border-radius: 8px;
@@ -284,7 +284,7 @@
             margin-bottom: 1rem;
             border-left: 3px solid var(--warning-color);
         }
-        
+
         .neural-verification {
             background-color: #1a2e1a;
             border-radius: 8px;
@@ -292,7 +292,7 @@
             margin-bottom: 1rem;
             border-left: 3px solid var(--success-color);
         }
-        
+
         .dispute-section {
             background-color: #2e1a1a;
             border-radius: 8px;
@@ -300,13 +300,13 @@
             margin-top: 1rem;
             border-left: 3px solid var(--warning-color);
         }
-        
+
         .dispute-form {
             display: grid;
             gap: 1rem;
             margin-top: 1rem;
         }
-        
+
         .dispute-input {
             padding: 0.5rem;
             border-radius: 4px;
@@ -314,12 +314,12 @@
             background-color: #2c2c2c;
             color: var(--text-color);
         }
-        
+
         .dispute-textarea {
             min-height: 80px;
             resize: vertical;
         }
-        
+
         .neural-confidence {
             display: inline-block;
             padding: 0.25rem 0.5rem;
@@ -328,13 +328,13 @@
             font-weight: bold;
             margin-left: 0.5rem;
         }
-        
+
         .fact-actions {
             display: flex;
             gap: 0.5rem;
             margin-top: 0.5rem;
         }
-        
+
         .action-button {
             padding: 0.5rem 1rem;
             border-radius: 8px;
@@ -345,17 +345,17 @@
             transition: all 0.3s ease;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
-        
+
         .action-button:hover {
             transform: translateY(-1px);
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
-        
+
         .verify-button {
             background-color: var(--success-color);
             color: white;
         }
-        
+
         .dispute-fact-button {
             background-color: var(--warning-color);
             color: white;
@@ -370,8 +370,8 @@
         </header>
 
         <div class="search-section">
-            <input type="text" id="question-input" class="search-input" 
-                   placeholder="Ask a question... (e.g., 'What companies are registered with the SEC?' or 'How many people were affected?')" 
+            <input type="text" id="question-input" class="search-input"
+                   placeholder="Ask a question... (e.g., 'What companies are registered with the SEC?' or 'How many people were affected?')"
                    autocomplete="off">
             <div style="display: grid; grid-template-columns: 1fr auto auto; gap: 1rem; margin-top: 1.5rem;">
                 <button id="ask-button" class="search-button" style="width: 100%;">
@@ -414,7 +414,6 @@
     <script>
         // Use ngrok URL for external access
         const AXIOM_NODE_URL = 'https://fb1a98e25be8.ngrok-free.app';
-        
         const questionInput = document.getElementById('question-input');
         const askButton = document.getElementById('ask-button');
         const neuralVerifyButton = document.getElementById('neural-verify-button');
@@ -434,12 +433,12 @@
                         'ngrok-skip-browser-warning': 'true'
                     }
                 });
-                
+
                 if (response.ok) {
                     const data = await response.json();
                     neuralStatus.style.display = 'block';
                     modelStatus.textContent = data.neural_metrics.status || 'Active';
-                    processingStats.textContent = data.processing_stats ? 
+                    processingStats.textContent = data.processing_stats ?
                         `Processed: ${data.processing_stats.total_facts || 0}` : 'No data';
                 }
             } catch (error) {
@@ -506,7 +505,7 @@
                         'ngrok-skip-browser-warning': 'true'
                     }
                 });
-                
+
                 if (response.ok) {
                     const data = await response.json();
                     statusIndicator.classList.add('connected');
@@ -520,6 +519,7 @@
             }
         }
 
+
         // Ask question
         async function askQuestion() {
             const question = questionInput.value.trim();
@@ -527,7 +527,7 @@
 
             askButton.disabled = true;
             askButton.textContent = 'Analyzing...';
-            
+
             resultsSection.style.display = 'block';
             resultsSection.innerHTML = `
                 <div class="loading">
@@ -544,7 +544,7 @@
                         'Content-Type': 'application/json',
                         'ngrok-skip-browser-warning': 'true'
                     },
-                    body: JSON.stringify({ 
+                    body: JSON.stringify({
                         question: question,
                         use_intelligent_search: true
                     })
@@ -565,7 +565,7 @@
                         'Content-Type': 'application/json',
                         'ngrok-skip-browser-warning': 'true'
                     },
-                    body: JSON.stringify({ 
+                    body: JSON.stringify({
                         query: question
                     })
                 });
@@ -580,7 +580,7 @@
             } catch (error) {
                 resultsSection.innerHTML = `
                     <div class="error-message">
-                        <strong>Error:</strong> Could not get answer from Axiom network. 
+                        <strong>Error:</strong> Could not get answer from Axiom network.
                         Please ensure the Axiom node is running.
                         <br><br>
                         <em>${error.message}</em>
@@ -595,23 +595,23 @@
         function displayIntelligentAnswer(data) {
             const confidenceClass = getConfidenceClass(data.confidence);
             const confidenceText = getConfidenceText(data.confidence);
-            
+
             let html = `
                 <div class="answer-card">
                     <div class="confidence-indicator ${confidenceClass}">
                         ${confidenceText} (${Math.round(data.confidence * 100)}%)
                     </div>
-                    
+
                     <div class="answer-text">
                         ${data.answer}
                     </div>
-                    
+
                     <div class="question-analysis">
-                        <strong>Question Analysis:</strong> 
-                        <span class="question-type">${data.question_analysis.question_type}</span> | 
+                        <strong>Question Analysis:</strong>
+                        <span class="question-type">${data.question_analysis.question_type}</span> |
                         Entities: ${data.question_analysis.entities.join(', ') || 'None detected'}
                     </div>
-                    
+
                     <div class="sources-section">
                         <div class="sources-title">
                             Supporting Facts (${data.supporting_facts.length} sources)
@@ -621,11 +621,11 @@
             data.supporting_facts.forEach((fact, index) => {
                 const relevancePercent = Math.round(fact.relevance_score * 100);
                 const factId = fact.id || `fact_${index}`;
-                
+
                 html += `
                     <div class="source-item">
                         <div class="source-domain">
-                            ${fact.sources[0] || 'Unknown Source'} 
+                            ${fact.sources[0] || 'Unknown Source'}
                             <span style="color: #888; font-size: 0.8rem;">
                                 (Relevance: ${relevancePercent}%)
                             </span>
@@ -665,12 +665,12 @@
             if (data.intelligent_answer) {
                 const confidenceClass = getConfidenceClass(data.confidence || 0.5);
                 const confidenceText = getConfidenceText(data.confidence || 0.5);
-                
+
                 html += `
                     <div class="confidence-indicator ${confidenceClass}">
                         ${confidenceText} (${Math.round((data.confidence || 0.5) * 100)}%)
                     </div>
-                    
+
                     <div class="answer-text">
                         ${data.intelligent_answer}
                     </div>
@@ -682,7 +682,7 @@
                     </div>
                 `;
             }
-            
+
             if (data.results && data.results.length > 0) {
                 html += `
                     <div class="sources-section">
@@ -696,7 +696,7 @@
                     html += `
                         <div class="source-item">
                             <div class="source-domain">
-                                ${fact.sources[0] || 'Unknown Source'} 
+                                ${fact.sources[0] || 'Unknown Source'}
                                 <span style="color: #888; font-size: 0.8rem;">
                                     (Similarity: ${similarityPercent}%)
                                 </span>
@@ -744,7 +744,7 @@
                 if (result) {
                     const confidenceClass = getConfidenceClass(result.confidence);
                     const confidenceText = getConfidenceText(result.confidence);
-                    
+
                     // Find the confidence indicator for this fact
                     const factIndex = factId.replace('fact_', '');
                     const confidenceSpan = document.getElementById(`neural-confidence-${factIndex}`);
@@ -753,7 +753,7 @@
                         confidenceSpan.className = `neural-confidence ${confidenceClass}`;
                         confidenceSpan.style.display = 'inline-block';
                     }
-                    
+
                     // Show verification result
                     alert(`Neural Verification Result:\n\nConfidence: ${confidenceText} (${Math.round(result.confidence * 100)}%)\nVerified: ${result.verified ? 'Yes' : 'No'}\nModel: ${result.model_used}`);
                 }
@@ -780,7 +780,7 @@
                     </div>
                 </div>
             `;
-            
+
             // Add dispute form to the results section
             resultsSection.insertAdjacentHTML('beforeend', disputeHtml);
         }
@@ -788,12 +788,12 @@
         async function submitDispute(factId) {
             const reason = document.getElementById('dispute-reason').value.trim();
             const evidence = document.getElementById('dispute-evidence').value.trim();
-            
+
             if (!reason) {
                 alert('Please provide a reason for the dispute.');
                 return;
             }
-            
+
             try {
                 const evidenceData = [{
                     node_id: 'web_interface',
@@ -801,7 +801,7 @@
                     evidence_content: evidence,
                     confidence_score: 0.8
                 }];
-                
+
                 const result = await createDispute(factId, reason, evidenceData);
                 if (result) {
                     alert(`Dispute submitted successfully!\n\nDispute ID: ${result.dispute_id}\nStatus: Submitted for network review`);
@@ -848,7 +848,7 @@
             askButton.disabled = true;
             neuralVerifyButton.disabled = true;
             neuralVerifyButton.textContent = 'Analyzing with Neural Network...';
-            
+
             resultsSection.style.display = 'block';
             resultsSection.innerHTML = `
                 <div class="loading">
@@ -885,7 +885,7 @@
                         'Content-Type': 'application/json',
                         'ngrok-skip-browser-warning': 'true'
                     },
-                    body: JSON.stringify({ 
+                    body: JSON.stringify({
                         question: question,
                         use_intelligent_search: true
                     })
@@ -901,7 +901,7 @@
             } catch (error) {
                 resultsSection.innerHTML = `
                     <div class="error-message">
-                        <strong>Error:</strong> Could not get neural network analysis from Axiom network. 
+                        <strong>Error:</strong> Could not get neural network analysis from Axiom network.
                         Please ensure the Axiom node is running with neural network support.
                         <br><br>
                         <em>${error.message}</em>
@@ -918,7 +918,7 @@
             const result = data.processing_result;
             const confidenceClass = getConfidenceClass(result.neural_verification.confidence);
             const confidenceText = getConfidenceText(result.neural_verification.confidence);
-            
+
             let html = `
                 <div class="answer-card">
                     <div class="neural-verification">
@@ -927,12 +927,12 @@
                         Status: ${result.status}<br>
                         Processing Time: ${result.processing_time}s
                     </div>
-                    
+
                     <div class="answer-text">
                         <strong>Question:</strong> ${question}<br><br>
                         <strong>Analysis:</strong> ${result.analysis || 'No analysis available'}
                     </div>
-                    
+
                     <div class="sources-section">
                         <div class="sources-title">
                             Neural Network Verification Results

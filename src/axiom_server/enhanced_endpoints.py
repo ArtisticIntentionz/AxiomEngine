@@ -168,7 +168,9 @@ def handle_enhanced_chat() -> Response | tuple[Response, int]:
     use_intelligent_search = data.get("use_intelligent_search", True)
 
     logger.info(f"Enhanced chat called with question: {question}")
-    print(f"Enhanced chat called with question: {question}")  # Direct print for debugging
+    print(
+        f"Enhanced chat called with question: {question}",
+    )  # Direct print for debugging
 
     try:
         # Step 1: Analyze the question

@@ -19,7 +19,7 @@ create_node_command() {
     local port=$1
     local api_port=$2
     local node_type=$3
-    
+
     echo "conda activate Axiom10 && cd '$SCRIPT_DIR' && echo '=== STARTING $node_type NODE (Port $port) ===' && python3 -m axiom_server.node --host 0.0.0.0 --p2p-port $port --api-port $api_port"
 }
 

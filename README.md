@@ -1,7 +1,3 @@
-Of course. I've corrected the formatting, fixed structural issues like inconsistent numbering and list formats, and improved the clarity of the technical setup instructions. The file will now render correctly on GitHub.
-
-Here is the fixed `README.md` file:
-
 ---
 
 # Axiom: A Decentralized Network for Verifiable Truth - A Grounding Engine
