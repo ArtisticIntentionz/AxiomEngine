@@ -56,6 +56,7 @@ from axiom_server.ledger import (
     get_latest_block,
     initialize_database,
     mark_fact_objects_as_disputed,
+    FactStatus,
 )
 from axiom_server.p2p.constants import (
     BOOTSTRAP_PORT,
@@ -1660,7 +1661,14 @@ def handle_neural_verify_fact():
         # Create a temporary fact for verification
         sources = []
         if "sources" in data:
-            sources = [Source(domain=s.get('domain', '')) for s in data["sources"]]
+            # Handle sources that might be strings or dictionaries
+            for s in data["sources"]:
+                if isinstance(s, dict):
+                    sources.append(Source(domain=s.get('domain', '')))
+                elif isinstance(s, str):
+                    sources.append(Source(domain=s))
+                else:
+                    sources.append(Source(domain=str(s)))
         
         fact = Fact(
             content=data["content"],
@@ -1798,6 +1806,34 @@ def handle_get_neural_performance():
     except Exception as e:
         logger.error(f"Error getting neural performance: {e}")
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/test_fact_indexer", methods=["GET"])
+def handle_test_fact_indexer():
+    """Test endpoint to check if the fact indexer is working."""
+    try:
+        # Test if fact_indexer is accessible
+        if 'fact_indexer' in globals():
+            # Test a simple search
+            test_results = fact_indexer.find_closest_facts("test", top_n=1, min_similarity=0.1)
+            return jsonify({
+                "status": "success",
+                "fact_indexer_accessible": True,
+                "test_results_count": len(test_results),
+                "fact_indexer_type": str(type(fact_indexer))
+            })
+        else:
+            return jsonify({
+                "status": "error",
+                "fact_indexer_accessible": False,
+                "error": "fact_indexer not found in globals"
+            })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "fact_indexer_accessible": False,
+            "error": str(e)
+        }), 500
 
 
 def main() -> None:

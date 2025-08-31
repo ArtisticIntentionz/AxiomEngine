@@ -1,8 +1,9 @@
-"""Hasher - Fact hash tools."""
+"""Fact Indexer - Ultra-fast hybrid search for facts."""
 
 from __future__ import annotations
 
 import logging
+import re
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -12,6 +13,8 @@ from sqlalchemy.orm import joinedload
 from axiom_server.common import NLP_MODEL
 from axiom_server.ledger import (
     Fact,
+    FactStatus,
+    SessionMaker,
 )
 
 # <<< CHANGE 1 HERE: Import the new advanced parser >>>
@@ -98,22 +101,22 @@ class FactIndexer:
         top_n: int = 3,
         min_similarity: float = 0.45,  # Lowered threshold for faster, more inclusive results
     ) -> list[dict[str, Any]]:
-        """Perform ULTRA-FAST search using simple keyword extraction."""
-        # Ultra-fast keyword extraction without spaCy
-        keywords = self._extract_keywords_fast(query_text)
+        """Perform ULTRA-FAST search using intelligent keyword extraction."""
+        # Enhanced keyword extraction
+        keywords = self._extract_keywords_enhanced(query_text)
         if not keywords:
             logger.warning("Could not extract any keywords from the query.")
             return []
 
-        logger.info(f"Extracted keywords for ultra-fast search: {keywords}")
+        logger.info(f"Extracted keywords for enhanced search: {keywords}")
 
-        # Ultra-fast keyword-based filtering with optimized query
+        # Enhanced keyword-based filtering with optimized query
         keyword_filters = [Fact.content.ilike(f"%{key}%") for key in keywords]
         candidate_facts = (
             self.session.query(Fact)
             .filter(or_(*keyword_filters))
             .filter(not_(Fact.disputed))
-            .limit(5)  # Very small limit for maximum speed
+            .limit(10)  # Increased limit for better selection
             .options(  # Eager load relationships to avoid N+1 queries
                 joinedload(Fact.sources),
             )
@@ -124,146 +127,117 @@ class FactIndexer:
             logger.info("No facts found matching keywords.")
             return []
 
-        # Simple scoring based on keyword matches
+        # Enhanced scoring based on multiple factors
         scored_facts = []
         query_lower = query_text.lower()
 
         for fact in candidate_facts:
             fact_lower = fact.content.lower()
-
-            # Count keyword matches
+            
+            # Factor 1: Keyword match count
             keyword_matches = sum(
                 1 for keyword in keywords if keyword.lower() in fact_lower
             )
-
-            # Simple relevance score
-            if keyword_matches > 0:
-                score = min(0.9, keyword_matches / len(keywords) + 0.1)
-                scored_facts.append((score, fact))
+            
+            # Factor 2: Exact phrase matching
+            exact_phrase_score = 0
+            query_words = query_text.split()
+            if len(query_words) > 1:
+                for i in range(len(query_words) - 1):
+                    phrase = f"{query_words[i]} {query_words[i+1]}"
+                    if phrase.lower() in fact_lower:
+                        exact_phrase_score += 0.3
+            
+            # Factor 3: Source quality
+            source_score = 0
+            if fact.sources:
+                authoritative_sources = ['reuters.com', 'ap.org', 'bbc.com', 'cnn.com', 'nytimes.com']
+                for source in fact.sources:
+                    if source.domain in authoritative_sources:
+                        source_score += 0.2
+            
+            # Factor 4: Fact status quality
+            status_score = 0
+            if fact.status == FactStatus.EMPIRICALLY_VERIFIED:
+                status_score = 0.3
+            elif fact.status == FactStatus.CORROBORATED:
+                status_score = 0.2
+            elif fact.status == FactStatus.LOGICALLY_CONSISTENT:
+                status_score = 0.1
+            
+            # Factor 5: Content length and quality
+            content_score = min(len(fact.content.split()) / 50, 0.2)  # Prefer longer, more detailed facts
+            
+            # Calculate overall score
+            base_score = keyword_matches / len(keywords) if keywords else 0
+            total_score = base_score + exact_phrase_score + source_score + status_score + content_score
+            
+            if total_score > 0:
+                scored_facts.append((total_score, fact))
 
         # Sort by score and take top results
         scored_facts.sort(key=lambda x: x[0], reverse=True)
         top_facts = scored_facts[:top_n]
 
-        # Build results (without slow block lookup)
+        # Build results with enhanced information
         results = []
         for score, fact in top_facts:
-            results.append(
-                {
-                    "content": fact.content,
-                    "similarity": float(score),
-                    "fact_id": fact.id,
-                    "disputed": fact.disputed,
-                    "sources": [source.domain for source in fact.sources],
-                    "source_url": fact.source_url,
-                    "fact_hash": fact.hash,
-                    "block_height": None,  # Skip slow block lookup for performance
-                },
-            )
+            # Get source domains
+            source_domains = [source.domain for source in fact.sources] if fact.sources else []
+            
+            results.append({
+                'content': fact.content,
+                'similarity': min(score, 0.95),  # Cap similarity at 0.95
+                'confidence': min(score + 0.1, 0.9),  # Add small confidence boost
+                'sources': source_domains,
+                'fact_id': fact.id,
+                'status': fact.status.value,
+                'created_at': fact.created_at.isoformat() if hasattr(fact, 'created_at') and fact.created_at else None
+            })
 
         return results
 
-    def _extract_keywords_fast(self, query_text: str) -> list[str]:
-        """Ultra-fast keyword extraction without spaCy."""
-        if not query_text.strip():
+    def _extract_keywords_enhanced(self, text: str) -> list[str]:
+        """Enhanced keyword extraction with better filtering."""
+        if not text:
             return []
-
-        # Simple stop words to filter out
+        
+        # Remove common stop words but keep important ones
         stop_words = {
-            "the",
-            "a",
-            "an",
-            "and",
-            "or",
-            "but",
-            "in",
-            "on",
-            "at",
-            "to",
-            "for",
-            "of",
-            "with",
-            "by",
-            "is",
-            "are",
-            "was",
-            "were",
-            "be",
-            "been",
-            "being",
-            "have",
-            "has",
-            "had",
-            "do",
-            "does",
-            "did",
-            "will",
-            "would",
-            "could",
-            "should",
-            "may",
-            "might",
-            "can",
-            "this",
-            "that",
-            "these",
-            "those",
-            "what",
-            "when",
-            "where",
-            "why",
-            "how",
-            "who",
-            "which",
-            "whom",
-            "i",
-            "you",
-            "he",
-            "she",
-            "it",
-            "we",
-            "they",
-            "me",
-            "him",
-            "her",
-            "us",
-            "them",
-            "my",
-            "your",
-            "his",
-            "its",
-            "our",
-            "their",
-            "mine",
-            "yours",
-            "hers",
-            "ours",
-            "theirs",
+            'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by',
+            'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did',
+            'will', 'would', 'could', 'should', 'may', 'might', 'can', 'this', 'that', 'these', 'those'
         }
-
-        # Simple punctuation to remove
-        import string
-
-        punctuation = string.punctuation
-
-        # Clean and split the query
-        query_lower = query_text.lower()
-        for char in punctuation:
-            query_lower = query_lower.replace(char, " ")
-
-        # Extract meaningful words
-        words = query_lower.split()
-        keywords = []
-
+        
+        # Keep important question words and entities
+        important_words = {
+            'what', 'how', 'why', 'when', 'where', 'who', 'which', 'trump', 'biden', 'sec', 'companies',
+            'said', 'announced', 'reported', 'according', 'study', 'research', 'data', 'statistics'
+        }
+        
+        # Extract words
+        words = re.findall(r'\b[a-zA-Z]+\b', text.lower())
+        
+        # Filter and score words
+        keyword_scores = {}
         for word in words:
-            word = word.strip()
-            if (
-                word
-                and len(word) > 2  # Skip very short words
-                and word not in stop_words
-                and not word.isdigit()
-            ):  # Skip pure numbers
-                keywords.append(word)
-
-        # Return unique keywords, limited to 5 for speed
-        return list(dict.fromkeys(keywords))[:5]
+            if len(word) < 2:
+                continue
+                
+            if word in stop_words and word not in important_words:
+                continue
+                
+            # Score based on importance
+            score = 1.0
+            if word in important_words:
+                score = 2.0
+            elif word[0].isupper():  # Proper nouns
+                score = 1.5
+            elif len(word) > 5:  # Longer words tend to be more specific
+                score = 1.2
+            
+            keyword_scores[word] = keyword_scores.get(word, 0) + score
+        
+        # Sort by score and return top keywords
+        sorted_keywords = sorted(keyword_scores.items(), key=lambda x: x[1], reverse=True)
+        return [word for word, score in sorted_keywords[:8]]  # Return top 8 keywords
